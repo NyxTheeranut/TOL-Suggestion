@@ -294,13 +294,17 @@
       .modal-close { border: none; background: var(--panel-2); color: var(--text-2); width: 26px; height: 26px; border-radius: 50%; flex: none; font-size: 14px; }
       .modal-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
       .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: var(--panel-2); color: var(--text-2); }
-      .badge.grade-H { background: var(--st-good-soft); color: var(--st-good); }
-      .badge.grade-L { background: var(--st-crit-soft); color: var(--st-crit); }
+      .badge.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
+      .badge.win-fibre3 { background: var(--st-good-soft); color: var(--st-good); }
+      .badge.win-nt { background: var(--st-warn-soft); color: var(--st-warn); }
       .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       .demo-item { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }
       .demo-item .lbl { font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .03em; }
       .demo-item .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
       .demo-item .sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+      .demo-item.mks-true { background: var(--st-crit-soft); border-color: transparent; }
+      .demo-item.mks-fibre3 { background: var(--st-good-soft); border-color: transparent; }
+      .demo-item.mks-nt { background: var(--st-warn-soft); border-color: transparent; }
 
       /* ── calendar ───────────────────────────────────────────────────────── */
       .cal-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 6px; }
@@ -646,56 +650,85 @@
       });
 
       /* ===== modal ===== */
-      const DEMO_FIELDS = {
-        village: [
-          ["houseAll", "ครัวเรือน", (r) => fmt(r.houseAll)],
-          ["ports", "พอร์ต (ว่าง / ทั้งหมด)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
-          ["active", "Active True", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
-          ["competitor", "ลูกค้าคู่แข่ง", (r) => fmt(r.competitor)],
-          ["mksTrue", "ส่วนแบ่งตลาด (True)", (r) => pct(r.mksTrue)],
-          ["fault", "Fault (เฉลี่ย 3 เดือน)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · เกรด " + r.faultGrade : "")],
-          ["churn", "Churn (3 เดือน)", (r) => fmt(r.churn3m) + (r.churnGrade ? " · " + r.churnGrade : "")],
-          ["grade", "เกรดการขาย", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
-          ["status", "สถานะ", (r) => r.status || "—"],
-          ["group", "กลุ่ม", (r) => r.mainGroup || r.actionGroup || "—"],
-        ],
-        building: [
-          ["units", "ยูนิต / ชั้น", (r) => fmt(r.units) + " / " + fmt(r.floors)],
-          ["occupancy", "อัตราเข้าอยู่", (r) => pct(r.occupancy)],
-          ["ports", "พอร์ต (ว่าง / ทั้งหมด)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
-          ["active", "Active", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
-          ["arpu", "ARPU", (r) => fmt(r.arpu)],
-          ["competitor", "ลูกค้าคู่แข่ง", (r) => fmt(r.competitor)],
-          ["mksTrue", "ส่วนแบ่งตลาด (True)", (r) => pct(r.mksTrue)],
-          ["fault", "Fault (อัตราเฉลี่ย)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · เกรด " + r.faultGrade : "")],
-          ["churn", "Churn", (r) => pct(r.churnPct)],
-          ["grade", "เกรดการขาย", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
-        ],
-      };
       function fmt(v) { return v == null ? "—" : (typeof v === "number" ? Math.round(v * 100) / 100 : v); }
       function pct(v) { return v == null ? "—" : (Math.round(v * 1000) / 10) + "%"; }
+      function hhOf(r) { return kindOf(r) === "village" ? r.houseAll : r.units; }
+
+      // Backs out an implied total addressable (OOKLA-sampled) market from
+      // True's own known active count and share -- same market-sizing math
+      // aggregate_suggestion.py uses for competitorSubs, just kept per-carrier
+      // here instead of summed, so Fibre3/NT can each show their own
+      // estimated active count next to their MKS%.
+      function totalMarketOf(r) { return (r.active != null && r.mksTrue) ? r.active / r.mksTrue : null; }
+      function carrierActiveOf(mksShare, market) { return (mksShare != null && market != null) ? mksShare * market : null; }
+
+      // 10-item, 2-column demographic grid -- same shape for villages and
+      // buildings (a building's "ครัวเรือน/ยูนิต" box just reads r.units via
+      // hhOf() instead of r.houseAll). `box` tints the tile to match the
+      // carrier it's about; `sub` is a small secondary line explaining how
+      // a paired value on the right was derived.
+      const DEMO_ITEMS = [
+        { label: "ครัวเรือน/ยูนิต", val: (r) => fmt(hhOf(r)) },
+        { label: "พอร์ต (ว่าง / ทั้งหมด)", val: (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort) },
+
+        { label: "True (MKS / Active)", box: "mks-true",
+          val: (r) => pct(r.mksTrue) + " / " + fmt(r.active) },
+        { label: "Fibre3 (MKS / Active)", box: "mks-fibre3",
+          val: (r) => pct(r.mksFibre3) + " / " + fmt(carrierActiveOf(r.mksFibre3, totalMarketOf(r))) },
+
+        { label: "NT (MKS / Active)", box: "mks-nt",
+          val: (r) => pct(r.mksNt) + " / " + fmt(carrierActiveOf(r.mksNt, totalMarketOf(r))) },
+        { label: "Market Size / %Penetration", sub: "Market Size/HH",
+          val: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return fmt(m) + " / " + pct(hh ? m / hh : null); } },
+
+        { label: "Churn Subs (Volun / Involun)",
+          val: (r) => fmt(r.churnVolMonthly) + " / " + fmt(r.churnInvolMonthly) },
+        { label: "All Churn (Subs / Rate)", sub: "Churn Subs / True Active",
+          val: (r) => fmt(r.churnMonthly) + " / " + pct(r.churnMonthlyRate) },
+
+        { label: "Truck Roll (Sub / Rate)",
+          val: (r) => fmt(r.faultTruckRoll) + " / " + pct(r.faultTruckRollPct) },
+        { label: "Other Fault (Sub / Rate)",
+          val: (r) => fmt(r.faultOther) + " / " + pct(r.faultOtherPct) },
+      ];
+
+      // The badge under the name used to show the business's own sales
+      // grade (H/L) -- now shows which carrier actually holds the largest
+      // market share here, colored to match that carrier's box above.
+      const MKS_WINNERS = [
+        { key: "true", cls: "win-true", label: "True", get: (r) => r.mksTrue },
+        { key: "fibre3", cls: "win-fibre3", label: "Fibre3", get: (r) => r.mksFibre3 },
+        { key: "nt", cls: "win-nt", label: "NT", get: (r) => r.mksNt },
+      ];
+      function mksWinner(record) {
+        const known = MKS_WINNERS.map((w) => ({ ...w, v: w.get(record) })).filter((w) => w.v != null);
+        if (!known.length) return null;
+        return known.reduce((a, b) => (b.v > a.v ? b : a));
+      }
 
       function openModal(record) {
-        const kind = kindOf(record);
-        const fields = DEMO_FIELDS[kind];
-        const gradeCls = record.gradeSale === "H" ? "grade-H" : record.gradeSale === "L" ? "grade-L" : "";
+        const winner = mksWinner(record);
+        // Village status goes at the end of the location line (after
+        // subdistrict/district), not as its own grid box.
+        const locLine = locOf(record) + (kindOf(record) === "village" && record.status ? " · " + record.status : "");
         document.getElementById("modalCard").innerHTML = `
           <div class="modal-head">
             <div>
               <h3>${escapeHtml(record.name || "—")}</h3>
-              <div class="loc">${escapeHtml(locOf(record))}</div>
+              <div class="loc">${escapeHtml(locLine)}</div>
             </div>
             <button class="modal-close" id="modalCloseBtn">✕</button>
           </div>
           <div class="modal-badges">
-            <span class="badge ${gradeCls}">เกรด ${escapeHtml(record.gradeSale || "—")}</span>
+            ${winner ? `<span class="badge ${winner.cls}">${winner.label} ชนะ</span>` : ""}
             ${(record.tags || []).map((t) => `<span class="badge">${tagLabel(t)}</span>`).join("")}
           </div>
           <div class="demo-grid">
-            ${fields.map(([k, label, get]) => `
-              <div class="demo-item">
-                <div class="lbl">${label}</div>
-                <div class="val">${escapeHtml(String(get(record)))}</div>
+            ${DEMO_ITEMS.map((item) => `
+              <div class="demo-item ${item.box || ""}">
+                <div class="lbl">${item.label}</div>
+                <div class="val">${escapeHtml(String(item.val(record)))}</div>
+                ${item.sub ? `<div class="sub">${item.sub}</div>` : ""}
               </div>`).join("")}
           </div>
         `;
@@ -1827,7 +1860,8 @@
         "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
         "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
         "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m",
-        "churnRate", "churnGrade", "churnMonthly", "churnMonthlyRate", "gradeSale",
+        "churnRate", "churnGrade", "churnVolMonthly", "churnInvolMonthly",
+        "churnMonthly", "churnMonthlyRate", "gradeSale",
         "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
         "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
       ];
@@ -1838,7 +1872,8 @@
         "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
         "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
         "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m", "churnPct",
-        "churnMonthly", "churnMonthlyRate", "gradeSale", "scoreSale",
+        "churnVolMonthly", "churnInvolMonthly", "churnMonthly", "churnMonthlyRate",
+        "gradeSale", "scoreSale",
         "groupBuilding", "caretakerChannel", "caretakerName", "tags", "autoScore",
       ];
       function rowObjects_(tab, fields) {
@@ -1906,7 +1941,7 @@
       /* ===== mock data (local preview only) ===== */
       const MOCK_PAYLOAD = {
         villages: [
-          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
+          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
           { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, mksFibre3: 0.5, mksNt: 0.29, competitorMks: 0.79, competitorSubs: 75.2, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 0, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
           { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, mksFibre3: 0.4, mksNt: 0.27, competitorMks: 0.67, competitorSubs: 121.8, faultAvg: 1.2, faultGrade: "M", faultTruckRoll: 8, faultTruckRollPct: 0.73, faultOther: 3, faultOtherPct: 0.27, churn3m: 6, churnRate: 0.04, churnGrade: "mid", churnMonthly: 4, churnMonthlyRate: 0.067, gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 79.4 },
           { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, mksFibre3: 0.35, mksNt: 0.18, competitorMks: 0.53, competitorSubs: 14.7, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },

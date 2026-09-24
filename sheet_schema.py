@@ -21,7 +21,8 @@ VILLAGE_FIELDS = [
     "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
     "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
     "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m",
-    "churnRate", "churnGrade", "churnMonthly", "churnMonthlyRate", "gradeSale",
+    "churnRate", "churnGrade", "churnVolMonthly", "churnInvolMonthly",
+    "churnMonthly", "churnMonthlyRate", "gradeSale",
     "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
     "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
 ]
@@ -33,7 +34,8 @@ BUILDING_FIELDS = [
     "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
     "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
     "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m", "churnPct",
-    "churnMonthly", "churnMonthlyRate", "gradeSale", "scoreSale",
+    "churnVolMonthly", "churnInvolMonthly", "churnMonthly", "churnMonthlyRate",
+    "gradeSale", "scoreSale",
     "groupBuilding", "caretakerChannel", "caretakerName", "tags", "autoScore",
 ]
 
