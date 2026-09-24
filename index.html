@@ -413,6 +413,7 @@
               <div class="kind-toggle" id="searchKind">
                 <button data-v="village" class="active">Villages</button>
                 <button data-v="building">Buildings</button>
+                <button data-v="both">Both</button>
               </div>
               <div class="search-wrap">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -451,6 +452,7 @@
               <div class="kind-toggle" id="recKind">
                 <button data-v="village" class="active">Villages</button>
                 <button data-v="building">Buildings</button>
+                <button data-v="both">Both</button>
               </div>
               <div class="auto-toggle">
                 Auto-suggest
@@ -543,7 +545,7 @@
       function poolFor(kind) {
         if (kind === "village") return STATE.villages;
         if (kind === "building") return STATE.buildings;
-        return STATE.villages.concat(STATE.buildings).map((r, i) => r); // "both"
+        return STATE.villages.concat(STATE.buildings); // "both"
       }
       function kindOf(r) { return "houseAll" in r ? "village" : "building"; }
       // District/subdistrict live under different field names per kind
@@ -867,7 +869,10 @@
         return poolFor(searchState.kind).filter((r) => {
           if (!ignore.has("amp") && searchState.amp !== "all" && ampOf(r) !== searchState.amp) return false;
           if (!ignore.has("tam") && searchState.tam !== "all" && tamOf(r) !== searchState.tam) return false;
-          if (!ignore.has("status") && searchState.status !== "all" && r.status !== searchState.status) return false;
+          // Buildings have no status field -- scoped to villages only, same
+          // fix as the calendar's area pool, so picking a status in "Both"
+          // mode doesn't silently exclude every building.
+          if (!ignore.has("status") && kindOf(r) === "village" && searchState.status !== "all" && r.status !== searchState.status) return false;
           if (!ignore.has("text") && text && !(r.name || "").toLowerCase().includes(text)) return false;
           return true;
         });
@@ -961,7 +966,7 @@
 
       function populateStatusFilter() {
         const statusSel = document.getElementById("searchStatus");
-        if (searchState.kind === "village") {
+        if (searchState.kind !== "building") {
           const statuses = [...new Set(STATE.villages.map((r) => r.status).filter(Boolean))];
           statusSel.style.display = "";
           statusSel.innerHTML = `<option value="all">Any status</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
