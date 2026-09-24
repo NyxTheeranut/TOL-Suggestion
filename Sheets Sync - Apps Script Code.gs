@@ -316,6 +316,27 @@ function cutoffMonthKey_() {
   return String(d.getFullYear()) + (m < 10 ? "0" + m : String(m));
 }
 
+// Forces every row to exactly `width` columns (padding short ones,
+// trimming long ones) and drops rows with no key in column 0 at all --
+// a blank row, or Sheets' own [[""]] minimum on an otherwise-empty
+// range. Without this, a row shaped for an OLDER version of this schema
+// (e.g. from before the "email" column existed) sitting next to a
+// freshly-built row gets handed to setValues() as a jagged array, which
+// throws instead of writing anything ("data has N columns but range has
+// M columns" -- exactly what happened here). Every read-modify-write
+// below runs its kept rows through this before writing, so the sheet
+// self-heals back to the current column shape on the next successful
+// write instead of staying corrupted.
+function normalizeRows_(rows, width) {
+  return rows
+    .filter(function (r) { return r && r[0] !== "" && r[0] != null; })
+    .map(function (r) {
+      r = r.slice(0, width);
+      while (r.length < width) r.push("");
+      return r;
+    });
+}
+
 // Drops CalendarPlan/CalendarTheme rows for any month older than the
 // retention window -- a past month's sales-visit plan has no ongoing
 // value once it's over, unlike Villages/Buildings which are a current-
@@ -325,18 +346,17 @@ function cutoffMonthKey_() {
 function pruneOldCalendarData_() {
   var cutoff = cutoffMonthKey_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  ["CalendarPlan", "CalendarTheme"].forEach(function (name) {
-    var sheet = ss.getSheetByName(name);
+  [["CalendarPlan", CALENDAR_PLAN_HEADER], ["CalendarTheme", CALENDAR_THEME_HEADER]].forEach(function (pair) {
+    var sheet = ss.getSheetByName(pair[0]);
     if (!sheet) return;
+    var header = pair[1];
     var data = sheet.getDataRange().getValues();
     if (data.length < 2) return;
-    var kept = [data[0]];
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]) >= cutoff) kept.push(data[i]);
-    }
-    if (kept.length === data.length) return; // nothing to prune -- skip the rewrite
+    var kept = normalizeRows_(data.slice(1).filter(function (r) { return String(r[0]) >= cutoff; }), header.length);
+    if (kept.length === data.length - 1) return; // nothing to prune -- skip the rewrite
     sheet.clearContents();
-    sheet.getRange(1, 1, kept.length, data[0].length).setValues(kept);
+    sheet.getRange(1, 1, 1, header.length).setValues([header]);
+    if (kept.length) sheet.getRange(2, 1, kept.length, header.length).setValues(kept);
     sheet.setFrozenRows(1);
   });
 }
@@ -352,18 +372,19 @@ function saveCalendarTheme_(monthKey, tags, email) {
     sheet.setFrozenRows(1);
   }
   var data = sheet.getDataRange().getValues();
+  var existing = normalizeRows_(data.slice(1), CALENDAR_THEME_HEADER.length);
   var rowIdx = -1;
-  for (var i = 1; i < data.length; i++) {
+  for (var i = 0; i < existing.length; i++) {
     // Matched on monthKey + updatedBy (not monthKey alone) -- each viewer
     // gets their own theme row per month.
-    if (String(data[i][0]) === String(monthKey) && data[i][2] === email) { rowIdx = i; break; }
+    if (String(existing[i][0]) === String(monthKey) && existing[i][2] === email) { rowIdx = i; break; }
   }
   var newRow = [monthKey, tags.join(","), email, new Date().toISOString()];
-  if (rowIdx === -1) {
-    sheet.appendRow(newRow);
-  } else {
-    sheet.getRange(rowIdx + 1, 1, 1, newRow.length).setValues([newRow]);
-  }
+  if (rowIdx === -1) existing.push(newRow); else existing[rowIdx] = newRow;
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, CALENDAR_THEME_HEADER.length).setValues([CALENDAR_THEME_HEADER]);
+  if (existing.length) sheet.getRange(2, 1, existing.length, CALENDAR_THEME_HEADER.length).setValues(existing);
+  sheet.setFrozenRows(1);
 }
 
 function saveCalendarDay_(monthKey, day, picks, email) {
@@ -382,18 +403,17 @@ function saveCalendarDay_(monthKey, day, picks, email) {
     sheet.appendRow(CALENDAR_PLAN_HEADER);
     sheet.setFrozenRows(1);
   }
+  var width = CALENDAR_PLAN_HEADER.length;
   var data = sheet.getDataRange().getValues();
-  var kept = [data[0] || CALENDAR_PLAN_HEADER];
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    if (String(row[0]) === String(monthKey) && Number(row[1]) === Number(day) && row[5] === email) continue;
-    kept.push(row);
-  }
+  var kept = normalizeRows_(data.slice(1), width).filter(function (row) {
+    return !(String(row[0]) === String(monthKey) && Number(row[1]) === Number(day) && row[5] === email);
+  });
   picks.forEach(function (p) {
     kept.push([monthKey, day, p.slot, p.kind, p.refId, email]);
   });
   sheet.clearContents();
-  sheet.getRange(1, 1, kept.length, CALENDAR_PLAN_HEADER.length).setValues(kept);
+  sheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
+  if (kept.length) sheet.getRange(2, 1, kept.length, width).setValues(kept);
   sheet.setFrozenRows(1);
 }
 
@@ -404,32 +424,33 @@ function saveCalendarDay_(monthKey, day, picks, email) {
 function clearCalendarMonth_(monthKey, email) {
   if (!monthKey) throw new Error("monthKey required");
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+
   var planSheet = ss.getSheetByName("CalendarPlan");
   if (planSheet) {
     var pdata = planSheet.getDataRange().getValues();
     if (pdata.length >= 2) {
-      var pkept = [pdata[0]];
-      for (var i = 1; i < pdata.length; i++) {
-        if (String(pdata[i][0]) === String(monthKey) && pdata[i][5] === email) continue;
-        pkept.push(pdata[i]);
-      }
+      var pkept = normalizeRows_(pdata.slice(1), CALENDAR_PLAN_HEADER.length).filter(function (row) {
+        return !(String(row[0]) === String(monthKey) && row[5] === email);
+      });
       planSheet.clearContents();
-      planSheet.getRange(1, 1, pkept.length, pdata[0].length).setValues(pkept);
+      planSheet.getRange(1, 1, 1, CALENDAR_PLAN_HEADER.length).setValues([CALENDAR_PLAN_HEADER]);
+      if (pkept.length) planSheet.getRange(2, 1, pkept.length, CALENDAR_PLAN_HEADER.length).setValues(pkept);
       planSheet.setFrozenRows(1);
     }
   }
+
   var themeSheet = ss.getSheetByName("CalendarTheme");
   if (themeSheet) {
-    var data = themeSheet.getDataRange().getValues();
-    if (data.length < 2) return;
-    var kept = [data[0]];
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(monthKey) && data[i][2] === email) continue;
-      kept.push(data[i]);
+    var tdata = themeSheet.getDataRange().getValues();
+    if (tdata.length >= 2) {
+      var tkept = normalizeRows_(tdata.slice(1), CALENDAR_THEME_HEADER.length).filter(function (row) {
+        return !(String(row[0]) === String(monthKey) && row[2] === email);
+      });
+      themeSheet.clearContents();
+      themeSheet.getRange(1, 1, 1, CALENDAR_THEME_HEADER.length).setValues([CALENDAR_THEME_HEADER]);
+      if (tkept.length) themeSheet.getRange(2, 1, tkept.length, CALENDAR_THEME_HEADER.length).setValues(tkept);
+      themeSheet.setFrozenRows(1);
     }
-    themeSheet.clearContents();
-    themeSheet.getRange(1, 1, kept.length, data[0].length).setValues(kept);
-    themeSheet.setFrozenRows(1);
   }
 }
 
