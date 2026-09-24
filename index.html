@@ -735,6 +735,12 @@
       // pick a tambon and it's highlighted solidly while its siblings stay
       // faint. Clicking a shape sets the same searchState.amp/tam the
       // sidebar pills/cards do, so the map and the sidebar always agree.
+      // interactive: false throughout -- these are a visual grid only. They
+      // used to also be clickable (setting the same amp/tam the sidebar
+      // does), but that competed with tapping a pin sitting on top of one,
+      // especially on mobile where a finger is far less precise than a
+      // cursor; filtering by district/subdistrict already works fine from
+      // the sidebar pills/cards.
       function renderBoundaries() {
         boundaryLayer.clearLayers();
         const districtsPresent = [...new Set(poolFor(searchState.kind).map(ampOf).filter(Boolean))];
@@ -744,12 +750,10 @@
             const boundary = DISTRICT_BOUNDARIES[district];
             if (!boundary) return;
             const color = colorForDistrict(district);
-            const layer = L.geoJSON(
+            L.geoJSON(
               { type: "Feature", geometry: boundary, properties: {} },
-              { style: { color, weight: 2, dashArray: "8 6", fillColor: color, fillOpacity: 0.05, opacity: 0.8 } },
-            );
-            layer.on("click", () => { searchState.amp = district; searchState.tam = "all"; renderSearch(); });
-            layer.addTo(boundaryLayer);
+              { interactive: false, style: { color, weight: 2, dashArray: "8 6", fillColor: color, fillOpacity: 0.05, opacity: 0.8 } },
+            ).addTo(boundaryLayer);
           });
           return;
         }
@@ -767,8 +771,7 @@
             fillColor: color, fillOpacity: searchState.tam === tambon ? 0.22 : (isSelected ? 0.07 : 0.02),
             opacity: isSelected ? 0.9 : 0.3,
           };
-          const layer = L.geoJSON({ type: "Feature", geometry: TAMBON_BOUNDARIES[key], properties: {} }, { style });
-          layer.on("click", () => { searchState.tam = searchState.tam === tambon ? "all" : tambon; renderSearch(); });
+          const layer = L.geoJSON({ type: "Feature", geometry: TAMBON_BOUNDARIES[key], properties: {} }, { interactive: false, style });
           layer.addTo(boundaryLayer);
           if (searchState.tam === tambon) map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 16 });
         });
