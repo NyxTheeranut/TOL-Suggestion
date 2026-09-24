@@ -693,7 +693,7 @@
           { lbl: "MKS", val: (r) => pct(r.mksNt) },
           { lbl: "Active", val: (r) => fmt(carrierActiveOf(r.mksNt, totalMarketOf(r))) },
         ] },
-        { label: "Market Size / %Penetration", sub: "Market Size/HH", pair: [
+        { label: "Market Size / %Penetration", pair: [
           { lbl: "Market Size", val: (r) => fmt(totalMarketOf(r)) },
           { lbl: "%Penetration", val: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return pct(hh ? m / hh : null); } },
         ] },
@@ -702,7 +702,7 @@
           { lbl: "Volun", val: (r) => fmt(r.churnVolMonthly) },
           { lbl: "Involun", val: (r) => fmt(r.churnInvolMonthly) },
         ] },
-        { label: "All Churn (Subs / Rate)", sub: "Churn Subs / True Active", pair: [
+        { label: "All Churn (Subs / Rate)", pair: [
           { lbl: "Subs", val: (r) => fmt(r.churnMonthly) },
           { lbl: "Rate", val: (r) => pct(r.churnMonthlyRate) },
         ] },
