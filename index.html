@@ -355,9 +355,16 @@
       .ana-median-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 5 4; }
       .ana-axis-label { fill: var(--text-2); font-size: 12px; font-family: "Inter", sans-serif; }
       .ana-quadrant-label { fill: var(--text-3); font-size: 10px; font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .04em; }
-      .ana-point { cursor: pointer; stroke: #fff; stroke-width: 1; fill-opacity: .85; }
+      .ana-point { cursor: pointer; stroke: #fff; stroke-width: 1; fill-opacity: .85; transition: opacity .15s, r .15s; }
       .ana-point:hover { stroke: var(--ink); stroke-width: 1.5; }
+      .ana-point.dim { opacity: .18; }
       .ana-tick { fill: var(--text-3); font-size: 9.5px; font-family: "IBM Plex Mono", monospace; }
+      .ana-med-tick { fill: var(--accent); font-size: 9.5px; font-weight: 700; font-family: "IBM Plex Mono", monospace; }
+      .ana-quad-rect { fill: var(--accent); fill-opacity: 0; cursor: pointer; }
+      .ana-quad-rect:hover { fill-opacity: .07; }
+      .ana-quad-rect.active { fill-opacity: .12; }
+      .ana-quad-hint { fill: var(--text-3); font-size: 9.5px; font-family: "IBM Plex Mono", monospace; pointer-events: none; text-transform: uppercase; letter-spacing: .03em; }
+      .ana-quad-clear { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--accent); cursor: pointer; margin-left: 8px; font-weight: 600; }
 
       /* Mobile: one panel (List or Map) on screen at a time via the view
          switch below, instead of stacking both full-height panels and
@@ -429,7 +436,6 @@
           <a href="#search" data-sec="search" class="active">ค้นหา</a>
           <a href="#recommend" data-sec="recommend">แนะนำ</a>
           <a href="#calendar" data-sec="calendar">ปฏิทิน</a>
-          <a href="#analysis" data-sec="analysis">วิเคราะห์</a>
         </div>
         <div class="topbar-right">
           <div class="meta" id="topbarMeta">—</div>
@@ -498,6 +504,19 @@
             <div class="tag-chips" id="recTags"></div>
           </div>
           <div class="card">
+            <h2 style="font-size:14.5px;">วิเคราะห์ 4 ควอแดรนท์</h2>
+            <div class="hint">เลือก 2 ตัวชี้วัดเพื่อวางเปรียบเทียบทุกจุด แบ่งเป็น 4 ควอแดรนท์ตามค่ามัธยฐานของแต่ละแกน — ใช้หมู่บ้าน/อาคารและแท็กที่เลือกไว้ด้านบน คลิกที่มุมใดมุมหนึ่งเพื่อกรองตารางด้านล่างเฉพาะกลุ่มนั้น</div>
+            <div class="filter-bar">
+              <select id="anaX"></select>
+              <span style="color:var(--text-3); font-size:12px;">เทียบกับ</span>
+              <select id="anaY"></select>
+            </div>
+            <div class="list-summary" id="anaCount" style="padding-left:2px;">แสดง 0 จุด</div>
+            <div class="analysis-chart-wrap">
+              <svg id="anaSvg" viewBox="0 0 640 420" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+          </div>
+          <div class="card">
             <div class="list-summary">แสดง <b id="recCount">0</b> รายการ — คลิกหัวคอลัมน์เพื่อจัดเรียง</div>
             <div class="rec-table-wrap">
               <table class="rec-table" id="recTable">
@@ -537,32 +556,6 @@
           </div>
           <div class="card">
             <div class="cal-grid" id="calGrid"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== Section 4: Analysis ===== -->
-      <section class="app-section" id="sec-analysis">
-        <div class="section-scroll">
-          <div class="card">
-            <h2>วิเคราะห์</h2>
-            <div class="hint">เลือก 2 ตัวชี้วัดเพื่อวางเปรียบเทียบทุกจุด แบ่งเป็น 4 ควอแดรนท์ตามค่ามัธยฐานของแต่ละแกน</div>
-            <div class="filter-bar">
-              <div class="kind-toggle" id="anaKind">
-                <button data-v="village" class="active">หมู่บ้าน</button>
-                <button data-v="building">อาคาร</button>
-                <button data-v="both">ทั้งหมด</button>
-              </div>
-              <select id="anaX"></select>
-              <span style="color:var(--text-3); font-size:12px;">เทียบกับ</span>
-              <select id="anaY"></select>
-            </div>
-          </div>
-          <div class="card">
-            <div class="list-summary" id="anaCount">แสดง 0 จุด</div>
-            <div class="analysis-chart-wrap">
-              <svg id="anaSvg" viewBox="0 0 640 420" preserveAspectRatio="xMidYMid meet"></svg>
-            </div>
           </div>
         </div>
       </section>
@@ -1108,11 +1101,22 @@
         }).join("");
       }
 
-      function renderRecommend() {
+      // Shared by the table and the analysis chart, so they're always looking
+      // at exactly the same set of properties -- kind + tag/auto filters only,
+      // no sort/quadrant applied yet.
+      function recFilteredPool() {
         const pool = poolFor(recState.kind).filter((r) => !r.closed);
-        let results = recState.tags.size && !recState.auto
+        return recState.tags.size && !recState.auto
           ? pool.filter((r) => [...recState.tags].every((t) => (r.tags || []).includes(t)))
           : pool.slice();
+      }
+
+      function renderRecommend() {
+        let results = recFilteredPool();
+        if (anaState.quadrant) {
+          const { xCol, yCol, xMed, yMed } = anaMedians(results);
+          results = results.filter((r) => inQuadrant(r, anaState.quadrant, xCol, yCol, xMed, yMed));
+        }
 
         const col = REC_COLUMNS.find((c) => c.key === recState.sortKey) || REC_COLUMNS[REC_COLUMNS.length - 1];
         const dir = recState.sortDir === "asc" ? 1 : -1;
@@ -1143,17 +1147,17 @@
         const btn = e.target.closest("button"); if (!btn) return;
         recState.kind = btn.dataset.v;
         document.querySelectorAll("#recKind button").forEach((b) => b.classList.toggle("active", b === btn));
-        renderRecTagChips(); renderRecommend();
+        renderRecTagChips(); renderAnalysis(); renderRecommend();
       });
       document.getElementById("recTags").addEventListener("click", (e) => {
         const chip = e.target.closest(".tag-chip"); if (!chip) return;
         if (recState.tags.has(chip.dataset.k)) recState.tags.delete(chip.dataset.k); else recState.tags.add(chip.dataset.k);
-        renderRecTagChips(); renderRecommend();
+        renderRecTagChips(); renderAnalysis(); renderRecommend();
       });
       document.getElementById("autoToggle").addEventListener("click", (e) => {
         recState.auto = !recState.auto;
         e.target.classList.toggle("on", recState.auto);
-        renderRecommend();
+        renderAnalysis(); renderRecommend();
       });
       document.getElementById("recTableHead").addEventListener("click", (e) => {
         const th = e.target.closest("th[data-key]"); if (!th) return;
@@ -1578,7 +1582,13 @@
         calState.tags = new Set(theme ? theme.tags : []);
       }
 
-      /* ===== Section 4: Analysis (4-quadrant scatter) ===== */
+      /* ===== Analysis: 4-quadrant scatter, merged into Recommend =====
+         Shares recFilteredPool() with the table -- same kind + tag/auto
+         filters, always the same set of dots as rows. Points are placed by
+         RANK (percentile within the current pool), not raw value, so the
+         median split lines always sit exactly at the visual center even when
+         the real values are heavily skewed by a few huge outliers -- only
+         the axis-end tick labels show the real min/max/median values. */
       const ANALYSIS_METRICS = [
         { key: "hh", label: "HH (ครัวเรือน/ยูนิต)", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
         { key: "active", label: "Active Subs True", get: (r) => r.active, fmt: fmt },
@@ -1587,7 +1597,7 @@
         { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
         { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
       ];
-      const anaState = { kind: "village", xKey: "hh", yKey: "mksTrue" };
+      const anaState = { xKey: "hh", yKey: "mksTrue", quadrant: null };
 
       function populateAnaAxisSelects() {
         const opts = ANALYSIS_METRICS.map((m) => `<option value="${m.key}">${m.label}</option>`).join("");
@@ -1603,15 +1613,52 @@
         return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
       }
 
+      // Empirical percentile of `v` within `sortedVals` (ties get the average
+      // rank of the tied block) -- this is what makes the median always land
+      // at fraction 0.5 regardless of how skewed the raw values are.
+      function percentileOf(sortedVals, v) {
+        const n = sortedVals.length;
+        if (n <= 1) return 0.5;
+        let lo = 0, hi = n;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (sortedVals[mid] < v) lo = mid + 1; else hi = mid; }
+        const first = lo;
+        lo = 0; hi = n;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (sortedVals[mid] <= v) lo = mid + 1; else hi = mid; }
+        const last = lo;
+        return (first + last) / 2 / n;
+      }
+
+      function anaMedians(pool) {
+        const xCol = ANALYSIS_METRICS.find((m) => m.key === anaState.xKey);
+        const yCol = ANALYSIS_METRICS.find((m) => m.key === anaState.yKey);
+        const xs = pool.map((r) => xCol.get(r)).filter((v) => v != null);
+        const ys = pool.map((r) => yCol.get(r)).filter((v) => v != null);
+        return { xCol, yCol, xMed: median(xs), yMed: median(ys) };
+      }
+
+      function inQuadrant(r, q, xCol, yCol, xMed, yMed) {
+        const x = xCol.get(r), y = yCol.get(r);
+        if (x == null || y == null) return false;
+        const right = x >= xMed, top = y >= yMed;
+        if (q === "ur") return right && top;
+        if (q === "ul") return !right && top;
+        if (q === "lr") return right && !top;
+        return !right && !top; // "ll"
+      }
+
       function renderAnalysis() {
         const xCol = ANALYSIS_METRICS.find((m) => m.key === anaState.xKey);
         const yCol = ANALYSIS_METRICS.find((m) => m.key === anaState.yKey);
-        const pool = poolFor(anaState.kind).filter((r) => !r.closed);
+        const pool = recFilteredPool();
         const points = pool
           .map((r) => ({ r, x: xCol.get(r), y: yCol.get(r) }))
           .filter((p) => p.x != null && p.y != null);
 
-        document.getElementById("anaCount").textContent = `แสดง ${points.length} จาก ${pool.length} จุด (ไม่รวมรายการที่ข้อมูลไม่ครบ)`;
+        const countEl = document.getElementById("anaCount");
+        countEl.innerHTML = `แสดง ${points.length} จาก ${pool.length} จุด (ไม่รวมรายการที่ข้อมูลไม่ครบ)` +
+          (anaState.quadrant ? ` · กำลังกรองเฉพาะมุมที่เลือก <span class="ana-quad-clear" id="anaQuadClear">ล้าง ✕</span>` : "");
+        const clearBtn = document.getElementById("anaQuadClear");
+        if (clearBtn) clearBtn.addEventListener("click", () => { anaState.quadrant = null; renderAnalysis(); renderRecommend(); });
 
         const svg = document.getElementById("anaSvg");
         if (!points.length) {
@@ -1620,47 +1667,64 @@
         }
 
         const W = 640, H = 420, PAD_L = 56, PAD_B = 40, PAD_T = 14, PAD_R = 14;
-        const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
-        const xMin = Math.min(...xs), xMax = Math.max(...xs);
-        const yMin = Math.min(...ys), yMax = Math.max(...ys);
+        const xs = points.map((p) => p.x).sort((a, b) => a - b);
+        const ys = points.map((p) => p.y).sort((a, b) => a - b);
+        const xMin = xs[0], xMax = xs[xs.length - 1];
+        const yMin = ys[0], yMax = ys[ys.length - 1];
         const xMed = median(xs), yMed = median(ys);
-        const sx = (v) => PAD_L + (xMax === xMin ? 0.5 : (v - xMin) / (xMax - xMin)) * (W - PAD_L - PAD_R);
-        const sy = (v) => H - PAD_B - (yMax === yMin ? 0.5 : (v - yMin) / (yMax - yMin)) * (H - PAD_B - PAD_T);
+        // Rank-based placement: fraction of the pool at/below this value.
+        const sx = (v) => PAD_L + percentileOf(xs, v) * (W - PAD_L - PAD_R);
+        const sy = (v) => H - PAD_B - percentileOf(ys, v) * (H - PAD_B - PAD_T);
+        const midX = sx(xMed), midY = sy(yMed);
 
         const parts = [];
+        // quadrant click regions (drawn first, under everything else)
+        const quads = [
+          { q: "ul", x: PAD_L, y: PAD_T, w: midX - PAD_L, h: midY - PAD_T },
+          { q: "ur", x: midX, y: PAD_T, w: W - PAD_R - midX, h: midY - PAD_T },
+          { q: "ll", x: PAD_L, y: midY, w: midX - PAD_L, h: H - PAD_B - midY },
+          { q: "lr", x: midX, y: midY, w: W - PAD_R - midX, h: H - PAD_B - midY },
+        ];
+        quads.forEach((qd) => {
+          const active = anaState.quadrant === qd.q;
+          parts.push(`<rect class="ana-quad-rect${active ? " active" : ""}" data-q="${qd.q}" x="${qd.x.toFixed(1)}" y="${qd.y.toFixed(1)}" width="${Math.max(0, qd.w).toFixed(1)}" height="${Math.max(0, qd.h).toFixed(1)}"/>`);
+        });
         // axes
         parts.push(`<line class="ana-axis-line" x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${H - PAD_B}"/>`);
         parts.push(`<line class="ana-axis-line" x1="${PAD_L}" y1="${H - PAD_B}" x2="${W - PAD_R}" y2="${H - PAD_B}"/>`);
-        // median split lines
-        parts.push(`<line class="ana-median-line" x1="${sx(xMed)}" y1="${PAD_T}" x2="${sx(xMed)}" y2="${H - PAD_B}"/>`);
-        parts.push(`<line class="ana-median-line" x1="${PAD_L}" y1="${sy(yMed)}" x2="${W - PAD_R}" y2="${sy(yMed)}"/>`);
-        // axis end-value ticks (min/max) so the scale isn't a total mystery
+        // median split lines -- always at the rank-based center
+        parts.push(`<line class="ana-median-line" x1="${midX.toFixed(1)}" y1="${PAD_T}" x2="${midX.toFixed(1)}" y2="${H - PAD_B}"/>`);
+        parts.push(`<line class="ana-median-line" x1="${PAD_L}" y1="${midY.toFixed(1)}" x2="${W - PAD_R}" y2="${midY.toFixed(1)}"/>`);
+        // axis end-value + median ticks so the scale isn't a total mystery
         parts.push(`<text class="ana-tick" x="${PAD_L}" y="${H - PAD_B + 16}" text-anchor="start">${escapeHtml(String(xCol.fmt(xMin)))}</text>`);
         parts.push(`<text class="ana-tick" x="${W - PAD_R}" y="${H - PAD_B + 16}" text-anchor="end">${escapeHtml(String(xCol.fmt(xMax)))}</text>`);
+        parts.push(`<text class="ana-med-tick" x="${midX.toFixed(1)}" y="${H - PAD_B + 16}" text-anchor="middle">กลาง ${escapeHtml(String(xCol.fmt(xMed)))}</text>`);
         parts.push(`<text class="ana-tick" x="${PAD_L - 6}" y="${H - PAD_B}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMin)))}</text>`);
         parts.push(`<text class="ana-tick" x="${PAD_L - 6}" y="${PAD_T + 8}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMax)))}</text>`);
+        parts.push(`<text class="ana-med-tick" x="${PAD_L - 6}" y="${midY.toFixed(1)}" text-anchor="end">กลาง ${escapeHtml(String(yCol.fmt(yMed)))}</text>`);
         // axis titles
         const yMidPx = (PAD_T + H - PAD_B) / 2;
         parts.push(`<text class="ana-axis-label" x="${(PAD_L + W - PAD_R) / 2}" y="${H - 6}" text-anchor="middle">${escapeHtml(xCol.label)} →</text>`);
         parts.push(`<text class="ana-axis-label" x="16" y="${yMidPx}" text-anchor="middle" transform="rotate(-90 16 ${yMidPx})">${escapeHtml(yCol.label)} →</text>`);
-        // points
+        // points -- dimmed when a quadrant is selected and this point isn't in it
         points.forEach((p) => {
           const score = p.r.autoScore || 0;
-          parts.push(`<circle class="ana-point" data-kind="${kindOf(p.r)}" data-id="${p.r.id}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="5" fill="${heatColor(score)}"><title>${escapeHtml(p.r.name || "")}</title></circle>`);
+          const inSel = !anaState.quadrant || inQuadrant(p.r, anaState.quadrant, xCol, yCol, xMed, yMed);
+          parts.push(`<circle class="ana-point${inSel ? "" : " dim"}" data-kind="${kindOf(p.r)}" data-id="${p.r.id}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="5" fill="${heatColor(score)}"><title>${escapeHtml(p.r.name || "")}</title></circle>`);
         });
         svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
         svg.innerHTML = parts.join("");
       }
 
-      document.getElementById("anaKind").addEventListener("click", (e) => {
-        const btn = e.target.closest("button"); if (!btn) return;
-        anaState.kind = btn.dataset.v;
-        document.querySelectorAll("#anaKind button").forEach((b) => b.classList.toggle("active", b === btn));
-        renderAnalysis();
-      });
-      document.getElementById("anaX").addEventListener("change", (e) => { anaState.xKey = e.target.value; renderAnalysis(); });
-      document.getElementById("anaY").addEventListener("change", (e) => { anaState.yKey = e.target.value; renderAnalysis(); });
+      document.getElementById("anaX").addEventListener("change", (e) => { anaState.xKey = e.target.value; renderAnalysis(); renderRecommend(); });
+      document.getElementById("anaY").addEventListener("change", (e) => { anaState.yKey = e.target.value; renderAnalysis(); renderRecommend(); });
       document.getElementById("anaSvg").addEventListener("click", (e) => {
+        const rect = e.target.closest(".ana-quad-rect");
+        if (rect) {
+          anaState.quadrant = anaState.quadrant === rect.dataset.q ? null : rect.dataset.q;
+          renderAnalysis(); renderRecommend();
+          return;
+        }
         const pt = e.target.closest(".ana-point"); if (!pt) return;
         const r = byId(pt.dataset.kind, pt.dataset.id);
         if (r) openModal(r);
@@ -1689,14 +1753,14 @@
         renderSearch();
         renderRecTagChips();
         renderRecTableHead();
+        populateAnaAxisSelects();
+        renderAnalysis();
         renderRecommend();
         initCalendarDefaultMonth();
         populateCalStatusFilter();
         renderCalAreaFilter();
         renderCalTagChips();
         renderCalendar();
-        populateAnaAxisSelects();
-        renderAnalysis();
       }
 
       /* ===== Google Sign-In =====
