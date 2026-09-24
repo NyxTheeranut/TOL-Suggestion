@@ -665,14 +665,18 @@
           // demographic modal straight in the middle of the screen (which
           // looked disconnected from the map it supposedly came from).
           if (opts.flyToPin && map && r.lat != null && r.lng != null) {
-            // On a phone the map is a separate view (see setSearchMobileView
-            // below) -- switch to it first, otherwise tapping a row pans a
-            // map the viewer can't currently see and looks like nothing
-            // happened, same fix Route Planner uses for this.
-            if (isSearchMobileLayout()) setSearchMobileView("map");
-            map.setView([r.lat, r.lng], Math.max(map.getZoom(), 16));
-            const m = markersById[key];
-            if (m) m.openPopup(); else openModal(r);
+            if (isSearchMobileLayout()) {
+              // On a phone the map is a separate view -- switching to it
+              // AND centering have to happen together (setSearchMobileView's
+              // own invalidateSize+refit would otherwise run a tick later
+              // and zoom back out to fit every result, undoing a plain
+              // setView() done here first).
+              setSearchMobileView("map", r);
+            } else {
+              map.setView([r.lat, r.lng], Math.max(map.getZoom(), 16));
+              const m = markersById[key];
+              if (m) m.openPopup(); else openModal(r);
+            }
           } else {
             openModal(r);
           }
@@ -684,13 +688,31 @@
       // full-height at a time, same as Route Planner's Stores/Map/Route
       // switch. Desktop ignores this entirely (both panels sit side by side).
       function isSearchMobileLayout() { return window.matchMedia("(max-width: 860px)").matches; }
-      function setSearchMobileView(view) {
+      // `focus`, when given, is a specific record to center on (from a list
+      // row's "fly to pin") -- otherwise this just reveals the map fit to
+      // the whole current result set. Both need the same invalidateSize()
+      // first: a map revealed from display:none was initialized (and its
+      // first fitBounds() ran) while #mapView was still zero-size, so
+      // invalidateSize() alone corrects the pixel origin going forward but
+      // leaves the view centered on whatever bogus fit a zero-size
+      // container produced -- pins rendered outside the visible area
+      // entirely (confirmed: one landed below the viewport), which is why
+      // tapping them did nothing.
+      function setSearchMobileView(view, focus) {
         document.getElementById("searchShell").dataset.mobileView = view;
         document.querySelectorAll("#searchViewSwitch button").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
-        // A map revealed from display:none was never measured -- Leaflet
-        // needs telling to re-measure, a ResizeObserver won't reliably
-        // fire for a plain display toggle.
-        if (view === "map" && map) setTimeout(() => map.invalidateSize(), 0);
+        if (view !== "map" || !map) return;
+        setTimeout(() => {
+          map.invalidateSize();
+          if (focus && focus.lat != null && focus.lng != null) {
+            map.setView([focus.lat, focus.lng], Math.max(map.getZoom(), 16));
+            const m = markersById[kindOf(focus) + ":" + focus.id];
+            if (m) m.openPopup();
+          } else {
+            renderMap(filteredSearchResults());
+            renderBoundaries();
+          }
+        }, 0);
       }
       document.querySelectorAll("#searchViewSwitch button").forEach((btn) => {
         btn.addEventListener("click", () => setSearchMobileView(btn.dataset.view));
