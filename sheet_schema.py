@@ -18,19 +18,23 @@ TAB_NAMES = ["Meta", "Villages", "Buildings", "CalendarTheme", "CalendarPlan"]
 VILLAGE_FIELDS = [
     "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
     "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
-    "activePct", "competitor", "mksTrue", "faultAvg", "faultGrade", "churn3m",
-    "churnRate", "churnGrade", "gradeSale", "scoreSale", "gradeCare",
-    "scoreCare", "finalGrade", "villageGrade", "actionGroup", "mainGroup",
-    "contractEnd", "tags", "autoScore",
+    "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
+    "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
+    "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m",
+    "churnRate", "churnGrade", "churnMonthly", "churnMonthlyRate", "gradeSale",
+    "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
+    "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
 ]
 
 BUILDING_FIELDS = [
     "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
     "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
     "occupancy", "totalPort", "totalAvailable", "active", "activePct",
-    "arpu", "competitor", "mksTrue", "faultAvg", "faultGrade", "churn3m",
-    "churnPct", "gradeSale", "scoreSale", "groupBuilding", "caretakerChannel",
-    "caretakerName", "tags", "autoScore",
+    "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
+    "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
+    "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m", "churnPct",
+    "churnMonthly", "churnMonthlyRate", "gradeSale", "scoreSale",
+    "groupBuilding", "caretakerChannel", "caretakerName", "tags", "autoScore",
 ]
 
 # Columns that must stay plain text in the Sheet -- everything else gets a

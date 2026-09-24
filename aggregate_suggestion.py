@@ -68,6 +68,14 @@ def num(v):
         return None
 
 
+def sum_or_none(*vals):
+    """Sums whichever of `vals` are present, treating a missing one as 0 --
+    but returns None (not 0) if EVERY value is missing, so "no data" isn't
+    confused with "genuinely zero"."""
+    present = [v for v in vals if v is not None]
+    return sum(present) if present else None
+
+
 def col(header, index, expected):
     """Returns `index`, after asserting header[index] matches `expected`
     (a literal string, or a compiled regex to `.search()` against). Fails
@@ -109,6 +117,29 @@ def find_latest_series(header, value_pattern, pct_pattern):
     return value_idx, pct_idx
 
 
+def find_latest_paired(header, vol_pattern, vol_prefix, invol_prefix):
+    """Finds the rightmost "Vol ..." column, then looks up its exact
+    "Invol ..." counterpart by swapping the prefix on that same matched
+    name -- e.g. "Vol Churn Aug-26" -> "Invol Churn Aug-26" -- rather than
+    assuming a fixed column offset between the two blocks (they aren't
+    adjacent -- villages' Invol block sits 3 columns after each Vol column,
+    buildings' Invol block is an entirely separate range further along the
+    sheet). Self-verifying: if no exact match exists, the invol side comes
+    back None instead of silently reading the wrong column.
+    Returns (vol_idx, invol_idx) -- either may be None."""
+    matches = [
+        i for i, h in enumerate(header)
+        if h is not None and vol_pattern.search(str(h).strip())
+    ]
+    if not matches:
+        return None, None
+    vol_idx = matches[-1]
+    vol_name = str(header[vol_idx]).strip()
+    invol_name = invol_prefix + vol_name[len(vol_prefix):]
+    invol_idx = next((i for i, h in enumerate(header) if h is not None and str(h).strip() == invol_name), None)
+    return vol_idx, invol_idx
+
+
 # ---------- villages ----------
 
 VILLAGE_ACTIVE_VALUE_RE = re.compile(r"^All [A-Za-z]+ TOTAL ACTIVE$")
@@ -136,11 +167,23 @@ def load_villages(path=VILLAGE_XLSB):
     i_active, i_active_pct = find_latest_series(header, VILLAGE_ACTIVE_VALUE_RE, VILLAGE_ACTIVE_PCT_RE)
     i_competitor = col(header, 417, "Competitor")
     i_mks_true = col(header, 234, "TRUE OOKLA MKS")
+    i_mks_fibre3 = col(header, 232, "Fiber3 OOKLA MKS")
+    i_mks_nt = col(header, 236, "NT OOKLA MKS")
     i_fault_avg = col(header, 363, "Average Fault 3 months")
     i_fault_grade = col(header, 364, "Fault Grade")
+    i_case_mgmt = col(header, 365, "Case Management")
+    i_fcr = col(header, 366, "FCR")
+    i_network_event = col(header, 367, "Network Event")
+    i_fault_others = col(header, 368, "Others")
+    i_second_tier = col(header, 369, "Second Tier")
+    i_truck_roll = col(header, 370, "Truck Roll")
+    i_truck_roll_pct = col(header, 371, "%Truck Roll")
     i_churn_3m = col(header, 331, "Total Churn (3mnth)")
     i_churn_rate = col(header, 332, "Churn Rate")
     i_churn_grade = col(header, 396, "Churn Grade")
+    i_vol_churn, i_invol_churn = find_latest_paired(
+        header, re.compile(r"^Vol Churn [A-Za-z]+-\d{2}$"), "Vol Churn ", "Invol Churn ",
+    )
     i_grade_sale = col(header, 415, "Grade ขาย")
     i_score_sale = col(header, 416, "Score ขาย")
     i_grade_care = col(header, 420, "Grade ดูแล")
@@ -159,6 +202,27 @@ def load_villages(path=VILLAGE_XLSB):
             continue
         if clean(v[i_hop]) != PBH_FILTER:
             continue
+
+        active = num(v[i_active])
+        mks_true = num(v[i_mks_true])
+        mks_fibre3 = num(v[i_mks_fibre3])
+        mks_nt = num(v[i_mks_nt])
+        fault_truck_roll = num(v[i_truck_roll])
+        fault_other = sum_or_none(num(v[i_case_mgmt]), num(v[i_fcr]), num(v[i_network_event]), num(v[i_fault_others]), num(v[i_second_tier]))
+        vol_churn = num(v[i_vol_churn]) if i_vol_churn is not None else None
+        invol_churn = num(v[i_invol_churn]) if i_invol_churn is not None else None
+        churn_monthly = sum_or_none(vol_churn, invol_churn)
+        # Competitor MKS scoped to just Fiber3 (3BB's fiber brand) + NT --
+        # not AIS, not the raw "Competitor" count column -- per direct
+        # instruction; True's own MKS is kept exactly as given, not
+        # renormalized against this narrower competitor set.
+        competitor_mks = sum_or_none(mks_fibre3, mks_nt)
+        # Backs out an implied total addressable (OOKLA-sampled) market from
+        # True's own known active count and share, then applies the
+        # competitor share to that same base -- standard market-sizing math,
+        # not a business-defined metric from the source workbook.
+        competitor_subs = (active / mks_true) * competitor_mks if (active is not None and mks_true) else None
+
         out.append({
             "id": str(int(vid)) if isinstance(vid, float) and vid.is_integer() else str(vid),
             "name": clean(v[i_name]),
@@ -172,15 +236,25 @@ def load_villages(path=VILLAGE_XLSB):
             "houseAll": num(v[i_house]),
             "totalPort": num(v[i_total_port]),
             "totalAvailable": num(v[i_total_avail]),
-            "active": num(v[i_active]),
+            "active": active,
             "activePct": num(v[i_active_pct]),
             "competitor": num(v[i_competitor]),
-            "mksTrue": num(v[i_mks_true]),
+            "mksTrue": mks_true,
+            "mksFibre3": mks_fibre3,
+            "mksNt": mks_nt,
+            "competitorMks": competitor_mks,
+            "competitorSubs": round(competitor_subs, 1) if competitor_subs is not None else None,
             "faultAvg": num(v[i_fault_avg]),
             "faultGrade": clean(v[i_fault_grade]),
+            "faultTruckRoll": fault_truck_roll,
+            "faultTruckRollPct": num(v[i_truck_roll_pct]),
+            "faultOther": fault_other,
+            "faultOtherPct": (fault_other / (fault_other + fault_truck_roll)) if (fault_other is not None and fault_truck_roll is not None and (fault_other + fault_truck_roll) > 0) else None,
             "churn3m": num(v[i_churn_3m]),
             "churnRate": num(v[i_churn_rate]),
             "churnGrade": clean(v[i_churn_grade]),
+            "churnMonthly": churn_monthly,
+            "churnMonthlyRate": (churn_monthly / active) if (churn_monthly is not None and active) else None,
             "gradeSale": clean(v[i_grade_sale]),
             "scoreSale": num(v[i_score_sale]),
             "gradeCare": clean(v[i_grade_care]),
@@ -227,10 +301,21 @@ def load_buildings(path=BUILDING_XLSX):
     i_arpu = col(header, 254, "ARPU")
     i_competitor = col(header, 470, "Competitor")
     i_mks_true = col(header, 358, "TRUE OOKLA MKS")
+    i_mks_fibre3 = col(header, 356, "Fiber3 OOKLA MKS")
+    i_mks_nt = col(header, 360, "NT OOKLA MKS")
     i_fault_avg = col(header, 311, "Avg Fault Rate")
     i_fault_grade = col(header, 312, "Fault Grade")
+    i_case_mgmt = col(header, 313, "Case Management")
+    i_fcr = col(header, 314, "FCR")
+    i_network_event = col(header, 315, "Network Event")
+    i_second_tier = col(header, 316, "Second Tier")
+    i_truck_roll = col(header, 317, "Truck Roll")
+    i_truck_roll_pct = col(header, 318, "%Truck Roll")
     i_churn_3m = col(header, 447, "Avg_Churn (3 Months)")
     i_churn_pct = col(header, 448, "%Churn")
+    i_vol_churn, i_invol_churn = find_latest_paired(
+        header, re.compile(r"^Vol_[A-Za-z]+\d{2}$"), "Vol_", "Invol_",
+    )
     i_grade_sale = col(header, 468, "Grade ขาย")
     i_score_sale = col(header, 469, "Score ขาย")
     # NOTE: "Grade ดูแล" / "Score ดูแล" / "[Final Grade] ขาย-ดูแล" / "End"
@@ -249,6 +334,21 @@ def load_buildings(path=BUILDING_XLSX):
             continue
         if clean(row[i_pbh]) != PBH_FILTER:
             continue
+
+        active = num(row[i_active])
+        mks_true = num(row[i_mks_true])
+        mks_fibre3 = num(row[i_mks_fibre3])
+        mks_nt = num(row[i_mks_nt])
+        fault_truck_roll = num(row[i_truck_roll])
+        # No separate "Others" raw column here (unlike villages) -- the
+        # remaining 4 fault-cause categories stand in for it.
+        fault_other = sum_or_none(num(row[i_case_mgmt]), num(row[i_fcr]), num(row[i_network_event]), num(row[i_second_tier]))
+        vol_churn = num(row[i_vol_churn]) if i_vol_churn is not None else None
+        invol_churn = num(row[i_invol_churn]) if i_invol_churn is not None else None
+        churn_monthly = sum_or_none(vol_churn, invol_churn)
+        competitor_mks = sum_or_none(mks_fibre3, mks_nt)
+        competitor_subs = (active / mks_true) * competitor_mks if (active is not None and mks_true) else None
+
         out.append({
             "id": str(int(bid)) if isinstance(bid, (int, float)) else str(bid),
             "name": clean(row[i_name]),
@@ -267,15 +367,25 @@ def load_buildings(path=BUILDING_XLSX):
             "occupancy": num(row[i_occupancy]),
             "totalPort": num(row[i_total_port]),
             "totalAvailable": num(row[i_total_avail]),
-            "active": num(row[i_active]),
+            "active": active,
             "activePct": num(row[i_active_pct]),
             "arpu": num(row[i_arpu]),
             "competitor": num(row[i_competitor]),
-            "mksTrue": num(row[i_mks_true]),
+            "mksTrue": mks_true,
+            "mksFibre3": mks_fibre3,
+            "mksNt": mks_nt,
+            "competitorMks": competitor_mks,
+            "competitorSubs": round(competitor_subs, 1) if competitor_subs is not None else None,
             "faultAvg": num(row[i_fault_avg]),
             "faultGrade": clean(row[i_fault_grade]),
+            "faultTruckRoll": fault_truck_roll,
+            "faultTruckRollPct": num(row[i_truck_roll_pct]),
+            "faultOther": fault_other,
+            "faultOtherPct": (fault_other / (fault_other + fault_truck_roll)) if (fault_other is not None and fault_truck_roll is not None and (fault_other + fault_truck_roll) > 0) else None,
             "churn3m": num(row[i_churn_3m]),
             "churnPct": num(row[i_churn_pct]),
+            "churnMonthly": churn_monthly,
+            "churnMonthlyRate": (churn_monthly / active) if (churn_monthly is not None and active) else None,
             "gradeSale": clean(row[i_grade_sale]),
             "scoreSale": num(row[i_score_sale]),
             "groupBuilding": clean(row[i_group_building]),

@@ -324,6 +324,41 @@
          it keeps its own inset border/radius there specifically. */
       .card .result-list { border: 1px solid var(--line); border-radius: 11px; padding: 4px; }
 
+      /* ── Recommend: sortable data table ─────────────────────────────────── */
+      .rec-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 11px; }
+      .rec-table { border-collapse: collapse; width: 100%; font-size: 12.5px; white-space: nowrap; }
+      .rec-table th, .rec-table td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line-2); }
+      .rec-table th:first-child, .rec-table td:first-child { text-align: left; }
+      .rec-table thead th {
+        position: sticky; top: 0; background: var(--panel-2); color: var(--text-2);
+        font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .02em;
+        cursor: pointer; user-select: none; z-index: 1;
+      }
+      .rec-table thead th:hover { color: var(--ink); }
+      .rec-table thead th .arrow { opacity: .4; margin-left: 3px; }
+      .rec-table thead th.sorted .arrow { opacity: 1; color: var(--accent-ink); }
+      .rec-table tbody tr { cursor: pointer; }
+      .rec-table tbody tr:hover { background: var(--panel-2); }
+      .rec-table td:first-child, .rec-table th:first-child {
+        position: sticky; left: 0; background: var(--panel); box-shadow: 1px 0 0 var(--line);
+      }
+      .rec-table thead th:first-child { background: var(--panel-2); z-index: 2; }
+      .rec-table tbody tr:hover td:first-child { background: var(--panel-2); }
+      .rec-table .nm { font-weight: 600; color: var(--ink); }
+      .rec-table .loc { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-top: 1px; }
+      .rec-table .sub { font-size: 10.5px; color: var(--text-3); }
+
+      /* ── Analysis: 4-quadrant scatter ───────────────────────────────────── */
+      .analysis-chart-wrap { width: 100%; aspect-ratio: 16 / 9; max-height: 480px; }
+      #anaSvg { width: 100%; height: 100%; }
+      .ana-axis-line { stroke: var(--line); stroke-width: 1; }
+      .ana-median-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 5 4; }
+      .ana-axis-label { fill: var(--text-2); font-size: 12px; font-family: "Inter", sans-serif; }
+      .ana-quadrant-label { fill: var(--text-3); font-size: 10px; font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .04em; }
+      .ana-point { cursor: pointer; stroke: #fff; stroke-width: 1; fill-opacity: .85; }
+      .ana-point:hover { stroke: var(--ink); stroke-width: 1.5; }
+      .ana-tick { fill: var(--text-3); font-size: 9.5px; font-family: "IBM Plex Mono", monospace; }
+
       /* Mobile: one panel (List or Map) on screen at a time via the view
          switch below, instead of stacking both full-height panels and
          making the map just another thing to scroll past -- same pattern
@@ -394,6 +429,7 @@
           <a href="#search" data-sec="search" class="active">Search</a>
           <a href="#recommend" data-sec="recommend">Recommend</a>
           <a href="#calendar" data-sec="calendar">Calendar</a>
+          <a href="#analysis" data-sec="analysis">Analysis</a>
         </div>
         <div class="topbar-right">
           <div class="meta" id="topbarMeta">—</div>
@@ -462,8 +498,13 @@
             <div class="tag-chips" id="recTags"></div>
           </div>
           <div class="card">
-            <div class="list-summary">Showing <b id="recCount">0</b> results, ranked highest first</div>
-            <div class="result-list" id="recList" style="max-height: 640px;"></div>
+            <div class="list-summary">Showing <b id="recCount">0</b> results — click a column to sort</div>
+            <div class="rec-table-wrap">
+              <table class="rec-table" id="recTable">
+                <thead><tr id="recTableHead"></tr></thead>
+                <tbody id="recTableBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -495,6 +536,32 @@
           </div>
           <div class="card">
             <div class="cal-grid" id="calGrid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Section 4: Analysis ===== -->
+      <section class="app-section" id="sec-analysis">
+        <div class="section-scroll">
+          <div class="card">
+            <h2>Analysis</h2>
+            <div class="hint">Pick two metrics to plot every property against each other, split into 4 quadrants by the median of each axis.</div>
+            <div class="filter-bar">
+              <div class="kind-toggle" id="anaKind">
+                <button data-v="village" class="active">Villages</button>
+                <button data-v="building">Buildings</button>
+                <button data-v="both">Both</button>
+              </div>
+              <select id="anaX"></select>
+              <span style="color:var(--text-3); font-size:12px;">vs</span>
+              <select id="anaY"></select>
+            </div>
+          </div>
+          <div class="card">
+            <div class="list-summary" id="anaCount">Showing 0 points</div>
+            <div class="analysis-chart-wrap">
+              <svg id="anaSvg" viewBox="0 0 640 420" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
           </div>
         </div>
       </section>
@@ -1003,7 +1070,25 @@
       wireResultList(document.getElementById("searchList"), { flyToPin: true });
 
       /* ===== Section 2: Recommendation ===== */
-      const recState = { kind: "village", tags: new Set(), auto: false };
+      const recState = { kind: "village", tags: new Set(), auto: false, sortKey: "autoScore", sortDir: "desc" };
+
+      // Sortable columns for the Recommend table -- the 5 metrics asked for
+      // (HH / Active True vs competitor / MKS True vs competitor / Churn
+      // per month / Fault), plus the composite score. `get` returns the raw
+      // sortable number; `fmt` formats it for display -- kept separate so
+      // sorting never has to re-parse a formatted string.
+      const REC_COLUMNS = [
+        { key: "name", label: "Property" },
+        { key: "hh", label: "HH / Units", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
+        { key: "active", label: "Active True", get: (r) => r.active, fmt: fmt },
+        { key: "competitorSubs", label: "Competitor Subs", get: (r) => r.competitorSubs, fmt: fmt },
+        { key: "mksTrue", label: "MKS True", get: (r) => r.mksTrue, fmt: pct },
+        { key: "competitorMks", label: "Competitor MKS", get: (r) => r.competitorMks, fmt: pct },
+        { key: "churnMonthly", label: "Churn / Month", get: (r) => r.churnMonthly, fmt: fmt },
+        { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
+        { key: "autoScore", label: "Score", get: (r) => r.autoScore, fmt: fmt },
+      ];
+
       function renderRecTagChips() {
         const pool = poolFor(recState.kind);
         document.getElementById("recTags").innerHTML = TAGS.map((t) => {
@@ -1012,20 +1097,47 @@
           return `<button class="tag-chip${active ? " active" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
         }).join("");
       }
+
+      function renderRecTableHead() {
+        document.getElementById("recTableHead").innerHTML = REC_COLUMNS.map((c) => {
+          if (!c.get) return `<th>${c.label}</th>`;
+          const sorted = recState.sortKey === c.key;
+          const arrow = sorted ? (recState.sortDir === "desc" ? "▼" : "▲") : "↕";
+          return `<th data-key="${c.key}" class="${sorted ? "sorted" : ""}">${c.label} <span class="arrow">${arrow}</span></th>`;
+        }).join("");
+      }
+
       function renderRecommend() {
         const pool = poolFor(recState.kind).filter((r) => !r.closed);
-        let results;
-        if (recState.auto || recState.tags.size === 0) {
-          results = pool.slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
-        } else {
-          results = pool.filter((r) => [...recState.tags].every((t) => (r.tags || []).includes(t)))
-            .sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
-        }
+        let results = recState.tags.size && !recState.auto
+          ? pool.filter((r) => [...recState.tags].every((t) => (r.tags || []).includes(t)))
+          : pool.slice();
+
+        const col = REC_COLUMNS.find((c) => c.key === recState.sortKey) || REC_COLUMNS[REC_COLUMNS.length - 1];
+        const dir = recState.sortDir === "asc" ? 1 : -1;
+        results.sort((a, b) => {
+          const av = col.get(a), bv = col.get(b);
+          if (av == null && bv == null) return 0;
+          if (av == null) return 1; // nulls always sort last, regardless of direction
+          if (bv == null) return -1;
+          return (av - bv) * dir;
+        });
+
         document.getElementById("recCount").textContent = results.length;
-        document.getElementById("recList").innerHTML = results.length
-          ? results.slice(0, 300).map(resultRowHtml).join("")
-          : `<div class="empty-note">No properties match every selected tag.</div>`;
+        const body = document.getElementById("recTableBody");
+        if (!results.length) {
+          body.innerHTML = `<tr><td colspan="${REC_COLUMNS.length}"><div class="empty-note">No properties match every selected tag.</div></td></tr>`;
+          return;
+        }
+        body.innerHTML = results.slice(0, 300).map((r) => {
+          const cells = REC_COLUMNS.slice(1).map((c) => `<td>${escapeHtml(String(c.fmt(c.get(r))))}</td>`).join("");
+          return `<tr data-kind="${kindOf(r)}" data-id="${r.id}">
+            <td><div class="nm">${escapeHtml(r.name || "—")}</div><div class="loc">${escapeHtml(locOf(r))}</div></td>
+            ${cells}
+          </tr>`;
+        }).join("");
       }
+
       document.getElementById("recKind").addEventListener("click", (e) => {
         const btn = e.target.closest("button"); if (!btn) return;
         recState.kind = btn.dataset.v;
@@ -1042,7 +1154,21 @@
         e.target.classList.toggle("on", recState.auto);
         renderRecommend();
       });
-      wireResultList(document.getElementById("recList"));
+      document.getElementById("recTableHead").addEventListener("click", (e) => {
+        const th = e.target.closest("th[data-key]"); if (!th) return;
+        if (recState.sortKey === th.dataset.key) {
+          recState.sortDir = recState.sortDir === "desc" ? "asc" : "desc";
+        } else {
+          recState.sortKey = th.dataset.key;
+          recState.sortDir = "desc";
+        }
+        renderRecTableHead(); renderRecommend();
+      });
+      document.getElementById("recTableBody").addEventListener("click", (e) => {
+        const row = e.target.closest("tr[data-id]"); if (!row) return;
+        const r = byId(row.dataset.kind, row.dataset.id);
+        if (r) openModal(r);
+      });
 
       /* ===== Section 3: Calendar ===== */
       const calState = { monthKey: null, kind: "both", tags: new Set(), status: "all", amp: "all", tam: "all" };
@@ -1377,6 +1503,94 @@
         calState.tags = new Set(theme ? theme.tags : []);
       }
 
+      /* ===== Section 4: Analysis (4-quadrant scatter) ===== */
+      const ANALYSIS_METRICS = [
+        { key: "hh", label: "HH (Households / Units)", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
+        { key: "active", label: "Active Subs True", get: (r) => r.active, fmt: fmt },
+        { key: "mksTrue", label: "MKS True", get: (r) => r.mksTrue, fmt: pct },
+        { key: "mksFibre3", label: "MKS Fibre3", get: (r) => r.mksFibre3, fmt: pct },
+        { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
+        { key: "churnMonthly", label: "Churn / Month", get: (r) => r.churnMonthly, fmt: fmt },
+      ];
+      const anaState = { kind: "village", xKey: "hh", yKey: "mksTrue" };
+
+      function populateAnaAxisSelects() {
+        const opts = ANALYSIS_METRICS.map((m) => `<option value="${m.key}">${m.label}</option>`).join("");
+        const xSel = document.getElementById("anaX"), ySel = document.getElementById("anaY");
+        xSel.innerHTML = opts; ySel.innerHTML = opts;
+        xSel.value = anaState.xKey; ySel.value = anaState.yKey;
+      }
+
+      function median(vals) {
+        const s = vals.slice().sort((a, b) => a - b);
+        if (!s.length) return null;
+        const mid = Math.floor(s.length / 2);
+        return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+      }
+
+      function renderAnalysis() {
+        const xCol = ANALYSIS_METRICS.find((m) => m.key === anaState.xKey);
+        const yCol = ANALYSIS_METRICS.find((m) => m.key === anaState.yKey);
+        const pool = poolFor(anaState.kind).filter((r) => !r.closed);
+        const points = pool
+          .map((r) => ({ r, x: xCol.get(r), y: yCol.get(r) }))
+          .filter((p) => p.x != null && p.y != null);
+
+        document.getElementById("anaCount").textContent = `Showing ${points.length} of ${pool.length} (missing either metric are excluded)`;
+
+        const svg = document.getElementById("anaSvg");
+        if (!points.length) {
+          svg.innerHTML = `<text x="320" y="210" text-anchor="middle" class="ana-axis-label">No properties have both metrics.</text>`;
+          return;
+        }
+
+        const W = 640, H = 420, PAD_L = 56, PAD_B = 40, PAD_T = 14, PAD_R = 14;
+        const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+        const xMin = Math.min(...xs), xMax = Math.max(...xs);
+        const yMin = Math.min(...ys), yMax = Math.max(...ys);
+        const xMed = median(xs), yMed = median(ys);
+        const sx = (v) => PAD_L + (xMax === xMin ? 0.5 : (v - xMin) / (xMax - xMin)) * (W - PAD_L - PAD_R);
+        const sy = (v) => H - PAD_B - (yMax === yMin ? 0.5 : (v - yMin) / (yMax - yMin)) * (H - PAD_B - PAD_T);
+
+        const parts = [];
+        // axes
+        parts.push(`<line class="ana-axis-line" x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${H - PAD_B}"/>`);
+        parts.push(`<line class="ana-axis-line" x1="${PAD_L}" y1="${H - PAD_B}" x2="${W - PAD_R}" y2="${H - PAD_B}"/>`);
+        // median split lines
+        parts.push(`<line class="ana-median-line" x1="${sx(xMed)}" y1="${PAD_T}" x2="${sx(xMed)}" y2="${H - PAD_B}"/>`);
+        parts.push(`<line class="ana-median-line" x1="${PAD_L}" y1="${sy(yMed)}" x2="${W - PAD_R}" y2="${sy(yMed)}"/>`);
+        // axis end-value ticks (min/max) so the scale isn't a total mystery
+        parts.push(`<text class="ana-tick" x="${PAD_L}" y="${H - PAD_B + 16}" text-anchor="start">${escapeHtml(String(xCol.fmt(xMin)))}</text>`);
+        parts.push(`<text class="ana-tick" x="${W - PAD_R}" y="${H - PAD_B + 16}" text-anchor="end">${escapeHtml(String(xCol.fmt(xMax)))}</text>`);
+        parts.push(`<text class="ana-tick" x="${PAD_L - 6}" y="${H - PAD_B}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMin)))}</text>`);
+        parts.push(`<text class="ana-tick" x="${PAD_L - 6}" y="${PAD_T + 8}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMax)))}</text>`);
+        // axis titles
+        const yMidPx = (PAD_T + H - PAD_B) / 2;
+        parts.push(`<text class="ana-axis-label" x="${(PAD_L + W - PAD_R) / 2}" y="${H - 6}" text-anchor="middle">${escapeHtml(xCol.label)} →</text>`);
+        parts.push(`<text class="ana-axis-label" x="16" y="${yMidPx}" text-anchor="middle" transform="rotate(-90 16 ${yMidPx})">${escapeHtml(yCol.label)} →</text>`);
+        // points
+        points.forEach((p) => {
+          const score = p.r.autoScore || 0;
+          parts.push(`<circle class="ana-point" data-kind="${kindOf(p.r)}" data-id="${p.r.id}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="5" fill="${heatColor(score)}"><title>${escapeHtml(p.r.name || "")}</title></circle>`);
+        });
+        svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+        svg.innerHTML = parts.join("");
+      }
+
+      document.getElementById("anaKind").addEventListener("click", (e) => {
+        const btn = e.target.closest("button"); if (!btn) return;
+        anaState.kind = btn.dataset.v;
+        document.querySelectorAll("#anaKind button").forEach((b) => b.classList.toggle("active", b === btn));
+        renderAnalysis();
+      });
+      document.getElementById("anaX").addEventListener("change", (e) => { anaState.xKey = e.target.value; renderAnalysis(); });
+      document.getElementById("anaY").addEventListener("change", (e) => { anaState.yKey = e.target.value; renderAnalysis(); });
+      document.getElementById("anaSvg").addEventListener("click", (e) => {
+        const pt = e.target.closest(".ana-point"); if (!pt) return;
+        const r = byId(pt.dataset.kind, pt.dataset.id);
+        if (r) openModal(r);
+      });
+
       /* ===== app bootstrap ===== */
       function initApp(payload) {
         STATE.villages = payload.villages || [];
@@ -1399,12 +1613,15 @@
         populateStatusFilter();
         renderSearch();
         renderRecTagChips();
+        renderRecTableHead();
         renderRecommend();
         initCalendarDefaultMonth();
         populateCalStatusFilter();
         renderCalAreaFilter();
         renderCalTagChips();
         renderCalendar();
+        populateAnaAxisSelects();
+        renderAnalysis();
       }
 
       /* ===== Google Sign-In =====
@@ -1468,18 +1685,22 @@
       const VILLAGE_FIELDS = [
         "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
         "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
-        "activePct", "competitor", "mksTrue", "faultAvg", "faultGrade", "churn3m",
-        "churnRate", "churnGrade", "gradeSale", "scoreSale", "gradeCare",
-        "scoreCare", "finalGrade", "villageGrade", "actionGroup", "mainGroup",
-        "contractEnd", "tags", "autoScore",
+        "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
+        "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
+        "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m",
+        "churnRate", "churnGrade", "churnMonthly", "churnMonthlyRate", "gradeSale",
+        "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
+        "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
       ];
       const BUILDING_FIELDS = [
         "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
         "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
         "occupancy", "totalPort", "totalAvailable", "active", "activePct",
-        "arpu", "competitor", "mksTrue", "faultAvg", "faultGrade", "churn3m",
-        "churnPct", "gradeSale", "scoreSale", "groupBuilding", "caretakerChannel",
-        "caretakerName", "tags", "autoScore",
+        "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
+        "competitorSubs", "faultAvg", "faultGrade", "faultTruckRoll",
+        "faultTruckRollPct", "faultOther", "faultOtherPct", "churn3m", "churnPct",
+        "churnMonthly", "churnMonthlyRate", "gradeSale", "scoreSale",
+        "groupBuilding", "caretakerChannel", "caretakerName", "tags", "autoScore",
       ];
       function rowObjects_(tab, fields) {
         return (tab.rows || []).map((row) => {
@@ -1546,17 +1767,17 @@
       /* ===== mock data (local preview only) ===== */
       const MOCK_PAYLOAD = {
         villages: [
-          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePct: 0.37, competitor: 95, mksTrue: 0.42, faultAvg: 0.5, faultGrade: "L", churn3m: 3, churnRate: 0.02, churnGrade: "low", gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
-          { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, faultAvg: 0, faultGrade: "L", churn3m: 0, churnRate: 0, churnGrade: "low", gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
-          { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, faultAvg: 1.2, faultGrade: "M", churn3m: 6, churnRate: 0.04, churnGrade: "mid", gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 79.4 },
-          { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, faultAvg: 0, faultGrade: "L", churn3m: 0, churnRate: 0, churnGrade: "low", gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },
-          { id: "v5", name: "หมู่บ้านบางบัวทองพาร์ค", district: "บางบัวทอง", subdistrict: "บางบัวทอง", lat: 13.924, lng: 100.417, status: "เปิด", closed: false, houseAll: 550, totalPort: 500, totalAvailable: 300, active: 180, activePct: 0.36, competitor: 130, mksTrue: 0.39, faultAvg: 2.1, faultGrade: "H", churn3m: 12, churnRate: 0.06, churnGrade: "high", gradeSale: "H", scoreSale: 1.6, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 82.0 },
-          { id: "v6", name: "หมู่บ้านสายไหมการ์เดนท์", district: "ปากเกร็ด", subdistrict: "คลองพระอุดม", lat: 13.94, lng: 100.46, status: "เปิด", closed: false, houseAll: 95, totalPort: 80, totalAvailable: 55, active: 15, activePct: 0.19, competitor: 12, mksTrue: 0.18, faultAvg: 0.3, faultGrade: "L", churn3m: 1, churnRate: 0.01, churnGrade: "low", gradeSale: "L", scoreSale: 0.8, mainGroup: "G3", tags: ["low_fault"], autoScore: 45.1 },
+          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
+          { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, mksFibre3: 0.5, mksNt: 0.29, competitorMks: 0.79, competitorSubs: 75.2, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 0, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
+          { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, mksFibre3: 0.4, mksNt: 0.27, competitorMks: 0.67, competitorSubs: 121.8, faultAvg: 1.2, faultGrade: "M", faultTruckRoll: 8, faultTruckRollPct: 0.73, faultOther: 3, faultOtherPct: 0.27, churn3m: 6, churnRate: 0.04, churnGrade: "mid", churnMonthly: 4, churnMonthlyRate: 0.067, gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 79.4 },
+          { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, mksFibre3: 0.35, mksNt: 0.18, competitorMks: 0.53, competitorSubs: 14.7, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },
+          { id: "v5", name: "หมู่บ้านบางบัวทองพาร์ค", district: "บางบัวทอง", subdistrict: "บางบัวทอง", lat: 13.924, lng: 100.417, status: "เปิด", closed: false, houseAll: 550, totalPort: 500, totalAvailable: 300, active: 180, activePct: 0.36, competitor: 130, mksTrue: 0.39, mksFibre3: 0.36, mksNt: 0.25, competitorMks: 0.61, competitorSubs: 281.5, faultAvg: 2.1, faultGrade: "H", faultTruckRoll: 15, faultTruckRollPct: 0.68, faultOther: 7, faultOtherPct: 0.32, churn3m: 12, churnRate: 0.06, churnGrade: "high", churnMonthly: 9, churnMonthlyRate: 0.05, gradeSale: "H", scoreSale: 1.6, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 82.0 },
+          { id: "v6", name: "หมู่บ้านสายไหมการ์เดนท์", district: "ปากเกร็ด", subdistrict: "คลองพระอุดม", lat: 13.94, lng: 100.46, status: "เปิด", closed: false, houseAll: 95, totalPort: 80, totalAvailable: 55, active: 15, activePct: 0.19, competitor: 12, mksTrue: 0.18, mksFibre3: 0.52, mksNt: 0.3, competitorMks: 0.82, competitorSubs: 68.3, faultAvg: 0.3, faultGrade: "L", faultTruckRoll: 1, faultTruckRollPct: 0.5, faultOther: 1, faultOtherPct: 0.5, churn3m: 1, churnRate: 0.01, churnGrade: "low", churnMonthly: 1, churnMonthlyRate: 0.067, gradeSale: "L", scoreSale: 0.8, mainGroup: "G3", tags: ["low_fault"], autoScore: 45.1 },
         ],
         buildings: [
-          { id: "b1", name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, faultAvg: 0, faultGrade: "L", churn3m: 0, churnPct: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "high_competitor", "low_fault"], autoScore: 76.3 },
-          { id: "b2", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, faultAvg: 0.4, faultGrade: "L", churn3m: 2, churnPct: 0.01, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large", "high_competitor"], autoScore: 85.9 },
-          { id: "b3", name: "RIVERINE PLACE BUILDING 4", prov: "นนทบุรี", amp: "เมืองนนทบุรี", tam: "สวนใหญ่", lat: 13.85, lng: 100.49, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 4, units: 8, occupancy: 0.5, totalPort: 8, totalAvailable: 4, active: 0, activePct: 0, arpu: null, competitor: 2, mksTrue: 0, faultAvg: 0, faultGrade: "L", churn3m: 0, churnPct: 0, gradeSale: "L", scoreSale: 0.6, groupBuilding: "RIVERINE PLACE", tags: ["low_fault"], autoScore: 22.1 },
+          { id: "b1", name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, mksFibre3: 0.6, mksNt: 0.26, competitorMks: 0.86, competitorSubs: 18.4, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 1, faultOtherPct: 1, churn3m: 0, churnPct: 0, churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "high_competitor", "low_fault"], autoScore: 76.3 },
+          { id: "b2", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, mksFibre3: 0.44, mksNt: 0.2, competitorMks: 0.64, competitorSubs: 106.7, faultAvg: 0.4, faultGrade: "L", faultTruckRoll: 2, faultTruckRollPct: 0.4, faultOther: 3, faultOtherPct: 0.6, churn3m: 2, churnPct: 0.01, churnMonthly: 1, churnMonthlyRate: 0.017, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large", "high_competitor"], autoScore: 85.9 },
+          { id: "b3", name: "RIVERINE PLACE BUILDING 4", prov: "นนทบุรี", amp: "เมืองนนทบุรี", tam: "สวนใหญ่", lat: 13.85, lng: 100.49, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 4, units: 8, occupancy: 0.5, totalPort: 8, totalAvailable: 4, active: 0, activePct: 0, arpu: null, competitor: 2, mksTrue: 0, mksFibre3: 0, mksNt: 0, competitorMks: null, competitorSubs: null, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnPct: 0, churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 0.6, groupBuilding: "RIVERINE PLACE", tags: ["low_fault"], autoScore: 22.1 },
         ],
         calendarTheme: [],
         calendarPlan: [],
