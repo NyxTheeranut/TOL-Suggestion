@@ -38,8 +38,8 @@
  *   getSyncData / syncData          -> update_suggestion_sheet.py, on your
  *                                      own machine -- gated by SYNC_SECRET
  *                                      instead (not a person signing in).
- *   saveCalendarTheme / saveCalendarDay -> any allow-listed signed-in viewer
- *                                      (no separate admin role -- matches
+ *   saveCalendarTheme / saveCalendarDay / clearCalendarMonth -> any allow-
+ *                                      listed signed-in viewer (no separate admin role -- matches
  *                                      this dashboard's no-roles model).
  *
  * ── SETUP (one-time) -- see this repo's README.md for the full walkthrough ─
@@ -120,6 +120,13 @@ function doPost(e) {
       var email2 = verifyIdToken_(body.idToken);
       if (!email2 || !isAllowedUser_(email2)) return jsonResponse_({ ok: false, error: "not_signed_in" });
       saveCalendarDay_(body.monthKey, body.day, body.picks || []);
+      return jsonResponse_({ ok: true });
+    }
+
+    if (body.action === "clearCalendarMonth") {
+      var email3 = verifyIdToken_(body.idToken);
+      if (!email3 || !isAllowedUser_(email3)) return jsonResponse_({ ok: false, error: "not_signed_in" });
+      clearCalendarMonth_(body.monthKey);
       return jsonResponse_({ ok: true });
     }
 
@@ -262,13 +269,51 @@ function writeTab_(name, header, rows, append) {
 // Both are small (a handful of rows per month), so a targeted read-modify-
 // write here is simple and cheap -- unlike Villages/Buildings, these are
 // NEVER wiped wholesale; only rows for the affected monthKey (and day, for
-// CalendarPlan) are replaced.
+// CalendarPlan) are replaced. Two things keep these from just accumulating
+// forever, month after month: pruneOldCalendarData_ (called from every
+// write below) drops anything older than CALENDAR_RETENTION_MONTHS, and
+// clearCalendarMonth_ lets a viewer wipe one month on demand from the page.
 
 var CALENDAR_THEME_HEADER = ["monthKey", "tagsCsv", "updatedBy", "updatedAt"];
 var CALENDAR_PLAN_HEADER = ["monthKey", "day", "slot", "kind", "refId"];
+var CALENDAR_RETENTION_MONTHS = 2; // keep the current month plus this many months back
+
+function cutoffMonthKey_() {
+  var d = new Date();
+  d.setDate(1); // pin to the 1st first, so subtracting months can't skid into the wrong month on a 31st
+  d.setMonth(d.getMonth() - CALENDAR_RETENTION_MONTHS);
+  var m = d.getMonth() + 1;
+  return String(d.getFullYear()) + (m < 10 ? "0" + m : String(m));
+}
+
+// Drops CalendarPlan/CalendarTheme rows for any month older than the
+// retention window -- a past month's sales-visit plan has no ongoing
+// value once it's over, unlike Villages/Buildings which are a current-
+// state snapshot worth keeping in full. Runs on every calendar write
+// (small, cheap tabs) rather than as a separate scheduled job, so there's
+// nothing extra to set up or forget to run.
+function pruneOldCalendarData_() {
+  var cutoff = cutoffMonthKey_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  ["CalendarPlan", "CalendarTheme"].forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    var kept = [data[0]];
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) >= cutoff) kept.push(data[i]);
+    }
+    if (kept.length === data.length) return; // nothing to prune -- skip the rewrite
+    sheet.clearContents();
+    sheet.getRange(1, 1, kept.length, data[0].length).setValues(kept);
+    sheet.setFrozenRows(1);
+  });
+}
 
 function saveCalendarTheme_(monthKey, tags, email) {
   if (!monthKey) throw new Error("monthKey required");
+  pruneOldCalendarData_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("CalendarTheme");
   if (!sheet) {
@@ -295,6 +340,7 @@ function saveCalendarDay_(monthKey, day, picks) {
   // (CalendarPlan stays small -- a season's worth of days is only a few
   // hundred rows -- so reading it whole here is cheap).
   if (!monthKey || !day) throw new Error("monthKey and day required");
+  pruneOldCalendarData_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("CalendarPlan");
   if (!sheet) {
@@ -315,6 +361,27 @@ function saveCalendarDay_(monthKey, day, picks) {
   sheet.clearContents();
   sheet.getRange(1, 1, kept.length, CALENDAR_PLAN_HEADER.length).setValues(kept);
   sheet.setFrozenRows(1);
+}
+
+// Manual "Clear month" from the page -- wipes exactly one month's
+// CalendarPlan rows and its CalendarTheme row, on demand rather than
+// waiting for it to age out of the retention window above.
+function clearCalendarMonth_(monthKey) {
+  if (!monthKey) throw new Error("monthKey required");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  ["CalendarPlan", "CalendarTheme"].forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    var kept = [data[0]];
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) !== String(monthKey)) kept.push(data[i]);
+    }
+    sheet.clearContents();
+    sheet.getRange(1, 1, kept.length, data[0].length).setValues(kept);
+    sheet.setFrozenRows(1);
+  });
 }
 
 // ---------- reconstructPayload_: mirror of sheet_schema.reconstruct() ----------

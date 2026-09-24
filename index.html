@@ -481,6 +481,7 @@
               </div>
               <select id="calStatus"><option value="all">Any village status</option></select>
               <button class="btn primary" id="calGenMonth">Generate whole month</button>
+              <button class="btn" id="calClearMonth">Clear month</button>
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="district-panel" style="max-height:190px;margin-top:10px;">
@@ -1334,6 +1335,21 @@
         }
       });
       document.getElementById("calGenMonth").addEventListener("click", generateMonth);
+      document.getElementById("calClearMonth").addEventListener("click", async () => {
+        const monthKey = calState.monthKey;
+        if (!confirm("Clear every pick and the theme for this month? This can't be undone.")) return;
+        delete STATE.calendarPlan[monthKey];
+        delete STATE.calendarTheme[monthKey];
+        calState.tags = new Set();
+        renderCalTagChips();
+        renderCalendar();
+        try {
+          await api("clearCalendarMonth", { monthKey });
+          setCalStatus("Month cleared.", false);
+        } catch (e) {
+          setCalStatus("Cleared locally, but couldn't clear the shared plan: " + e.message, true);
+        }
+      });
       document.getElementById("calMonth").addEventListener("change", (e) => {
         calState.monthKey = monthKeyOf(e.target.value);
         const theme = STATE.calendarTheme[calState.monthKey];
