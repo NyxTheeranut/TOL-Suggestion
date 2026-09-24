@@ -121,9 +121,14 @@ useful for reviewing the UI without any of that setup.
   counts, ports, latest active, competitor total, market share, fault/churn,
   the business's own existing sales grading, computed tags, and `autoScore`.
 - `Users` — `email | note` allow-list.
-- `CalendarTheme` — one row per month: selected tags for that month's theme.
-- `CalendarPlan` — one row per (month, day, slot) pick — generated client-side
-  from whichever tags are active, saved back via `saveCalendarDay`.
+- `CalendarTheme` — one row per (month, viewer): that viewer's selected
+  theme tags for that month (`updatedBy` is the key, not just `monthKey` —
+  each signed-in account has its own theme per month).
+- `CalendarPlan` — one row per (month, day, slot, viewer) pick — generated
+  client-side from whichever tags are active, saved back via
+  `saveCalendarDay`. The `email` column means two people planning the same
+  month never see or overwrite each other's picks; `myData` only ever
+  returns the signed-in viewer's own rows from both tabs.
 
 ## Security notes
 

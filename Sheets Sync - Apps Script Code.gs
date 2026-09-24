@@ -119,14 +119,14 @@ function doPost(e) {
     if (body.action === "saveCalendarDay") {
       var email2 = verifyIdToken_(body.idToken);
       if (!email2 || !isAllowedUser_(email2)) return jsonResponse_({ ok: false, error: "not_signed_in" });
-      saveCalendarDay_(body.monthKey, body.day, body.picks || []);
+      saveCalendarDay_(body.monthKey, body.day, body.picks || [], email2);
       return jsonResponse_({ ok: true });
     }
 
     if (body.action === "clearCalendarMonth") {
       var email3 = verifyIdToken_(body.idToken);
       if (!email3 || !isAllowedUser_(email3)) return jsonResponse_({ ok: false, error: "not_signed_in" });
-      clearCalendarMonth_(body.monthKey);
+      clearCalendarMonth_(body.monthKey, email3);
       return jsonResponse_({ ok: true });
     }
 
@@ -196,7 +196,21 @@ function myData_(idToken) {
   }
   var tabs = readTabs_(["Meta", "Villages", "Buildings", "CalendarTheme", "CalendarPlan"]);
   if (!tabs) return { ok: false, error: "no_data", message: "No data has been synced yet -- run update_suggestion_sheet.py." };
+  // Each signed-in viewer only ever sees their OWN calendar plan/theme --
+  // see the header comment above CALENDAR_PLAN_HEADER for why this exists
+  // (two people planning the same month were overwriting each other).
+  tabs.CalendarPlan = filterOwnRows_(tabs.CalendarPlan, "email", email);
+  tabs.CalendarTheme = filterOwnRows_(tabs.CalendarTheme, "updatedBy", email);
   return { ok: true, email: email, payload: reconstructPayload_(tabs) };
+}
+
+// Passes a tab through unfiltered if it doesn't have the given column yet
+// (an old Sheet from before per-user calendars existed) rather than
+// erroring or hiding everything -- graceful migration, not a hard cutover.
+function filterOwnRows_(tab, colName, email) {
+  var idx = tab.header.indexOf(colName);
+  if (idx === -1) return tab;
+  return { header: tab.header, rows: tab.rows.filter(function (row) { return String(row[idx]) === email; }) };
 }
 
 function readTabs_(names) {
@@ -273,9 +287,16 @@ function writeTab_(name, header, rows, append) {
 // forever, month after month: pruneOldCalendarData_ (called from every
 // write below) drops anything older than CALENDAR_RETENTION_MONTHS, and
 // clearCalendarMonth_ lets a viewer wipe one month on demand from the page.
+//
+// Every row also carries WHO planned it (CalendarPlan.email, CalendarTheme's
+// existing "updatedBy") -- each signed-in viewer only ever reads and writes
+// their OWN rows (see myData_'s filterOwnRows_ and the email-scoped
+// read-modify-write below), so two people planning the same month never
+// overwrite each other's picks. Not a shared team plan; a personal one per
+// Google account.
 
 var CALENDAR_THEME_HEADER = ["monthKey", "tagsCsv", "updatedBy", "updatedAt"];
-var CALENDAR_PLAN_HEADER = ["monthKey", "day", "slot", "kind", "refId"];
+var CALENDAR_PLAN_HEADER = ["monthKey", "day", "slot", "kind", "refId", "email"];
 var CALENDAR_RETENTION_MONTHS = 2; // keep the current month plus this many months back
 
 function cutoffMonthKey_() {
@@ -324,7 +345,9 @@ function saveCalendarTheme_(monthKey, tags, email) {
   var data = sheet.getDataRange().getValues();
   var rowIdx = -1;
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(monthKey)) { rowIdx = i; break; }
+    // Matched on monthKey + updatedBy (not monthKey alone) -- each viewer
+    // gets their own theme row per month.
+    if (String(data[i][0]) === String(monthKey) && data[i][2] === email) { rowIdx = i; break; }
   }
   var newRow = [monthKey, tags.join(","), email, new Date().toISOString()];
   if (rowIdx === -1) {
@@ -334,11 +357,13 @@ function saveCalendarTheme_(monthKey, tags, email) {
   }
 }
 
-function saveCalendarDay_(monthKey, day, picks) {
-  // picks: [{slot, kind, refId}, ...] -- replaces every existing row for
-  // this (monthKey, day) with exactly these, in one rewrite of the tab
-  // (CalendarPlan stays small -- a season's worth of days is only a few
-  // hundred rows -- so reading it whole here is cheap).
+function saveCalendarDay_(monthKey, day, picks, email) {
+  // picks: [{slot, kind, refId}, ...] -- replaces every existing row THIS
+  // viewer owns for this (monthKey, day) with exactly these, in one
+  // rewrite of the tab (CalendarPlan stays small -- a season's worth of
+  // days, times however many people are planning, is still only a few
+  // hundred rows -- so reading it whole here is cheap). Another viewer's
+  // rows for the same day are left completely alone.
   if (!monthKey || !day) throw new Error("monthKey and day required");
   pruneOldCalendarData_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -352,36 +377,51 @@ function saveCalendarDay_(monthKey, day, picks) {
   var kept = [data[0] || CALENDAR_PLAN_HEADER];
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    if (String(row[0]) === String(monthKey) && Number(row[1]) === Number(day)) continue;
+    if (String(row[0]) === String(monthKey) && Number(row[1]) === Number(day) && row[5] === email) continue;
     kept.push(row);
   }
   picks.forEach(function (p) {
-    kept.push([monthKey, day, p.slot, p.kind, p.refId]);
+    kept.push([monthKey, day, p.slot, p.kind, p.refId, email]);
   });
   sheet.clearContents();
   sheet.getRange(1, 1, kept.length, CALENDAR_PLAN_HEADER.length).setValues(kept);
   sheet.setFrozenRows(1);
 }
 
-// Manual "Clear month" from the page -- wipes exactly one month's
-// CalendarPlan rows and its CalendarTheme row, on demand rather than
-// waiting for it to age out of the retention window above.
-function clearCalendarMonth_(monthKey) {
+// Manual "Clear month" from the page -- wipes exactly the calling viewer's
+// own CalendarPlan rows and CalendarTheme row for one month, on demand
+// rather than waiting for it to age out of the retention window above.
+// Never touches another viewer's plan for that same month.
+function clearCalendarMonth_(monthKey, email) {
   if (!monthKey) throw new Error("monthKey required");
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  ["CalendarPlan", "CalendarTheme"].forEach(function (name) {
-    var sheet = ss.getSheetByName(name);
-    if (!sheet) return;
-    var data = sheet.getDataRange().getValues();
+  var planSheet = ss.getSheetByName("CalendarPlan");
+  if (planSheet) {
+    var pdata = planSheet.getDataRange().getValues();
+    if (pdata.length >= 2) {
+      var pkept = [pdata[0]];
+      for (var i = 1; i < pdata.length; i++) {
+        if (String(pdata[i][0]) === String(monthKey) && pdata[i][5] === email) continue;
+        pkept.push(pdata[i]);
+      }
+      planSheet.clearContents();
+      planSheet.getRange(1, 1, pkept.length, pdata[0].length).setValues(pkept);
+      planSheet.setFrozenRows(1);
+    }
+  }
+  var themeSheet = ss.getSheetByName("CalendarTheme");
+  if (themeSheet) {
+    var data = themeSheet.getDataRange().getValues();
     if (data.length < 2) return;
     var kept = [data[0]];
     for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]) !== String(monthKey)) kept.push(data[i]);
+      if (String(data[i][0]) === String(monthKey) && data[i][2] === email) continue;
+      kept.push(data[i]);
     }
-    sheet.clearContents();
-    sheet.getRange(1, 1, kept.length, data[0].length).setValues(kept);
-    sheet.setFrozenRows(1);
-  });
+    themeSheet.clearContents();
+    themeSheet.getRange(1, 1, kept.length, data[0].length).setValues(kept);
+    themeSheet.setFrozenRows(1);
+  }
 }
 
 // ---------- reconstructPayload_: mirror of sheet_schema.reconstruct() ----------
