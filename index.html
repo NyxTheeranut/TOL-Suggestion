@@ -1133,13 +1133,35 @@
       // needing a real Google sign-in against localhost.
       const USE_MOCK = GOOGLE_CLIENT_ID.indexOf("REPLACE_WITH") === 0 || new URLSearchParams(location.search).has("mock");
 
-      async function api(action, fields) {
-        const res = await fetch(DEFAULT_SYNC_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action, idToken: STATE.idToken, ...fields }),
-        });
-        const data = await res.json();
+      // A plain fetch() to the Apps Script Web App occasionally hangs or
+      // drops (Apps Script cold starts, its own script.googleusercontent.com
+      // redirect hop, transient Google-infra hiccups) -- when that happens
+      // the body is an HTML page, not JSON, and res.json() throws a raw
+      // "Unexpected token '<'" that means nothing to a viewer. A timeout
+      // (so a hung request fails instead of spinning forever) plus turning
+      // that parse failure into a clear message -- same fix TOL Tracker
+      // already has for this exact failure mode.
+      async function api(action, fields, timeoutMs) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs || 20000);
+        let text;
+        try {
+          const res = await fetch(DEFAULT_SYNC_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action, idToken: STATE.idToken, ...fields }),
+            signal: controller.signal,
+          });
+          text = await res.text();
+        } finally {
+          clearTimeout(timer);
+        }
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error("The server sent back something unexpected instead of data -- usually a brief Apps Script/Google hiccup. Try again in a moment.");
+        }
         if (!data.ok) throw new Error(data.error || "request failed");
         return data;
       }
@@ -1154,13 +1176,23 @@
         STATE.idToken = response.credential;
         document.getElementById("gsiButton").style.display = "none";
         showLoginStatus('<div class="login-spinner"></div>', false);
-        try {
-          const data = await api("myData", {});
-          document.getElementById("loginGate").style.display = "none";
-          if (!appInitialized) { initApp(data.payload); appInitialized = true; }
-        } catch (e) {
-          document.getElementById("gsiButton").style.display = "flex";
-          showLoginStatus(e.message || "Sign-in failed.", true);
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            const data = await api("myData", {});
+            document.getElementById("loginGate").style.display = "none";
+            if (!appInitialized) { initApp(data.payload); appInitialized = true; }
+            return;
+          } catch (e) {
+            console.warn("myData fetch failed (attempt " + attempt + "/" + MAX_ATTEMPTS + ")", e);
+            if (attempt < MAX_ATTEMPTS) {
+              showLoginStatus('<div class="login-spinner"></div> Retrying (' + (attempt + 1) + "/" + MAX_ATTEMPTS + ")…", false);
+              await new Promise((r) => setTimeout(r, 1200 * attempt));
+              continue;
+            }
+            document.getElementById("gsiButton").style.display = "flex";
+            showLoginStatus(e.message || "Sign-in failed.", true);
+          }
         }
       }
 
