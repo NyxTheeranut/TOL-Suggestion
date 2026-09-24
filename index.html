@@ -256,6 +256,16 @@
       .search-map-panel { flex: 1; min-width: 0; position: relative; }
       #mapView { position: absolute; inset: 0; z-index: 0; }
       .prop-pin { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+      .map-legend {
+        position: absolute; right: 10px; bottom: 10px; z-index: 400;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+        padding: 6px 10px; display: flex; align-items: center; gap: 6px;
+        font-size: 10.5px; color: var(--text-2); box-shadow: var(--shadow);
+      }
+      .heat-swatch {
+        width: 70px; height: 8px; border-radius: 4px;
+        background: linear-gradient(to right, rgb(58,111,214), rgb(45,178,130), rgb(245,195,68), rgb(239,127,46), rgb(208,52,44));
+      }
 
       /* ── modal ──────────────────────────────────────────────────────────── */
       .modal-overlay { position: fixed; inset: 0; background: rgba(10,14,22,.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
@@ -388,6 +398,11 @@
           </div>
           <div class="search-map-panel">
             <div id="mapView"></div>
+            <div class="map-legend">
+              <span>Pin color = score</span>
+              <span class="heat-swatch"></span>
+              <span>low</span><span style="flex:1"></span><span>high</span>
+            </div>
           </div>
         </div>
       </section>
@@ -531,7 +546,7 @@
           ["mksTrue", "Market share (True)", (r) => pct(r.mksTrue)],
           ["fault", "Fault (3mo avg)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · grade " + r.faultGrade : "")],
           ["churn", "Churn (3mo)", (r) => fmt(r.churn3m) + (r.churnGrade ? " · " + r.churnGrade : "")],
-          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + r.scoreSale + ")" : "")],
+          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
           ["status", "Status", (r) => r.status || "—"],
           ["group", "Group", (r) => r.mainGroup || r.actionGroup || "—"],
         ],
@@ -545,7 +560,7 @@
           ["mksTrue", "Market share (True)", (r) => pct(r.mksTrue)],
           ["fault", "Fault (avg rate)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · grade " + r.faultGrade : "")],
           ["churn", "Churn", (r) => pct(r.churnPct)],
-          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + r.scoreSale + ")" : "")],
+          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
         ],
       };
       function fmt(v) { return v == null ? "—" : (typeof v === "number" ? Math.round(v * 100) / 100 : v); }
@@ -593,12 +608,20 @@
           <div class="stats">${scorePill}${tagPills}</div>
         </div>`;
       }
-      function wireResultList(el) {
+      function wireResultList(el, opts) {
+        opts = opts || {};
         el.addEventListener("click", (e) => {
           const row = e.target.closest(".result-row");
           if (!row) return;
           const r = byId(row.dataset.kind, row.dataset.id);
-          if (r) openModal(r);
+          if (!r) return;
+          // "Go to the pin" -- like Route Planner's store-row click: jump the
+          // map to that property before showing its details, so the list and
+          // the map never feel like two disconnected views.
+          if (opts.flyToPin && map && r.lat != null && r.lng != null) {
+            map.setView([r.lat, r.lng], Math.max(map.getZoom(), 16));
+          }
+          openModal(r);
         });
       }
 
@@ -609,14 +632,40 @@
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
         markerLayer = L.layerGroup().addTo(map);
       }
+
+      // Heat-style pins: color (and slightly, size) ramp with autoScore
+      // instead of a flat color per property type -- a "cold" blue for a
+      // weak candidate through to "hot" red for a strong one, at a glance
+      // across the whole map.
+      const HEAT_STOPS = [
+        [0, [58, 111, 214]],
+        [40, [45, 178, 130]],
+        [65, [245, 195, 68]],
+        [85, [239, 127, 46]],
+        [100, [208, 52, 44]],
+      ];
+      function heatColor(score) {
+        const s = Math.max(0, Math.min(100, score || 0));
+        for (let i = 0; i < HEAT_STOPS.length - 1; i++) {
+          const [s0, c0] = HEAT_STOPS[i], [s1, c1] = HEAT_STOPS[i + 1];
+          if (s >= s0 && s <= s1) {
+            const t = (s - s0) / (s1 - s0);
+            const c = c0.map((v, idx) => Math.round(v + (c1[idx] - v) * t));
+            return `rgb(${c[0]},${c[1]},${c[2]})`;
+          }
+        }
+        return `rgb(${HEAT_STOPS[HEAT_STOPS.length - 1][1].join(",")})`;
+      }
+
       function renderMap(records) {
         markerLayer.clearLayers();
         const pts = [];
         records.forEach((r) => {
           if (r.lat == null || r.lng == null) return;
-          const color = kindOf(r) === "village" ? "#1baf7a" : "#eb6834";
+          const score = r.autoScore || 0;
           const m = L.circleMarker([r.lat, r.lng], {
-            radius: 5, weight: 2, color: "#fff", fillColor: color, fillOpacity: 0.9, className: "prop-pin",
+            radius: 5 + (score / 100) * 4, weight: 2, color: "#fff",
+            fillColor: heatColor(score), fillOpacity: 0.85, className: "prop-pin",
           });
           m.on("click", () => openModal(r));
           m.addTo(markerLayer);
@@ -778,7 +827,7 @@
       document.getElementById("districtClearBtn").addEventListener("click", () => {
         searchState.amp = "all"; searchState.tam = "all"; renderSearch();
       });
-      wireResultList(document.getElementById("searchList"));
+      wireResultList(document.getElementById("searchList"), { flyToPin: true });
 
       /* ===== Section 2: Recommendation ===== */
       const recState = { kind: "village", tags: new Set(), auto: false };
