@@ -407,7 +407,7 @@
       <div class="login-card">
         <div class="bars-icon"><i></i><i></i><i></i></div>
         <h1>TOL <span>Suggestion</span></h1>
-        <p>Sign in with your work Google account to view village &amp; building sales data. Nothing loads until you're signed in.</p>
+        <p>เข้าสู่ระบบด้วยบัญชี Google ของบริษัทเพื่อดูข้อมูลการขายหมู่บ้านและอาคาร ข้อมูลจะโหลดหลังจากเข้าสู่ระบบแล้วเท่านั้น</p>
         <div id="gsiButton"></div>
         <div id="loginStatus" class="login-status"></div>
       </div>
@@ -415,64 +415,64 @@
 
     <div id="app">
       <div id="mockBanner" class="mock-banner" style="display:none">
-        Local preview — showing sample data. Set GOOGLE_CLIENT_ID / DEFAULT_SYNC_URL in index.html to connect the real Sheet.
+        ตัวอย่างข้อมูลจำลอง (โหมดพรีวิว) — กำหนดค่า GOOGLE_CLIENT_ID / DEFAULT_SYNC_URL ใน index.html เพื่อเชื่อมต่อ Google Sheet จริง
       </div>
       <div class="topbar">
         <div class="brand">
           <div class="bars-icon"><i></i><i></i><i></i></div>
           <div>
             <h1>TOL Suggestion</h1>
-            <div class="sub">Pak Kret · Bang Bua Thong · Sai Noi</div>
+            <div class="sub">ปากเกร็ด · บางบัวทอง · ไทรน้อย</div>
           </div>
         </div>
         <div class="section-nav" id="sectionNav">
-          <a href="#search" data-sec="search" class="active">Search</a>
-          <a href="#recommend" data-sec="recommend">Recommend</a>
-          <a href="#calendar" data-sec="calendar">Calendar</a>
-          <a href="#analysis" data-sec="analysis">Analysis</a>
+          <a href="#search" data-sec="search" class="active">ค้นหา</a>
+          <a href="#recommend" data-sec="recommend">แนะนำ</a>
+          <a href="#calendar" data-sec="calendar">ปฏิทิน</a>
+          <a href="#analysis" data-sec="analysis">วิเคราะห์</a>
         </div>
         <div class="topbar-right">
           <div class="meta" id="topbarMeta">—</div>
-          <button class="theme-btn" id="themeBtn" title="Toggle light / dark">◐</button>
+          <button class="theme-btn" id="themeBtn" title="สลับโหมดสว่าง/มืด">◐</button>
         </div>
       </div>
 
       <!-- ===== Section 1: Search & Demographic ===== -->
       <section class="app-section active" id="sec-search">
         <div class="mobile-view-switch" id="searchViewSwitch">
-          <button data-view="list" class="active">List</button>
-          <button data-view="map">Map</button>
+          <button data-view="list" class="active">รายการ</button>
+          <button data-view="map">แผนที่</button>
         </div>
         <div class="search-shell" id="searchShell" data-mobile-view="list">
           <div class="search-sidebar">
             <div class="sidebar-fixed">
               <div class="kind-toggle" id="searchKind">
-                <button data-v="village" class="active">Villages</button>
-                <button data-v="building">Buildings</button>
-                <button data-v="both">Both</button>
+                <button data-v="village" class="active">หมู่บ้าน</button>
+                <button data-v="building">อาคาร</button>
+                <button data-v="both">ทั้งหมด</button>
               </div>
               <div class="search-wrap">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input id="searchText" class="text-input" type="text" placeholder="Search by name…" autocomplete="off">
+                <input id="searchText" class="text-input" type="text" placeholder="ค้นหาด้วยชื่อ…" autocomplete="off">
               </div>
               <div class="sidebar-row">
-                <select id="searchStatus"><option value="all">Any status</option></select>
+                <select id="searchStatus"><option value="all">สถานะทั้งหมด</option></select>
               </div>
             </div>
             <div class="district-panel">
               <div class="amphur-row" id="amphurRow"></div>
-              <button class="district-clear" id="districtClearBtn">Clear district/subdistrict filter</button>
+              <button class="district-clear" id="districtClearBtn">ล้างตัวกรองเขต/ตำบล</button>
               <div id="districtGrid"></div>
             </div>
-            <div class="list-summary">Showing <b id="searchCount">0</b> results</div>
+            <div class="list-summary">แสดง <b id="searchCount">0</b> รายการ</div>
             <div class="result-list" id="searchList"></div>
           </div>
           <div class="search-map-panel">
             <div id="mapView"></div>
             <div class="map-legend">
-              <span>Pin color = score</span>
+              <span>สีหมุด = คะแนน</span>
               <span class="heat-swatch"></span>
-              <span>low</span><span style="flex:1"></span><span>high</span>
+              <span>ต่ำ</span><span style="flex:1"></span><span>สูง</span>
             </div>
           </div>
         </div>
@@ -482,23 +482,23 @@
       <section class="app-section" id="sec-recommend">
         <div class="section-scroll">
           <div class="card">
-            <h2>Recommended</h2>
-            <div class="hint">Pick tags to filter (multiple tags narrow the list), or switch on auto-suggest to just rank everything by the composite score.</div>
+            <h2>แนะนำ</h2>
+            <div class="hint">เลือกแท็กเพื่อกรอง (เลือกหลายแท็กจะจำกัดรายการให้แคบลง) หรือเปิดแนะนำอัตโนมัติเพื่อจัดอันดับทั้งหมดตามคะแนนรวม</div>
             <div class="filter-bar">
               <div class="kind-toggle" id="recKind">
-                <button data-v="village" class="active">Villages</button>
-                <button data-v="building">Buildings</button>
-                <button data-v="both">Both</button>
+                <button data-v="village" class="active">หมู่บ้าน</button>
+                <button data-v="building">อาคาร</button>
+                <button data-v="both">ทั้งหมด</button>
               </div>
               <div class="auto-toggle">
-                Auto-suggest
+                แนะนำอัตโนมัติ
                 <button class="switch" id="autoToggle"></button>
               </div>
             </div>
             <div class="tag-chips" id="recTags"></div>
           </div>
           <div class="card">
-            <div class="list-summary">Showing <b id="recCount">0</b> results — click a column to sort</div>
+            <div class="list-summary">แสดง <b id="recCount">0</b> รายการ — คลิกหัวคอลัมน์เพื่อจัดเรียง</div>
             <div class="rec-table-wrap">
               <table class="rec-table" id="recTable">
                 <thead><tr id="recTableHead"></tr></thead>
@@ -513,23 +513,24 @@
       <section class="app-section" id="sec-calendar">
         <div class="section-scroll">
           <div class="card">
-            <h2>Monthly sales calendar</h2>
-            <div class="hint">Pick this month's theme (optional — leave blank to draw from the whole ranked pool), then generate a day, or the whole month, at a time.</div>
+            <h2>ปฏิทินการขายรายเดือน</h2>
+            <div class="hint">เลือกธีมของเดือนนี้ (ไม่บังคับ — เว้นว่างเพื่อดึงจากรายการจัดอันดับทั้งหมด) จากนั้นสร้างแผนรายวันหรือทั้งเดือนได้ทันที</div>
             <div class="cal-controls">
               <input type="month" id="calMonth">
               <div class="kind-toggle" id="calKind">
-                <button data-v="both" class="active">Villages + Buildings</button>
-                <button data-v="village">Villages</button>
-                <button data-v="building">Buildings</button>
+                <button data-v="both" class="active">หมู่บ้าน + อาคาร</button>
+                <button data-v="village">หมู่บ้าน</button>
+                <button data-v="building">อาคาร</button>
               </div>
-              <select id="calStatus"><option value="all">Any village status</option></select>
-              <button class="btn primary" id="calGenMonth">Generate whole month</button>
-              <button class="btn" id="calClearMonth">Clear month</button>
+              <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
+              <button class="btn primary" id="calGenMonth">สร้างทั้งเดือน</button>
+              <button class="btn" id="calClearMonth">ล้างเดือน</button>
+              <button class="btn" id="calExportImg">📷 ส่งออกรูปภาพ</button>
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="district-panel" style="max-height:190px;margin-top:10px;">
               <div class="amphur-row" id="calAmphurRow"></div>
-              <button class="district-clear" id="calDistrictClearBtn">Clear district/subdistrict filter</button>
+              <button class="district-clear" id="calDistrictClearBtn">ล้างตัวกรองเขต/ตำบล</button>
               <div id="calDistrictGrid"></div>
             </div>
             <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
@@ -544,21 +545,21 @@
       <section class="app-section" id="sec-analysis">
         <div class="section-scroll">
           <div class="card">
-            <h2>Analysis</h2>
-            <div class="hint">Pick two metrics to plot every property against each other, split into 4 quadrants by the median of each axis.</div>
+            <h2>วิเคราะห์</h2>
+            <div class="hint">เลือก 2 ตัวชี้วัดเพื่อวางเปรียบเทียบทุกจุด แบ่งเป็น 4 ควอแดรนท์ตามค่ามัธยฐานของแต่ละแกน</div>
             <div class="filter-bar">
               <div class="kind-toggle" id="anaKind">
-                <button data-v="village" class="active">Villages</button>
-                <button data-v="building">Buildings</button>
-                <button data-v="both">Both</button>
+                <button data-v="village" class="active">หมู่บ้าน</button>
+                <button data-v="building">อาคาร</button>
+                <button data-v="both">ทั้งหมด</button>
               </div>
               <select id="anaX"></select>
-              <span style="color:var(--text-3); font-size:12px;">vs</span>
+              <span style="color:var(--text-3); font-size:12px;">เทียบกับ</span>
               <select id="anaY"></select>
             </div>
           </div>
           <div class="card">
-            <div class="list-summary" id="anaCount">Showing 0 points</div>
+            <div class="list-summary" id="anaCount">แสดง 0 จุด</div>
             <div class="analysis-chart-wrap">
               <svg id="anaSvg" viewBox="0 0 640 420" preserveAspectRatio="xMidYMid meet"></svg>
             </div>
@@ -574,18 +575,18 @@
     <div class="modal-overlay" id="dayEditOverlay">
       <div class="modal-card" id="dayEditCard" style="width: 460px;">
         <div class="modal-head">
-          <h3 id="dayEditTitle">Edit day</h3>
+          <h3 id="dayEditTitle">แก้ไขวัน</h3>
           <button class="modal-close" id="dayEditCloseBtn">✕</button>
         </div>
         <div style="display: flex; gap: 8px; margin: 10px 0;">
-          <button class="btn primary" id="dayEditAutoBtn" style="flex: 1;">Auto-generate</button>
-          <button class="btn" id="dayEditRouteBtn" style="flex: 1;">🗺 View route</button>
-          <button class="btn" id="dayEditClearBtn" style="flex: 1;">Clear day</button>
+          <button class="btn primary" id="dayEditAutoBtn" style="flex: 1;">สร้างอัตโนมัติ</button>
+          <button class="btn" id="dayEditRouteBtn" style="flex: 1;">🗺 ดูเส้นทาง</button>
+          <button class="btn" id="dayEditClearBtn" style="flex: 1;">ล้างวัน</button>
         </div>
         <div id="dayEditSlots"></div>
         <div class="search-wrap" style="margin: 12px 0 8px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input id="dayEditSearch" class="text-input" placeholder="Search to add a village or building…" autocomplete="off">
+          <input id="dayEditSearch" class="text-input" placeholder="ค้นหาเพื่อเพิ่มหมู่บ้านหรืออาคาร…" autocomplete="off">
         </div>
         <div class="result-list" id="dayEditResults" style="max-height: 220px; border: 1px solid var(--line); border-radius: 9px;"></div>
       </div>
@@ -601,10 +602,10 @@
       };
 
       const TAGS = [
-        { key: "high_available", label: "High available ports" },
-        { key: "large", label: "Large (household/units)" },
-        { key: "high_competitor", label: "High competitor presence" },
-        { key: "low_fault", label: "Low fault" },
+        { key: "high_available", label: "พอร์ตว่างสูง" },
+        { key: "large", label: "ขนาดใหญ่ (ครัวเรือน/ยูนิต)" },
+        { key: "high_competitor", label: "คู่แข่งเยอะ" },
+        { key: "low_fault", label: "Fault น้อย" },
       ];
 
       function byId(kind, id) {
@@ -654,28 +655,28 @@
       /* ===== modal ===== */
       const DEMO_FIELDS = {
         village: [
-          ["houseAll", "Households", (r) => fmt(r.houseAll)],
-          ["ports", "Ports (avail / total)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
-          ["active", "True active", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
-          ["competitor", "Competitor customers", (r) => fmt(r.competitor)],
-          ["mksTrue", "Market share (True)", (r) => pct(r.mksTrue)],
-          ["fault", "Fault (3mo avg)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · grade " + r.faultGrade : "")],
-          ["churn", "Churn (3mo)", (r) => fmt(r.churn3m) + (r.churnGrade ? " · " + r.churnGrade : "")],
-          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
-          ["status", "Status", (r) => r.status || "—"],
-          ["group", "Group", (r) => r.mainGroup || r.actionGroup || "—"],
+          ["houseAll", "ครัวเรือน", (r) => fmt(r.houseAll)],
+          ["ports", "พอร์ต (ว่าง / ทั้งหมด)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
+          ["active", "Active True", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
+          ["competitor", "ลูกค้าคู่แข่ง", (r) => fmt(r.competitor)],
+          ["mksTrue", "ส่วนแบ่งตลาด (True)", (r) => pct(r.mksTrue)],
+          ["fault", "Fault (เฉลี่ย 3 เดือน)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · เกรด " + r.faultGrade : "")],
+          ["churn", "Churn (3 เดือน)", (r) => fmt(r.churn3m) + (r.churnGrade ? " · " + r.churnGrade : "")],
+          ["grade", "เกรดการขาย", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
+          ["status", "สถานะ", (r) => r.status || "—"],
+          ["group", "กลุ่ม", (r) => r.mainGroup || r.actionGroup || "—"],
         ],
         building: [
-          ["units", "Units / floors", (r) => fmt(r.units) + " / " + fmt(r.floors)],
-          ["occupancy", "Occupancy", (r) => pct(r.occupancy)],
-          ["ports", "Ports (avail / total)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
+          ["units", "ยูนิต / ชั้น", (r) => fmt(r.units) + " / " + fmt(r.floors)],
+          ["occupancy", "อัตราเข้าอยู่", (r) => pct(r.occupancy)],
+          ["ports", "พอร์ต (ว่าง / ทั้งหมด)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
           ["active", "Active", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
           ["arpu", "ARPU", (r) => fmt(r.arpu)],
-          ["competitor", "Competitor customers", (r) => fmt(r.competitor)],
-          ["mksTrue", "Market share (True)", (r) => pct(r.mksTrue)],
-          ["fault", "Fault (avg rate)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · grade " + r.faultGrade : "")],
+          ["competitor", "ลูกค้าคู่แข่ง", (r) => fmt(r.competitor)],
+          ["mksTrue", "ส่วนแบ่งตลาด (True)", (r) => pct(r.mksTrue)],
+          ["fault", "Fault (อัตราเฉลี่ย)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · เกรด " + r.faultGrade : "")],
           ["churn", "Churn", (r) => pct(r.churnPct)],
-          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
+          ["grade", "เกรดการขาย", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + fmt(r.scoreSale) + ")" : "")],
         ],
       };
       function fmt(v) { return v == null ? "—" : (typeof v === "number" ? Math.round(v * 100) / 100 : v); }
@@ -694,7 +695,7 @@
             <button class="modal-close" id="modalCloseBtn">✕</button>
           </div>
           <div class="modal-badges">
-            <span class="badge ${gradeCls}">Grade ${escapeHtml(record.gradeSale || "—")}</span>
+            <span class="badge ${gradeCls}">เกรด ${escapeHtml(record.gradeSale || "—")}</span>
             ${(record.tags || []).map((t) => `<span class="badge">${tagLabel(t)}</span>`).join("")}
           </div>
           <div class="demo-grid">
@@ -716,7 +717,7 @@
       /* ===== result row + stat pill rendering (shared by search & recommend) ===== */
       function resultRowHtml(r) {
         const tagPills = (r.tags || []).map((t) => `<span class="stat-pill tag-${t}">${tagLabel(t)}</span>`).join("");
-        const scorePill = r.autoScore != null ? `<span class="stat-pill">score ${r.autoScore}</span>` : "";
+        const scorePill = r.autoScore != null ? `<span class="stat-pill">คะแนน ${r.autoScore}</span>` : "";
         return `<div class="result-row" data-kind="${kindOf(r)}" data-id="${r.id}">
           <div class="nm">${escapeHtml(r.name || "—")}</div>
           <div class="loc">${escapeHtml(locOf(r))}</div>
@@ -880,10 +881,10 @@
         return `<div class="map-pop">
           <div class="nm">${escapeHtml(r.name || "—")}</div>
           <div class="row"><span>${escapeHtml(locOf(r))}</span></div>
-          <div class="row"><span>Score</span><span class="v">${r.autoScore != null ? r.autoScore : "—"}</span></div>
-          <div class="row"><span>${isVillage ? "Households" : "Units"}</span><span class="v">${fmt(isVillage ? r.houseAll : r.units)}</span></div>
-          <div class="row"><span>Available ports</span><span class="v">${fmt(r.totalAvailable)}</span></div>
-          <button data-view-details>View details</button>
+          <div class="row"><span>คะแนน</span><span class="v">${r.autoScore != null ? r.autoScore : "—"}</span></div>
+          <div class="row"><span>${isVillage ? "ครัวเรือน" : "ยูนิต"}</span><span class="v">${fmt(isVillage ? r.houseAll : r.units)}</span></div>
+          <div class="row"><span>พอร์ตว่าง</span><span class="v">${fmt(r.totalAvailable)}</span></div>
+          <button data-view-details>ดูรายละเอียด</button>
         </div>`;
       }
 
@@ -1037,7 +1038,7 @@
         if (searchState.kind !== "building") {
           const statuses = [...new Set(STATE.villages.map((r) => r.status).filter(Boolean))];
           statusSel.style.display = "";
-          statusSel.innerHTML = `<option value="all">Any status</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
+          statusSel.innerHTML = `<option value="all">สถานะทั้งหมด</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
         } else {
           statusSel.style.display = "none";
           searchState.status = "all";
@@ -1052,7 +1053,7 @@
         const listEl = document.getElementById("searchList");
         listEl.innerHTML = results.length
           ? results.slice(0, 300).map(resultRowHtml).join("")
-          : `<div class="empty-note">No matches.</div>`;
+          : `<div class="empty-note">ไม่พบข้อมูล</div>`;
         renderMap(results);
         renderBoundaries();
       }
@@ -1078,15 +1079,15 @@
       // sortable number; `fmt` formats it for display -- kept separate so
       // sorting never has to re-parse a formatted string.
       const REC_COLUMNS = [
-        { key: "name", label: "Property" },
-        { key: "hh", label: "HH / Units", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
+        { key: "name", label: "ทรัพย์สิน" },
+        { key: "hh", label: "ครัวเรือน/ยูนิต", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
         { key: "active", label: "Active True", get: (r) => r.active, fmt: fmt },
-        { key: "competitorSubs", label: "Competitor Subs", get: (r) => r.competitorSubs, fmt: fmt },
+        { key: "competitorSubs", label: "Sub คู่แข่ง", get: (r) => r.competitorSubs, fmt: fmt },
         { key: "mksTrue", label: "MKS True", get: (r) => r.mksTrue, fmt: pct },
-        { key: "competitorMks", label: "Competitor MKS", get: (r) => r.competitorMks, fmt: pct },
-        { key: "churnMonthly", label: "Churn / Month", get: (r) => r.churnMonthly, fmt: fmt },
+        { key: "competitorMks", label: "MKS คู่แข่ง", get: (r) => r.competitorMks, fmt: pct },
+        { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
         { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
-        { key: "autoScore", label: "Score", get: (r) => r.autoScore, fmt: fmt },
+        { key: "autoScore", label: "คะแนน", get: (r) => r.autoScore, fmt: fmt },
       ];
 
       function renderRecTagChips() {
@@ -1126,7 +1127,7 @@
         document.getElementById("recCount").textContent = results.length;
         const body = document.getElementById("recTableBody");
         if (!results.length) {
-          body.innerHTML = `<tr><td colspan="${REC_COLUMNS.length}"><div class="empty-note">No properties match every selected tag.</div></td></tr>`;
+          body.innerHTML = `<tr><td colspan="${REC_COLUMNS.length}"><div class="empty-note">ไม่มีข้อมูลที่ตรงกับทุกแท็กที่เลือก</div></td></tr>`;
           return;
         }
         body.innerHTML = results.slice(0, 300).map((r) => {
@@ -1182,7 +1183,7 @@
         }
         sel.style.display = "";
         const statuses = [...new Set(STATE.villages.map((r) => r.status).filter(Boolean))];
-        sel.innerHTML = `<option value="all">Any village status</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
+        sel.innerHTML = `<option value="all">สถานะหมู่บ้านทั้งหมด</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
         sel.value = statuses.includes(calState.status) ? calState.status : "all";
         calState.status = sel.value;
       }
@@ -1304,9 +1305,9 @@
           for (let day = 1; day <= n; day++) {
             await api("saveCalendarDay", { monthKey, day, picks: STATE.calendarPlan[monthKey][day] });
           }
-          setCalStatus("Whole month saved to the shared plan.", false);
+          setCalStatus("บันทึกแผนทั้งเดือนแล้ว", false);
         } catch (e) {
-          setCalStatus("Could not save the full month to the shared plan (saved locally only): " + e.message, true);
+          setCalStatus("บันทึกแผนทั้งเดือนไม่สำเร็จ (บันทึกไว้ในเครื่องเท่านั้น): " + e.message, true);
         }
       }
 
@@ -1318,7 +1319,7 @@
       function renderCalendar() {
         const monthKey = calState.monthKey;
         if (!monthKey) return;
-        const dow = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
         const n = daysInMonth(monthKey);
         const lead = firstWeekday(monthKey);
         const plan = STATE.calendarPlan[monthKey] || {};
@@ -1334,9 +1335,9 @@
               const nm = r ? r.name : "?";
               return `<div class="cal-pick${p.slot === "backup" ? " backup" : ""}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(nm)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
             }).join("");
-            inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ Edit</button>`;
+            inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ แก้ไข</button>`;
           } else {
-            inner += `<button class="cal-gen-btn" data-edit-day="${day}">+ Plan day</button>`;
+            inner += `<button class="cal-gen-btn" data-edit-day="${day}">+ วางแผน</button>`;
           }
           html += `<div class="cal-day">${inner}</div>`;
         }
@@ -1349,6 +1350,80 @@
         const editBtn = e.target.closest("[data-edit-day]");
         if (editBtn) openDayEditor(calState.monthKey, +editBtn.dataset.editDay);
       });
+
+      // Renders the whole month's plan as a shareable PNG -- a purpose-drawn
+      // card, not a screenshot, so it looks clean regardless of the app's
+      // current theme/zoom/scroll position. Uses the native share sheet on
+      // a phone (so it opens straight into LINE/etc.) and falls back to a
+      // plain download on desktop or wherever navigator.share isn't there.
+      const MONTH_NAMES_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      function exportCalendarImage() {
+        const monthKey = calState.monthKey;
+        if (!monthKey) return;
+        const days = daysInMonth(monthKey);
+        const lead = firstWeekday(monthKey);
+        const plan = STATE.calendarPlan[monthKey] || {};
+        const monthLabel = MONTH_NAMES_FULL[+monthKey.slice(4, 6) - 1] + " " + monthKey.slice(0, 4);
+        const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+        const cellW = 168, cellH = 108, padTop = 92, padSide = 22, padBottom = 26;
+        const rows = Math.ceil((lead + days) / 7);
+        const W = 7 * cellW + padSide * 2, H = padTop + rows * cellH + padBottom;
+        const scale = 2; // sharper output on a retina screen
+        const canvas = document.createElement("canvas");
+        canvas.width = W * scale; canvas.height = H * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = "#eef1f5"; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#121a2b"; ctx.font = "700 20px Inter, sans-serif";
+        ctx.fillText("TOL Suggestion — " + monthLabel, padSide, 32);
+        ctx.fillStyle = "#7b8695"; ctx.font = "12px Inter, sans-serif";
+        ctx.fillText("ปฏิทินการขายรายเดือน", padSide, 52);
+
+        ctx.font = "700 11px Inter, sans-serif"; ctx.fillStyle = "#7b8695";
+        dow.forEach((d, i) => ctx.fillText(d.toUpperCase(), padSide + i * cellW + 8, padTop - 10));
+
+        function fitText(text, maxW) {
+          if (ctx.measureText(text).width <= maxW) return text;
+          let t = text;
+          while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+          return t + "…";
+        }
+
+        for (let day = 1; day <= days; day++) {
+          const idx = lead + day - 1;
+          const col = idx % 7, row = Math.floor(idx / 7);
+          const x = padSide + col * cellW, y = padTop + row * cellH;
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(x + 2, y + 2, cellW - 4, cellH - 4);
+          ctx.strokeStyle = "#e3e8ef"; ctx.lineWidth = 1; ctx.strokeRect(x + 2.5, y + 2.5, cellW - 5, cellH - 5);
+          ctx.fillStyle = "#55606f"; ctx.font = "700 12px Inter, sans-serif";
+          ctx.fillText(String(day), x + 10, y + 20);
+          const picks = (plan[day] || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+          ctx.font = "10.5px Inter, sans-serif";
+          picks.forEach((p, i) => {
+            const r = byId(p.kind, p.refId);
+            const label = (p.slot === "backup" ? "★ " : "") + (r ? r.name : "?");
+            ctx.fillStyle = p.slot === "backup" ? "#7b8695" : "#0b6b63";
+            ctx.fillText(fitText(label, cellW - 20), x + 10, y + 38 + i * 15);
+          });
+        }
+
+        canvas.toBlob(async (blob) => {
+          const filename = `tol-suggestion-calendar-${monthKey}.png`;
+          const file = new File([blob], filename, { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title: monthLabel }); return; }
+            catch (e) { /* cancelled or unsupported -- fall through to download */ }
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }, "image/png");
+      }
+      document.getElementById("calExportImg").addEventListener("click", exportCalendarImage);
 
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
          time -- the grid's bulk "Generate whole month" still uses the same
@@ -1370,11 +1445,11 @@
         try {
           await api("saveCalendarDay", { monthKey, day, picks });
         } catch (e) {
-          setCalStatus("Could not save that day to the shared plan (saved locally only): " + e.message, true);
+          setCalStatus("บันทึกวันนี้ไม่สำเร็จ (บันทึกไว้ในเครื่องเท่านั้น): " + e.message, true);
         }
       }
 
-      const SLOT_LABELS = { 1: "Primary 1", 2: "Primary 2", 3: "Primary 3", backup: "Backup" };
+      const SLOT_LABELS = { 1: "หลัก 1", 2: "หลัก 2", 3: "หลัก 3", backup: "สำรอง" };
       function renderDayEditSlots() {
         const picks = currentDayPicks();
         const el = document.getElementById("dayEditSlots");
@@ -1383,9 +1458,9 @@
           return `<div class="result-row" style="display:flex;align-items:center;gap:8px;cursor:default;">
             <span class="stat-pill">${SLOT_LABELS[p.slot] || p.slot}</span>
             <span style="flex:1;font-weight:600;font-size:12.5px;">${escapeHtml(r ? r.name : "?")}</span>
-            <button class="modal-close" data-remove="${p.kind}:${p.refId}" title="Remove" style="width:22px;height:22px;font-size:11px;">✕</button>
+            <button class="modal-close" data-remove="${p.kind}:${p.refId}" title="ลบ" style="width:22px;height:22px;font-size:11px;">✕</button>
           </div>`;
-        }).join("") : `<div class="empty-note">No picks yet — auto-generate, or search below to add some.</div>`;
+        }).join("") : `<div class="empty-note">ยังไม่มีข้อมูล — กดสร้างอัตโนมัติ หรือค้นหาด้านล่างเพื่อเพิ่ม</div>`;
       }
 
       function renderDayEditResults(text) {
@@ -1397,13 +1472,13 @@
           .slice(0, 40);
         document.getElementById("dayEditResults").innerHTML = pool.length
           ? pool.map(resultRowHtml).join("")
-          : `<div class="empty-note">No matches.</div>`;
+          : `<div class="empty-note">ไม่พบข้อมูล</div>`;
       }
 
       function openDayEditor(monthKey, day) {
         dayEditState = { monthKey, day };
         document.getElementById("dayEditTitle").textContent =
-          "Edit " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0");
+          "แก้ไข " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0");
         renderDayEditSlots();
         document.getElementById("dayEditSearch").value = "";
         renderDayEditResults("");
@@ -1439,7 +1514,7 @@
       document.getElementById("dayEditRouteBtn").addEventListener("click", () => {
         const url = mapsRouteUrl(currentDayPicks());
         if (url) window.open(url, "_blank");
-        else setCalStatus("No located picks yet for this day.", true);
+        else setCalStatus("ยังไม่มีข้อมูลตำแหน่งสำหรับวันนี้", true);
       });
       document.getElementById("dayEditClearBtn").addEventListener("click", async () => {
         await saveDayPicks([]);
@@ -1465,9 +1540,9 @@
         renderCalTagChips();
         try {
           await api("saveCalendarTheme", { monthKey: calState.monthKey, tags: [...calState.tags] });
-          setCalStatus("Theme saved.", false);
+          setCalStatus("บันทึกธีมแล้ว", false);
         } catch (e2) {
-          setCalStatus("Could not save the theme (kept locally only): " + e2.message, true);
+          setCalStatus("บันทึกธีมไม่สำเร็จ (เก็บไว้ในเครื่องเท่านั้น): " + e2.message, true);
         }
       });
       document.getElementById("calGenMonth").addEventListener("click", generateMonth);
@@ -1481,9 +1556,9 @@
         renderCalendar();
         try {
           await api("clearCalendarMonth", { monthKey });
-          setCalStatus("Month cleared.", false);
+          setCalStatus("ล้างข้อมูลเดือนนี้แล้ว", false);
         } catch (e) {
-          setCalStatus("Cleared locally, but couldn't clear the shared plan: " + e.message, true);
+          setCalStatus("ล้างในเครื่องแล้ว แต่ล้างแผนที่แชร์ไม่สำเร็จ: " + e.message, true);
         }
       });
       document.getElementById("calMonth").addEventListener("change", (e) => {
@@ -1505,12 +1580,12 @@
 
       /* ===== Section 4: Analysis (4-quadrant scatter) ===== */
       const ANALYSIS_METRICS = [
-        { key: "hh", label: "HH (Households / Units)", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
+        { key: "hh", label: "HH (ครัวเรือน/ยูนิต)", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
         { key: "active", label: "Active Subs True", get: (r) => r.active, fmt: fmt },
         { key: "mksTrue", label: "MKS True", get: (r) => r.mksTrue, fmt: pct },
         { key: "mksFibre3", label: "MKS Fibre3", get: (r) => r.mksFibre3, fmt: pct },
         { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
-        { key: "churnMonthly", label: "Churn / Month", get: (r) => r.churnMonthly, fmt: fmt },
+        { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
       ];
       const anaState = { kind: "village", xKey: "hh", yKey: "mksTrue" };
 
@@ -1536,11 +1611,11 @@
           .map((r) => ({ r, x: xCol.get(r), y: yCol.get(r) }))
           .filter((p) => p.x != null && p.y != null);
 
-        document.getElementById("anaCount").textContent = `Showing ${points.length} of ${pool.length} (missing either metric are excluded)`;
+        document.getElementById("anaCount").textContent = `แสดง ${points.length} จาก ${pool.length} จุด (ไม่รวมรายการที่ข้อมูลไม่ครบ)`;
 
         const svg = document.getElementById("anaSvg");
         if (!points.length) {
-          svg.innerHTML = `<text x="320" y="210" text-anchor="middle" class="ana-axis-label">No properties have both metrics.</text>`;
+          svg.innerHTML = `<text x="320" y="210" text-anchor="middle" class="ana-axis-label">ไม่มีข้อมูลที่มีทั้งสองตัวชี้วัด</text>`;
           return;
         }
 
@@ -1607,7 +1682,7 @@
         });
 
         document.getElementById("topbarMeta").textContent =
-          STATE.villages.length + " villages · " + STATE.buildings.length + " buildings";
+          STATE.villages.length + " หมู่บ้าน · " + STATE.buildings.length + " อาคาร";
 
         initMap();
         populateStatusFilter();
@@ -1743,7 +1818,7 @@
               continue;
             }
             document.getElementById("gsiButton").style.display = "flex";
-            showLoginStatus(e.message || "Sign-in failed.", true);
+            showLoginStatus(e.message || "เข้าสู่ระบบไม่สำเร็จ", true);
           }
         }
       }
