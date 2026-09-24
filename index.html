@@ -287,7 +287,7 @@
       /* ── modal ──────────────────────────────────────────────────────────── */
       .modal-overlay { position: fixed; inset: 0; background: rgba(10,14,22,.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
       .modal-overlay.open { display: flex; }
-      .modal-card { width: 420px; max-width: 100%; max-height: 86vh; overflow-y: auto; background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; }
+      .modal-card { width: 560px; max-width: 100%; max-height: 86vh; overflow-y: auto; background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px 28px; }
       .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
       .modal-head h3 { font-size: 16px; font-weight: 700; }
       .modal-head .loc { font-size: 12px; color: var(--text-3); margin-top: 3px; }
@@ -297,11 +297,14 @@
       .badge.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
       .badge.win-fibre3 { background: var(--st-good-soft); color: var(--st-good); }
       .badge.win-nt { background: var(--st-warn-soft); color: var(--st-warn); }
-      .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-      .demo-item { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }
-      .demo-item .lbl { font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .03em; }
-      .demo-item .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
-      .demo-item .sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+      .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .demo-item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+      .demo-item .lbl { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .03em; }
+      .demo-item .val { font-size: 17px; font-weight: 700; margin-top: 3px; }
+      .demo-item .sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+      .demo-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
+      .demo-pair-cell .pair-lbl { font-size: 9.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .02em; }
+      .demo-pair-cell .pair-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
       .demo-item.mks-true { background: var(--st-crit-soft); border-color: transparent; }
       .demo-item.mks-fibre3 { background: var(--st-good-soft); border-color: transparent; }
       .demo-item.mks-nt { background: var(--st-warn-soft); border-color: transparent; }
@@ -666,30 +669,52 @@
       // buildings (a building's "ครัวเรือน/ยูนิต" box just reads r.units via
       // hhOf() instead of r.houseAll). `box` tints the tile to match the
       // carrier it's about; `sub` is a small secondary line explaining how
-      // a paired value on the right was derived.
+      // a paired value was derived. Every item except the first is itself a
+      // 2-cell mini-grid (`pair`), so e.g. MKS and Active each get their own
+      // labeled cell instead of a single "42% / 140" string.
       const DEMO_ITEMS = [
-        { label: "ครัวเรือน/ยูนิต", val: (r) => fmt(hhOf(r)) },
-        { label: "พอร์ต (ว่าง / ทั้งหมด)", val: (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort) },
+        { label: "ครัวเรือน/ยูนิต", single: (r) => fmt(hhOf(r)) },
 
-        { label: "True (MKS / Active)", box: "mks-true",
-          val: (r) => pct(r.mksTrue) + " / " + fmt(r.active) },
-        { label: "Fibre3 (MKS / Active)", box: "mks-fibre3",
-          val: (r) => pct(r.mksFibre3) + " / " + fmt(carrierActiveOf(r.mksFibre3, totalMarketOf(r))) },
+        { label: "พอร์ต (ว่าง / ทั้งหมด)", pair: [
+          { lbl: "ว่าง", val: (r) => fmt(r.totalAvailable) },
+          { lbl: "ทั้งหมด", val: (r) => fmt(r.totalPort) },
+        ] },
 
-        { label: "NT (MKS / Active)", box: "mks-nt",
-          val: (r) => pct(r.mksNt) + " / " + fmt(carrierActiveOf(r.mksNt, totalMarketOf(r))) },
-        { label: "Market Size / %Penetration", sub: "Market Size/HH",
-          val: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return fmt(m) + " / " + pct(hh ? m / hh : null); } },
+        { label: "True (MKS / Active)", box: "mks-true", pair: [
+          { lbl: "MKS", val: (r) => pct(r.mksTrue) },
+          { lbl: "Active", val: (r) => fmt(r.active) },
+        ] },
+        { label: "Fibre3 (MKS / Active)", box: "mks-fibre3", pair: [
+          { lbl: "MKS", val: (r) => pct(r.mksFibre3) },
+          { lbl: "Active", val: (r) => fmt(carrierActiveOf(r.mksFibre3, totalMarketOf(r))) },
+        ] },
 
-        { label: "Churn Subs (Volun / Involun)",
-          val: (r) => fmt(r.churnVolMonthly) + " / " + fmt(r.churnInvolMonthly) },
-        { label: "All Churn (Subs / Rate)", sub: "Churn Subs / True Active",
-          val: (r) => fmt(r.churnMonthly) + " / " + pct(r.churnMonthlyRate) },
+        { label: "NT (MKS / Active)", box: "mks-nt", pair: [
+          { lbl: "MKS", val: (r) => pct(r.mksNt) },
+          { lbl: "Active", val: (r) => fmt(carrierActiveOf(r.mksNt, totalMarketOf(r))) },
+        ] },
+        { label: "Market Size / %Penetration", sub: "Market Size/HH", pair: [
+          { lbl: "Market Size", val: (r) => fmt(totalMarketOf(r)) },
+          { lbl: "%Penetration", val: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return pct(hh ? m / hh : null); } },
+        ] },
 
-        { label: "Truck Roll (Sub / Rate)",
-          val: (r) => fmt(r.faultTruckRoll) + " / " + pct(r.faultTruckRollPct) },
-        { label: "Other Fault (Sub / Rate)",
-          val: (r) => fmt(r.faultOther) + " / " + pct(r.faultOtherPct) },
+        { label: "Churn Subs (Volun / Involun)", pair: [
+          { lbl: "Volun", val: (r) => fmt(r.churnVolMonthly) },
+          { lbl: "Involun", val: (r) => fmt(r.churnInvolMonthly) },
+        ] },
+        { label: "All Churn (Subs / Rate)", sub: "Churn Subs / True Active", pair: [
+          { lbl: "Subs", val: (r) => fmt(r.churnMonthly) },
+          { lbl: "Rate", val: (r) => pct(r.churnMonthlyRate) },
+        ] },
+
+        { label: "Truck Roll (Sub / Rate)", pair: [
+          { lbl: "Sub", val: (r) => fmt(r.faultTruckRoll) },
+          { lbl: "Rate", val: (r) => pct(r.faultTruckRollPct) },
+        ] },
+        { label: "Other Fault (Sub / Rate)", pair: [
+          { lbl: "Sub", val: (r) => fmt(r.faultOther) },
+          { lbl: "Rate", val: (r) => pct(r.faultOtherPct) },
+        ] },
       ];
 
       // The badge under the name used to show the business's own sales
@@ -727,7 +752,15 @@
             ${DEMO_ITEMS.map((item) => `
               <div class="demo-item ${item.box || ""}">
                 <div class="lbl">${item.label}</div>
-                <div class="val">${escapeHtml(String(item.val(record)))}</div>
+                ${item.single
+                  ? `<div class="val">${escapeHtml(String(item.single(record)))}</div>`
+                  : `<div class="demo-pair">
+                      ${item.pair.map((p) => `
+                        <div class="demo-pair-cell">
+                          <div class="pair-lbl">${p.lbl}</div>
+                          <div class="pair-val">${escapeHtml(String(p.val(record)))}</div>
+                        </div>`).join("")}
+                    </div>`}
                 ${item.sub ? `<div class="sub">${item.sub}</div>` : ""}
               </div>`).join("")}
           </div>
