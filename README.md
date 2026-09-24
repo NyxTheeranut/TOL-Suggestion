@@ -83,10 +83,13 @@ add rows) for your team: `email | note`. Delete the sample row.
 
 ### 5. Push the data
 
-Create a file named `suggestion_sync_secret.txt` outside this repo, in the
-Dashboard folder's `Config/` directory, containing exactly the `SYNC_SECRET`
-value from step 2, no extra whitespace. **Never commit this file** — it
-lives outside the repo specifically so it can't be.
+Create a file containing exactly the `SYNC_SECRET` value from step 2 (no
+extra whitespace) outside this repo, in the Dashboard folder's `Config/`
+directory — `update_suggestion_sheet.py` reads `Config/sync_secret.txt`
+(shared with this Dashboard's other projects rather than a dedicated file;
+point it at your own `SYNC_SECRET` if you'd rather keep it separate).
+**Never commit this file** — it lives outside the repo specifically so it
+can't be.
 
 Then run:
 

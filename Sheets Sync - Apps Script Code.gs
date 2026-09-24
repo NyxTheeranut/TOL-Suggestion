@@ -91,6 +91,12 @@ function doPost(e) {
     }
 
     if (body.action === "getSyncData") {
+      // Read-only counterpart of syncData, for update_suggestion_sheet.py --
+      // gated by the same secret as syncData (this was missing in an
+      // earlier version of this file: without it, anyone with the
+      // deployment URL could read the whole dataset with no secret and no
+      // sign-in at all).
+      requireSyncSecret_(body.secret);
       var tabs = readTabs_(["Meta", "Villages", "Buildings"]);
       return jsonResponse_({ ok: true, payload: tabs ? reconstructPayload_(tabs) : null });
     }

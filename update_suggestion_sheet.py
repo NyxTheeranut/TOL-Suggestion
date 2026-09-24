@@ -30,9 +30,12 @@ import aggregate_suggestion  # noqa: E402
 import sheet_schema  # noqa: E402
 
 # Keep in sync with DEFAULT_SYNC_URL in index.html.
-SYNC_URL = "REPLACE_WITH_APPS_SCRIPT_WEB_APP_URL"
+SYNC_URL = "https://script.google.com/macros/s/AKfycbxto0D-v5bV2zRRI70xug8I9Q85lAj1iqxAaGB30sVsjYYhfkgOFYQHrlHLin2-z77lGg/exec"
 
-SYNC_SECRET_FILE = DASHBOARD_DIR / "Config" / "suggestion_sync_secret.txt"
+# Shared with other Dashboard projects rather than a dedicated
+# suggestion_sync_secret.txt -- this is the file the user pointed the Apps
+# Script's SYNC_SECRET script property at.
+SYNC_SECRET_FILE = DASHBOARD_DIR / "Config" / "sync_secret.txt"
 
 
 def post(sync_secret, action, **fields):
