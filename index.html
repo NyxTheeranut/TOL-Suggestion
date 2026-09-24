@@ -267,6 +267,22 @@
         background: linear-gradient(to right, rgb(58,111,214), rgb(45,178,130), rgb(245,195,68), rgb(239,127,46), rgb(208,52,44));
       }
 
+      /* Pin popup bubble (Route Planner's pattern: a quick preview anchored
+         right at the pin, not a modal in the middle of the screen) --
+         Leaflet's own popup chrome defaults to white regardless of theme,
+         so it's re-themed here to match dark mode too. */
+      .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--ink); }
+      .leaflet-popup-content { margin: 10px 12px; }
+      .leaflet-popup-close-button { color: var(--text-2) !important; }
+      .map-pop { font-size: 12.5px; min-width: 170px; }
+      .map-pop .nm { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+      .map-pop .row { display: flex; justify-content: space-between; gap: 10px; margin-top: 3px; color: var(--text-2); }
+      .map-pop .row .v { font-weight: 600; color: var(--ink); }
+      .map-pop button {
+        margin-top: 8px; width: 100%; border: none; border-radius: 7px; background: var(--accent);
+        color: #fff; font-size: 12px; font-weight: 600; padding: 7px 0;
+      }
+
       /* ── modal ──────────────────────────────────────────────────────────── */
       .modal-overlay { position: fixed; inset: 0; background: rgba(10,14,22,.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
       .modal-overlay.open { display: flex; }
@@ -615,18 +631,24 @@
           if (!row) return;
           const r = byId(row.dataset.kind, row.dataset.id);
           if (!r) return;
+          const key = kindOf(r) + ":" + r.id;
           // "Go to the pin" -- like Route Planner's store-row click: jump the
-          // map to that property before showing its details, so the list and
-          // the map never feel like two disconnected views.
+          // map there and open ITS popup bubble, instead of popping the big
+          // demographic modal straight in the middle of the screen (which
+          // looked disconnected from the map it supposedly came from).
           if (opts.flyToPin && map && r.lat != null && r.lng != null) {
             map.setView([r.lat, r.lng], Math.max(map.getZoom(), 16));
+            const m = markersById[key];
+            if (m) m.openPopup(); else openModal(r);
+          } else {
+            openModal(r);
           }
-          openModal(r);
         });
       }
 
       /* ===== Leaflet map (Section 1) ===== */
       let map, markerLayer;
+      const markersById = {}; // "kind:id" -> Leaflet marker, so a list-row click can find and open its own pin's popup
       function initMap() {
         map = L.map("mapView", { preferCanvas: true }).setView([13.85, 100.45], 11);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
@@ -657,8 +679,24 @@
         return `rgb(${HEAT_STOPS[HEAT_STOPS.length - 1][1].join(",")})`;
       }
 
+      // Small popup bubble anchored right at the pin (Route Planner's
+      // pattern) -- a quick preview, with a button into the full
+      // demographic modal for everything else.
+      function pinPopupHtml(r) {
+        const isVillage = kindOf(r) === "village";
+        return `<div class="map-pop">
+          <div class="nm">${escapeHtml(r.name || "—")}</div>
+          <div class="row"><span>${escapeHtml(locOf(r))}</span></div>
+          <div class="row"><span>Score</span><span class="v">${r.autoScore != null ? r.autoScore : "—"}</span></div>
+          <div class="row"><span>${isVillage ? "Households" : "Units"}</span><span class="v">${fmt(isVillage ? r.houseAll : r.units)}</span></div>
+          <div class="row"><span>Available ports</span><span class="v">${fmt(r.totalAvailable)}</span></div>
+          <button data-view-details>View details</button>
+        </div>`;
+      }
+
       function renderMap(records) {
         markerLayer.clearLayers();
+        Object.keys(markersById).forEach((k) => delete markersById[k]);
         const pts = [];
         records.forEach((r) => {
           if (r.lat == null || r.lng == null) return;
@@ -667,8 +705,14 @@
             radius: 5 + (score / 100) * 4, weight: 2, color: "#fff",
             fillColor: heatColor(score), fillOpacity: 0.85, className: "prop-pin",
           });
-          m.on("click", () => openModal(r));
+          m.bindPopup(pinPopupHtml(r));
+          m.on("popupopen", (e) => {
+            const el = e.popup.getElement();
+            const btn = el.querySelector("[data-view-details]");
+            if (btn) btn.addEventListener("click", () => openModal(r));
+          });
           m.addTo(markerLayer);
+          markersById[kindOf(r) + ":" + r.id] = m;
           pts.push([r.lat, r.lng]);
         });
         if (pts.length) map.fitBounds(pts, { maxZoom: 14, padding: [20, 20] });
