@@ -1459,6 +1459,49 @@
         el.innerHTML = html; el.style.display = "block"; el.classList.toggle("error", !!isError);
       }
 
+      // Mirror of the .gs file's reconstructPayload_/rowObjects_ -- myData
+      // sends raw tabs, not a reconstructed payload, specifically so this
+      // work happens here in the browser's fast JS engine instead of inside
+      // Apps Script's slower, quota-metered runtime on every sign-in (same
+      // split TOL Tracker's myBbData_ already uses, and why: this used to
+      // run server-side and sign-in was timing out because of it).
+      const VILLAGE_FIELDS = [
+        "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
+        "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
+        "activePct", "competitor", "mksTrue", "faultAvg", "faultGrade", "churn3m",
+        "churnRate", "churnGrade", "gradeSale", "scoreSale", "gradeCare",
+        "scoreCare", "finalGrade", "villageGrade", "actionGroup", "mainGroup",
+        "contractEnd", "tags", "autoScore",
+      ];
+      const BUILDING_FIELDS = [
+        "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
+        "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
+        "occupancy", "totalPort", "totalAvailable", "active", "activePct",
+        "arpu", "competitor", "mksTrue", "faultAvg", "faultGrade", "churn3m",
+        "churnPct", "gradeSale", "scoreSale", "groupBuilding", "caretakerChannel",
+        "caretakerName", "tags", "autoScore",
+      ];
+      function rowObjects_(tab, fields) {
+        return (tab.rows || []).map((row) => {
+          const obj = {};
+          tab.header.forEach((h, i) => { obj[h] = row[i]; });
+          if (fields) fields.forEach((f) => { if (!(f in obj)) obj[f] = null; });
+          if ("tags" in obj) obj.tags = String(obj.tags || "").split(",").filter((t) => t);
+          if ("closed" in obj) obj.closed = !!Number(obj.closed);
+          Object.keys(obj).forEach((k) => { if (obj[k] === "") obj[k] = null; });
+          return obj;
+        });
+      }
+      function reconstructPayload_(tabs) {
+        return {
+          meta: tabs.Meta.rows.length ? rowObjects_(tabs.Meta)[0] : {},
+          villages: rowObjects_(tabs.Villages, VILLAGE_FIELDS),
+          buildings: rowObjects_(tabs.Buildings, BUILDING_FIELDS),
+          calendarTheme: tabs.CalendarTheme ? rowObjects_(tabs.CalendarTheme) : [],
+          calendarPlan: tabs.CalendarPlan ? rowObjects_(tabs.CalendarPlan) : [],
+        };
+      }
+
       let appInitialized = false;
       async function onGoogleSignIn(response) {
         STATE.idToken = response.credential;
@@ -1469,7 +1512,7 @@
           try {
             const data = await api("myData", {});
             document.getElementById("loginGate").style.display = "none";
-            if (!appInitialized) { initApp(data.payload); appInitialized = true; }
+            if (!appInitialized) { initApp(reconstructPayload_(data.tabs)); appInitialized = true; }
             return;
           } catch (e) {
             console.warn("myData fetch failed (attempt " + attempt + "/" + MAX_ATTEMPTS + ")", e);

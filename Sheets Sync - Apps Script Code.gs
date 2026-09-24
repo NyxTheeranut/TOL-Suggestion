@@ -201,7 +201,16 @@ function myData_(idToken) {
   // (two people planning the same month were overwriting each other).
   tabs.CalendarPlan = filterOwnRows_(tabs.CalendarPlan, "email", email);
   tabs.CalendarTheme = filterOwnRows_(tabs.CalendarTheme, "updatedBy", email);
-  return { ok: true, email: email, payload: reconstructPayload_(tabs) };
+  // Sends the raw tabs, NOT reconstructPayload_(tabs) -- rebuilding the full
+  // nested shape (~1,500 property rows into tagged/typed objects) is real
+  // CPU work, and doing it here means every sign-in pays for it inside
+  // Apps Script's slower, quota-metered runtime before the viewer sees
+  // anything at all (this was almost certainly why sign-in was timing out).
+  // The browser does the identical reconstruction (reconstructPayload_
+  // ported verbatim into index.html) in its own fast JS engine instead --
+  // same "ship raw, reconstruct client-side" split TOL Tracker's myBbData_
+  // already uses, and for the same reason.
+  return { ok: true, email: email, tabs: tabs };
 }
 
 // Passes a tab through unfiltered if it doesn't have the given column yet
