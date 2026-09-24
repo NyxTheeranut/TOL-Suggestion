@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TOL Suggestion — Village &amp; Building Sales Planner</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      /* ── tokens (same palette as TOL Tracker / L2 Discount Map / Route
+         Planner, so this reads as part of the same family of pages) ────── */
+      :root {
+        color-scheme: light;
+        --ink: #121a2b;
+        --text-2: #55606f;
+        --text-3: #7b8695;
+        --page: #eef1f5;
+        --panel: #ffffff;
+        --panel-2: #f6f8fa;
+        --line: #e3e8ef;
+        --line-2: #eef1f5;
+
+        --accent: #12897f;
+        --accent-mark: #0d8f83;
+        --accent-soft: #e2f2f0;
+        --accent-ink: #0b6b63;
+
+        --s1: #2a78d6;
+        --s2: #eb6834;
+        --s3: #1baf7a;
+        --st-good: #0ca30c;
+        --st-warn: #fab219;
+        --st-crit: #d03b3b;
+        --st-good-soft: #e6f6e6;
+        --st-warn-soft: #fdf3e0;
+        --st-crit-soft: #fbe9e9;
+
+        --topbar-bg: #121a2b;
+        --topbar-fg: #ffffff;
+        --shadow: 0 1px 2px rgba(18, 26, 43, 0.04), 0 4px 12px rgba(18, 26, 43, 0.04);
+        --radius: 14px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme="light"])) {
+          color-scheme: dark;
+          --ink: #f2f5f9;
+          --text-2: #a9b3c1;
+          --text-3: #7d8794;
+          --page: #0e1014;
+          --panel: #16181d;
+          --panel-2: #1c1f26;
+          --line: #272b33;
+          --line-2: #202430;
+          --accent: #2ba79c;
+          --accent-mark: #14b8a6;
+          --accent-soft: #14312f;
+          --accent-ink: #6fd3c7;
+          --s1: #3987e5;
+          --s2: #d95926;
+          --s3: #199e70;
+          --st-good-soft: #122a14;
+          --st-warn-soft: #2e2410;
+          --st-crit-soft: #2e1616;
+          --topbar-bg: #05070a;
+          --topbar-fg: #f2f5f9;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --ink: #f2f5f9;
+        --text-2: #a9b3c1;
+        --text-3: #7d8794;
+        --page: #0e1014;
+        --panel: #16181d;
+        --panel-2: #1c1f26;
+        --line: #272b33;
+        --line-2: #202430;
+        --accent: #2ba79c;
+        --accent-mark: #14b8a6;
+        --accent-soft: #14312f;
+        --accent-ink: #6fd3c7;
+        --s1: #3987e5;
+        --s2: #d95926;
+        --s3: #199e70;
+        --st-good-soft: #122a14;
+        --st-warn-soft: #2e2410;
+        --st-crit-soft: #2e1616;
+        --topbar-bg: #05070a;
+        --topbar-fg: #f2f5f9;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--page); color: var(--ink);
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.5;
+      }
+      h1, h2, h3 { font-family: "Space Grotesk", system-ui, sans-serif; margin: 0; letter-spacing: -0.015em; }
+      .mono, .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+      button, select, input { font-family: inherit; }
+      button { cursor: pointer; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+      /* ── login gate (fixed-light, same as siblings) ────────────────────── */
+      .login-gate { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: #eef1f5; }
+      .login-card { width: 340px; max-width: calc(100% - 48px); background: #ffffff; border: 1px solid #e3e8ef; border-radius: 14px; box-shadow: 0 1px 2px rgba(18,26,43,.04), 0 4px 12px rgba(18,26,43,.04); padding: 34px 28px; text-align: center; }
+      .login-card h1 { font-size: 19px; font-weight: 700; margin: 14px 0 6px; color: #121a2b; }
+      .login-card h1 span { color: #12897f; }
+      .login-card p { font-size: 13px; color: #7b8695; margin: 0 0 20px; line-height: 1.5; }
+      .bars-icon { display: flex; align-items: flex-end; gap: 2px; height: 17px; justify-content: center; }
+      .bars-icon i { display: block; width: 3.5px; border-radius: 1px; background: #0d8f83; }
+      .bars-icon i:nth-child(1) { height: 7px; opacity: .5; }
+      .bars-icon i:nth-child(2) { height: 12px; opacity: .75; }
+      .bars-icon i:nth-child(3) { height: 17px; }
+      #gsiButton { display: flex; justify-content: center; min-height: 40px; }
+      .login-status { margin-top: 14px; font-size: 12.5px; color: #7b8695; line-height: 1.5; display: none; }
+      .login-status.error { color: #d03b3b; }
+      .login-spinner { width: 20px; height: 20px; margin: 0 auto; border-radius: 50%; border: 2.5px solid #e3e8ef; border-top-color: #12897f; animation: spin .8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .mock-banner { background: var(--st-warn-soft); color: #7a5b0a; border-bottom: 1px solid var(--line); padding: 7px 16px; font-size: 12px; text-align: center; }
+      :root[data-theme="dark"] .mock-banner, @media (prefers-color-scheme: dark) { .mock-banner { color: #f0d089; } }
+
+      /* ── topbar ─────────────────────────────────────────────────────────── */
+      .topbar { position: sticky; top: 0; z-index: 40; background: var(--topbar-bg); color: var(--topbar-fg); padding: 12px 24px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 16px; row-gap: 10px; }
+      .brand { grid-column: 1; display: flex; align-items: center; gap: 11px; min-width: 0; }
+      .brand .bars-icon i { background: var(--accent-mark); }
+      .brand .bars-icon i:nth-child(1), .brand .bars-icon i:nth-child(2) { opacity: .5; }
+      .brand h1 { font-size: 15.5px; font-weight: 600; color: var(--topbar-fg); }
+      .brand .sub { font-size: 11px; margin-top: 1px; color: rgba(255,255,255,.5); font-family: "IBM Plex Mono", monospace; }
+      .section-nav { grid-column: 2; justify-self: center; display: flex; gap: 6px; overflow-x: auto; max-width: 100%; }
+      .section-nav a { font-size: 11.5px; padding: 5px 12px; border-radius: 999px; white-space: nowrap; background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.12); text-decoration: none; }
+      .section-nav a.active { background: var(--accent); color: #fff; border-color: transparent; }
+      .section-nav a:hover { background: rgba(255,255,255,.16); color: #fff; }
+      .topbar-right { grid-column: 3; display: flex; align-items: center; gap: 12px; justify-self: end; }
+      .topbar-right .meta { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: rgba(255,255,255,.55); text-align: right; }
+      .theme-btn { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16); color: rgba(255,255,255,.85); border-radius: 8px; width: 30px; height: 30px; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }
+      .theme-btn:hover { background: rgba(255,255,255,.16); }
+
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 22px 22px 72px; }
+      .app-section { display: none; }
+      .app-section.active { display: block; }
+
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+      .card + .card { margin-top: 14px; }
+      .card h2 { font-size: 15.5px; font-weight: 600; margin-bottom: 2px; }
+      .card .hint { font-size: 12px; color: var(--text-3); margin-bottom: 12px; }
+
+      /* ── filter bar ─────────────────────────────────────────────────────── */
+      .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+      .kind-toggle { display: flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; flex: none; }
+      .kind-toggle button { border: none; background: var(--panel-2); color: var(--text-2); font-size: 12.5px; font-weight: 600; padding: 8px 14px; }
+      .kind-toggle button.active { background: var(--accent); color: #fff; }
+      select, .text-input {
+        border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+        color: var(--ink); font-size: 12.5px; padding: 8px 10px; min-width: 0;
+      }
+      .text-input { flex: 1; min-width: 160px; }
+      .search-wrap { position: relative; flex: 1; min-width: 180px; display: flex; align-items: center; }
+      .search-wrap svg { position: absolute; left: 10px; color: var(--text-3); pointer-events: none; }
+      .search-wrap input { padding-left: 30px; width: 100%; }
+
+      .tag-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+      .tag-chip {
+        border: 1px solid var(--line); background: var(--panel-2); color: var(--text-2);
+        font-size: 12px; font-weight: 600; padding: 7px 13px; border-radius: 999px;
+      }
+      .tag-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+      .tag-chip .n { opacity: .65; font-weight: 500; margin-left: 4px; }
+      .auto-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); margin-left: auto; }
+      .switch { position: relative; width: 36px; height: 20px; background: var(--line); border-radius: 999px; border: none; flex: none; }
+      .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+      .switch.on { background: var(--accent); }
+      .switch.on::after { transform: translateX(16px); }
+
+      /* ── map + list layout (borrowed from TOL Tracker's territory map) ──── */
+      .map-layout { display: flex; gap: 14px; height: calc(100vh - 320px); min-height: 420px; }
+      #mapView { flex: 1; border-radius: 11px; z-index: 0; min-height: 0; }
+      .list-panel { width: 320px; flex: none; display: flex; flex-direction: column; min-height: 0; }
+      .list-summary { font-size: 11.5px; color: var(--text-3); padding: 0 2px 8px; flex: none; }
+      .result-list { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; padding: 4px; min-height: 0; }
+      .result-row { padding: 9px 10px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+      .result-row:hover { background: var(--panel-2); }
+      .result-row + .result-row { margin-top: 1px; }
+      .result-row .nm { font-weight: 600; font-size: 12.8px; }
+      .result-row .loc { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+      .result-row .stats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+      .stat-pill { font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--panel-2); color: var(--text-2); }
+      .stat-pill.tag-high_available { background: var(--accent-soft); color: var(--accent-ink); }
+      .stat-pill.tag-large { background: #e4edfb; color: var(--s1); }
+      .stat-pill.tag-high_competitor { background: var(--st-warn-soft); color: #8a5a06; }
+      .stat-pill.tag-low_fault { background: var(--st-good-soft); color: var(--st-good); }
+      :root[data-theme="dark"] .stat-pill.tag-large, @media (prefers-color-scheme: dark) { .stat-pill.tag-large { color: #7fb0ee; } }
+      .empty-note { padding: 24px 14px; color: var(--text-3); font-size: 12.5px; text-align: center; }
+
+      .prop-pin { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+
+      /* ── modal ──────────────────────────────────────────────────────────── */
+      .modal-overlay { position: fixed; inset: 0; background: rgba(10,14,22,.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+      .modal-overlay.open { display: flex; }
+      .modal-card { width: 420px; max-width: 100%; max-height: 86vh; overflow-y: auto; background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; }
+      .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+      .modal-head h3 { font-size: 16px; font-weight: 700; }
+      .modal-head .loc { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+      .modal-close { border: none; background: var(--panel-2); color: var(--text-2); width: 26px; height: 26px; border-radius: 50%; flex: none; font-size: 14px; }
+      .modal-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+      .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: var(--panel-2); color: var(--text-2); }
+      .badge.grade-H { background: var(--st-good-soft); color: var(--st-good); }
+      .badge.grade-L { background: var(--st-crit-soft); color: var(--st-crit); }
+      .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .demo-item { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }
+      .demo-item .lbl { font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .03em; }
+      .demo-item .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+      .demo-item .sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+      /* ── calendar ───────────────────────────────────────────────────────── */
+      .cal-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 6px; }
+      .cal-controls input[type="month"] { border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--panel); color: var(--ink); font-size: 12.5px; }
+      .btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 9px; }
+      .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+      .btn:hover { filter: brightness(0.97); }
+      .btn:disabled { opacity: .5; cursor: default; }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 14px; }
+      .cal-dow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 4px; }
+      .cal-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 118px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; }
+      .cal-day.empty-cell { background: transparent; border-color: transparent; }
+      .cal-day .d-num { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
+      .cal-pick { font-size: 10.8px; padding: 3px 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .cal-pick.backup { background: var(--panel); border: 1px dashed var(--line); color: var(--text-2); }
+      .cal-gen-btn { margin-top: auto; font-size: 10.5px; padding: 4px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--text-3); }
+      .cal-gen-btn:hover { background: var(--panel); color: var(--accent-ink); border-color: var(--accent); }
+
+      @media (max-width: 860px) {
+        .map-layout { flex-direction: column; height: auto; }
+        #mapView { height: 320px; }
+        .list-panel { width: 100%; }
+        .result-list { max-height: 360px; }
+        .demo-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 700px) {
+        /* Unlike TOL Tracker, section-nav here is the only way to switch
+           between Search/Recommend/Calendar (not an optional jump-link), so
+           it can't just be hidden on a phone -- instead the 3-column desktop
+           grid (brand | nav | stats) stacks into its own full-width row per
+           item. grid-row:auto overrides the desktop rule's implicit row so
+           they don't all land in row 1 on top of each other. */
+        .topbar { grid-template-columns: 1fr; row-gap: 8px; padding: 10px 14px; }
+        .brand, .section-nav, .topbar-right { grid-column: 1; grid-row: auto; justify-self: stretch; }
+        .section-nav { justify-content: flex-start; }
+        .topbar-right { justify-content: space-between; }
+      }
+      @media (max-width: 480px) {
+        .cal-grid { grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
+        .cal-day { min-height: 80px; padding: 4px; font-size: 10px; }
+        .cal-pick { font-size: 8.5px; padding: 2px 3px; }
+        .cal-gen-btn { font-size: 8.5px; padding: 3px 1px; white-space: normal; line-height: 1.2; }
+        .cal-dow { font-size: 9px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loginGate" class="login-gate">
+      <div class="login-card">
+        <div class="bars-icon"><i></i><i></i><i></i></div>
+        <h1>TOL <span>Suggestion</span></h1>
+        <p>Sign in with your work Google account to view village &amp; building sales data. Nothing loads until you're signed in.</p>
+        <div id="gsiButton"></div>
+        <div id="loginStatus" class="login-status"></div>
+      </div>
+    </div>
+
+    <div id="mockBanner" class="mock-banner" style="display:none">
+      Local preview — showing sample data. Set GOOGLE_CLIENT_ID / DEFAULT_SYNC_URL in index.html to connect the real Sheet.
+    </div>
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="bars-icon"><i></i><i></i><i></i></div>
+        <div>
+          <h1>TOL Suggestion</h1>
+          <div class="sub">BMA-West · Villages &amp; Buildings</div>
+        </div>
+      </div>
+      <div class="section-nav" id="sectionNav">
+        <a href="#search" data-sec="search" class="active">Search</a>
+        <a href="#recommend" data-sec="recommend">Recommend</a>
+        <a href="#calendar" data-sec="calendar">Calendar</a>
+      </div>
+      <div class="topbar-right">
+        <div class="meta" id="topbarMeta">—</div>
+        <button class="theme-btn" id="themeBtn" title="Toggle light / dark">◐</button>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <!-- ===== Section 1: Search & Demographic ===== -->
+      <section class="app-section active" id="sec-search">
+        <div class="card">
+          <h2>Search</h2>
+          <div class="hint">Filter by district / subdistrict / status, or search a name directly.</div>
+          <div class="filter-bar">
+            <div class="kind-toggle" id="searchKind">
+              <button data-v="village" class="active">Villages</button>
+              <button data-v="building">Buildings</button>
+            </div>
+            <select id="searchAmp"><option value="all">All districts</option></select>
+            <select id="searchTam"><option value="all">All subdistricts</option></select>
+            <select id="searchStatus"><option value="all">Any status</option></select>
+            <div class="search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input id="searchText" class="text-input" type="text" placeholder="Search by name…" autocomplete="off">
+            </div>
+          </div>
+          <div class="map-layout">
+            <div id="mapView"></div>
+            <div class="list-panel">
+              <div class="list-summary">Showing <b id="searchCount">0</b> results</div>
+              <div class="result-list" id="searchList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Section 2: Recommendation ===== -->
+      <section class="app-section" id="sec-recommend">
+        <div class="card">
+          <h2>Recommended</h2>
+          <div class="hint">Pick tags to filter (multiple tags narrow the list), or switch on auto-suggest to just rank everything by the composite score.</div>
+          <div class="filter-bar">
+            <div class="kind-toggle" id="recKind">
+              <button data-v="village" class="active">Villages</button>
+              <button data-v="building">Buildings</button>
+            </div>
+            <div class="auto-toggle">
+              Auto-suggest
+              <button class="switch" id="autoToggle"></button>
+            </div>
+          </div>
+          <div class="tag-chips" id="recTags"></div>
+        </div>
+        <div class="card">
+          <div class="list-summary">Showing <b id="recCount">0</b> results, ranked highest first</div>
+          <div class="result-list" id="recList" style="max-height: 640px;"></div>
+        </div>
+      </section>
+
+      <!-- ===== Section 3: Calendar ===== -->
+      <section class="app-section" id="sec-calendar">
+        <div class="card">
+          <h2>Monthly sales calendar</h2>
+          <div class="hint">Pick this month's theme (optional — leave blank to draw from the whole ranked pool), then generate a day, or the whole month, at a time.</div>
+          <div class="cal-controls">
+            <input type="month" id="calMonth">
+            <div class="kind-toggle" id="calKind">
+              <button data-v="both" class="active">Villages + Buildings</button>
+              <button data-v="village">Villages</button>
+              <button data-v="building">Buildings</button>
+            </div>
+            <button class="btn primary" id="calGenMonth">Generate whole month</button>
+          </div>
+          <div class="tag-chips" id="calTags"></div>
+          <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-card" id="modalCard"></div>
+    </div>
+
+    <script>
+      /* ===== state ===== */
+      const STATE = {
+        villages: [], buildings: [],
+        calendarTheme: {}, // monthKey -> {tags:[]}
+        calendarPlan: {},  // monthKey -> { day -> [{slot,kind,refId}] }
+        idToken: null,
+      };
+
+      const TAGS = [
+        { key: "high_available", label: "High available ports" },
+        { key: "large", label: "Large (household/units)" },
+        { key: "high_competitor", label: "High competitor presence" },
+        { key: "low_fault", label: "Low fault" },
+      ];
+
+      function byId(kind, id) {
+        return (kind === "village" ? STATE.villages : STATE.buildings).find((r) => r.id === id);
+      }
+      function poolFor(kind) {
+        if (kind === "village") return STATE.villages;
+        if (kind === "building") return STATE.buildings;
+        return STATE.villages.concat(STATE.buildings).map((r, i) => r); // "both"
+      }
+      function kindOf(r) { return "houseAll" in r ? "village" : "building"; }
+      function locOf(r) {
+        return kindOf(r) === "village" ? [r.district, r.subdistrict].filter(Boolean).join(" · ")
+                                        : [r.amp, r.tam].filter(Boolean).join(" · ");
+      }
+
+      /* ===== theme toggle ===== */
+      (function () {
+        const saved = localStorage.getItem("tolSuggestionTheme");
+        if (saved) document.documentElement.setAttribute("data-theme", saved);
+        document.getElementById("themeBtn").addEventListener("click", () => {
+          const cur = document.documentElement.getAttribute("data-theme") ||
+            (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          const next = cur === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("tolSuggestionTheme", next);
+        });
+      })();
+
+      /* ===== section nav ===== */
+      document.getElementById("sectionNav").addEventListener("click", (e) => {
+        const a = e.target.closest("a[data-sec]");
+        if (!a) return;
+        e.preventDefault();
+        document.querySelectorAll(".section-nav a").forEach((x) => x.classList.toggle("active", x === a));
+        document.querySelectorAll(".app-section").forEach((s) => s.classList.toggle("active", s.id === "sec-" + a.dataset.sec));
+        if (a.dataset.sec === "search" && map) setTimeout(() => map.invalidateSize(), 50);
+      });
+
+      /* ===== modal ===== */
+      const DEMO_FIELDS = {
+        village: [
+          ["houseAll", "Households", (r) => fmt(r.houseAll)],
+          ["ports", "Ports (avail / total)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
+          ["active", "True active", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
+          ["competitor", "Competitor customers", (r) => fmt(r.competitor)],
+          ["mksTrue", "Market share (True)", (r) => pct(r.mksTrue)],
+          ["fault", "Fault (3mo avg)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · grade " + r.faultGrade : "")],
+          ["churn", "Churn (3mo)", (r) => fmt(r.churn3m) + (r.churnGrade ? " · " + r.churnGrade : "")],
+          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + r.scoreSale + ")" : "")],
+          ["status", "Status", (r) => r.status || "—"],
+          ["group", "Group", (r) => r.mainGroup || r.actionGroup || "—"],
+        ],
+        building: [
+          ["units", "Units / floors", (r) => fmt(r.units) + " / " + fmt(r.floors)],
+          ["occupancy", "Occupancy", (r) => pct(r.occupancy)],
+          ["ports", "Ports (avail / total)", (r) => fmt(r.totalAvailable) + " / " + fmt(r.totalPort)],
+          ["active", "Active", (r) => fmt(r.active) + (r.activePct != null ? " (" + pct(r.activePct) + ")" : "")],
+          ["arpu", "ARPU", (r) => fmt(r.arpu)],
+          ["competitor", "Competitor customers", (r) => fmt(r.competitor)],
+          ["mksTrue", "Market share (True)", (r) => pct(r.mksTrue)],
+          ["fault", "Fault (avg rate)", (r) => fmt(r.faultAvg) + (r.faultGrade ? " · grade " + r.faultGrade : "")],
+          ["churn", "Churn", (r) => pct(r.churnPct)],
+          ["grade", "Sales grade", (r) => (r.gradeSale || "—") + (r.scoreSale != null ? " (" + r.scoreSale + ")" : "")],
+        ],
+      };
+      function fmt(v) { return v == null ? "—" : (typeof v === "number" ? Math.round(v * 100) / 100 : v); }
+      function pct(v) { return v == null ? "—" : (Math.round(v * 1000) / 10) + "%"; }
+
+      function openModal(record) {
+        const kind = kindOf(record);
+        const fields = DEMO_FIELDS[kind];
+        const gradeCls = record.gradeSale === "H" ? "grade-H" : record.gradeSale === "L" ? "grade-L" : "";
+        document.getElementById("modalCard").innerHTML = `
+          <div class="modal-head">
+            <div>
+              <h3>${escapeHtml(record.name || "—")}</h3>
+              <div class="loc">${escapeHtml(locOf(record))}</div>
+            </div>
+            <button class="modal-close" id="modalCloseBtn">✕</button>
+          </div>
+          <div class="modal-badges">
+            <span class="badge ${gradeCls}">Grade ${escapeHtml(record.gradeSale || "—")}</span>
+            ${(record.tags || []).map((t) => `<span class="badge">${tagLabel(t)}</span>`).join("")}
+          </div>
+          <div class="demo-grid">
+            ${fields.map(([k, label, get]) => `
+              <div class="demo-item">
+                <div class="lbl">${label}</div>
+                <div class="val">${escapeHtml(String(get(record)))}</div>
+              </div>`).join("")}
+          </div>
+        `;
+        document.getElementById("modalOverlay").classList.add("open");
+        document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+      }
+      function closeModal() { document.getElementById("modalOverlay").classList.remove("open"); }
+      document.getElementById("modalOverlay").addEventListener("click", (e) => { if (e.target.id === "modalOverlay") closeModal(); });
+      function tagLabel(key) { const t = TAGS.find((x) => x.key === key); return t ? t.label : key; }
+      function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+      /* ===== result row + stat pill rendering (shared by search & recommend) ===== */
+      function resultRowHtml(r) {
+        const tagPills = (r.tags || []).map((t) => `<span class="stat-pill tag-${t}">${tagLabel(t)}</span>`).join("");
+        const scorePill = r.autoScore != null ? `<span class="stat-pill">score ${r.autoScore}</span>` : "";
+        return `<div class="result-row" data-kind="${kindOf(r)}" data-id="${r.id}">
+          <div class="nm">${escapeHtml(r.name || "—")}</div>
+          <div class="loc">${escapeHtml(locOf(r))}</div>
+          <div class="stats">${scorePill}${tagPills}</div>
+        </div>`;
+      }
+      function wireResultList(el) {
+        el.addEventListener("click", (e) => {
+          const row = e.target.closest(".result-row");
+          if (!row) return;
+          const r = byId(row.dataset.kind, row.dataset.id);
+          if (r) openModal(r);
+        });
+      }
+
+      /* ===== Leaflet map (Section 1) ===== */
+      let map, markerLayer;
+      function initMap() {
+        map = L.map("mapView", { preferCanvas: true }).setView([13.85, 100.45], 11);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+        markerLayer = L.layerGroup().addTo(map);
+      }
+      function renderMap(records) {
+        markerLayer.clearLayers();
+        const pts = [];
+        records.forEach((r) => {
+          if (r.lat == null || r.lng == null) return;
+          const color = kindOf(r) === "village" ? "#1baf7a" : "#eb6834";
+          const m = L.circleMarker([r.lat, r.lng], {
+            radius: 5, weight: 2, color: "#fff", fillColor: color, fillOpacity: 0.9, className: "prop-pin",
+          });
+          m.on("click", () => openModal(r));
+          m.addTo(markerLayer);
+          pts.push([r.lat, r.lng]);
+        });
+        if (pts.length) map.fitBounds(pts, { maxZoom: 14, padding: [20, 20] });
+      }
+
+      /* ===== Section 1: Search ===== */
+      const searchState = { kind: "village", amp: "all", tam: "all", status: "all", text: "" };
+
+      function ampTamKeys(kind) {
+        return kind === "village" ? ["district", "subdistrict"] : ["amp", "tam"];
+      }
+      function populateSearchFilters() {
+        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
+        const pool = poolFor(searchState.kind);
+        const amps = [...new Set(pool.map((r) => r[ampKey]).filter(Boolean))].sort();
+        const ampSel = document.getElementById("searchAmp");
+        ampSel.innerHTML = `<option value="all">All districts</option>` + amps.map((a) => `<option>${escapeHtml(a)}</option>`).join("");
+        ampSel.value = searchState.amp === "all" || !amps.includes(searchState.amp) ? "all" : searchState.amp;
+        searchState.amp = ampSel.value;
+        populateTamFilter();
+
+        const statusSel = document.getElementById("searchStatus");
+        if (searchState.kind === "village") {
+          const statuses = [...new Set(STATE.villages.map((r) => r.status).filter(Boolean))];
+          statusSel.style.display = "";
+          statusSel.innerHTML = `<option value="all">Any status</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
+        } else {
+          statusSel.style.display = "none";
+          searchState.status = "all";
+        }
+      }
+      function populateTamFilter() {
+        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
+        const pool = poolFor(searchState.kind).filter((r) => searchState.amp === "all" || r[ampKey] === searchState.amp);
+        const tams = [...new Set(pool.map((r) => r[tamKey]).filter(Boolean))].sort();
+        const tamSel = document.getElementById("searchTam");
+        tamSel.innerHTML = `<option value="all">All subdistricts</option>` + tams.map((t) => `<option>${escapeHtml(t)}</option>`).join("");
+        tamSel.value = tams.includes(searchState.tam) ? searchState.tam : "all";
+        searchState.tam = tamSel.value;
+      }
+      function filteredSearchResults() {
+        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
+        const text = searchState.text.trim().toLowerCase();
+        return poolFor(searchState.kind).filter((r) => {
+          if (searchState.amp !== "all" && r[ampKey] !== searchState.amp) return false;
+          if (searchState.tam !== "all" && r[tamKey] !== searchState.tam) return false;
+          if (searchState.status !== "all" && r.status !== searchState.status) return false;
+          if (text && !(r.name || "").toLowerCase().includes(text)) return false;
+          return true;
+        });
+      }
+      function renderSearch() {
+        const results = filteredSearchResults();
+        document.getElementById("searchCount").textContent = results.length;
+        const listEl = document.getElementById("searchList");
+        listEl.innerHTML = results.length
+          ? results.slice(0, 300).map(resultRowHtml).join("")
+          : `<div class="empty-note">No matches.</div>`;
+        renderMap(results);
+      }
+      document.getElementById("searchKind").addEventListener("click", (e) => {
+        const btn = e.target.closest("button"); if (!btn) return;
+        searchState.kind = btn.dataset.v; searchState.amp = "all"; searchState.tam = "all";
+        document.querySelectorAll("#searchKind button").forEach((b) => b.classList.toggle("active", b === btn));
+        populateSearchFilters(); renderSearch();
+      });
+      document.getElementById("searchAmp").addEventListener("change", (e) => { searchState.amp = e.target.value; populateTamFilter(); renderSearch(); });
+      document.getElementById("searchTam").addEventListener("change", (e) => { searchState.tam = e.target.value; renderSearch(); });
+      document.getElementById("searchStatus").addEventListener("change", (e) => { searchState.status = e.target.value; renderSearch(); });
+      document.getElementById("searchText").addEventListener("input", (e) => { searchState.text = e.target.value; renderSearch(); });
+      wireResultList(document.getElementById("searchList"));
+
+      /* ===== Section 2: Recommendation ===== */
+      const recState = { kind: "village", tags: new Set(), auto: false };
+      function renderRecTagChips() {
+        const pool = poolFor(recState.kind);
+        document.getElementById("recTags").innerHTML = TAGS.map((t) => {
+          const n = pool.filter((r) => (r.tags || []).includes(t.key)).length;
+          const active = recState.tags.has(t.key);
+          return `<button class="tag-chip${active ? " active" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
+        }).join("");
+      }
+      function renderRecommend() {
+        const pool = poolFor(recState.kind).filter((r) => !r.closed);
+        let results;
+        if (recState.auto || recState.tags.size === 0) {
+          results = pool.slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
+        } else {
+          results = pool.filter((r) => [...recState.tags].every((t) => (r.tags || []).includes(t)))
+            .sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
+        }
+        document.getElementById("recCount").textContent = results.length;
+        document.getElementById("recList").innerHTML = results.length
+          ? results.slice(0, 300).map(resultRowHtml).join("")
+          : `<div class="empty-note">No properties match every selected tag.</div>`;
+      }
+      document.getElementById("recKind").addEventListener("click", (e) => {
+        const btn = e.target.closest("button"); if (!btn) return;
+        recState.kind = btn.dataset.v;
+        document.querySelectorAll("#recKind button").forEach((b) => b.classList.toggle("active", b === btn));
+        renderRecTagChips(); renderRecommend();
+      });
+      document.getElementById("recTags").addEventListener("click", (e) => {
+        const chip = e.target.closest(".tag-chip"); if (!chip) return;
+        if (recState.tags.has(chip.dataset.k)) recState.tags.delete(chip.dataset.k); else recState.tags.add(chip.dataset.k);
+        renderRecTagChips(); renderRecommend();
+      });
+      document.getElementById("autoToggle").addEventListener("click", (e) => {
+        recState.auto = !recState.auto;
+        e.target.classList.toggle("on", recState.auto);
+        renderRecommend();
+      });
+      wireResultList(document.getElementById("recList"));
+
+      /* ===== Section 3: Calendar ===== */
+      const calState = { monthKey: null, kind: "both", tags: new Set() };
+
+      function monthKeyOf(dateVal) { return dateVal.replace("-", ""); } // "2026-10" -> "202610"
+      function daysInMonth(monthKey) {
+        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
+        return new Date(y, m, 0).getDate();
+      }
+      function firstWeekday(monthKey) {
+        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
+        return new Date(y, m - 1, 1).getDay(); // 0=Sun
+      }
+
+      function renderCalTagChips() {
+        document.getElementById("calTags").innerHTML = TAGS.map((t) => {
+          const active = calState.tags.has(t.key);
+          return `<button class="tag-chip${active ? " active" : ""}" data-k="${t.key}">${t.label}</button>`;
+        }).join("");
+      }
+
+      function rankedPoolForCalendar() {
+        const pool = poolFor(calState.kind).filter((r) => !r.closed);
+        const filtered = calState.tags.size
+          ? pool.filter((r) => [...calState.tags].every((t) => (r.tags || []).includes(t)))
+          : pool;
+        return filtered.slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
+      }
+
+      function usedIdsInMonth(monthKey, exceptDay) {
+        const used = new Set();
+        const plan = STATE.calendarPlan[monthKey] || {};
+        Object.keys(plan).forEach((day) => {
+          if (+day === exceptDay) return;
+          plan[day].forEach((p) => used.add(p.kind + ":" + p.refId));
+        });
+        return used;
+      }
+
+      function pickForDay(monthKey, day, excludeExtra) {
+        const used = usedIdsInMonth(monthKey, day);
+        (excludeExtra || []).forEach((k) => used.add(k));
+        const candidates = rankedPoolForCalendar().filter((r) => !used.has(kindOf(r) + ":" + r.id));
+        const chosen = candidates.slice(0, 4);
+        const slots = ["1", "2", "3", "backup"];
+        return chosen.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id }));
+      }
+
+      async function generateDay(monthKey, day) {
+        const picks = pickForDay(monthKey, day);
+        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
+        STATE.calendarPlan[monthKey][day] = picks;
+        renderCalendar();
+        try {
+          await api("saveCalendarDay", { monthKey, day, picks });
+        } catch (e) {
+          console.warn("saveCalendarDay failed", e);
+          setCalStatus("Could not save that day to the shared plan (saved locally only): " + e.message, true);
+        }
+      }
+
+      async function generateMonth() {
+        const monthKey = calState.monthKey;
+        const n = daysInMonth(monthKey);
+        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
+        const usedExtra = new Set();
+        for (let day = 1; day <= n; day++) {
+          const picks = pickForDay(monthKey, day, usedExtra);
+          picks.forEach((p) => usedExtra.add(p.kind + ":" + p.refId));
+          STATE.calendarPlan[monthKey][day] = picks;
+        }
+        renderCalendar();
+        try {
+          for (let day = 1; day <= n; day++) {
+            await api("saveCalendarDay", { monthKey, day, picks: STATE.calendarPlan[monthKey][day] });
+          }
+          setCalStatus("Whole month saved to the shared plan.", false);
+        } catch (e) {
+          setCalStatus("Could not save the full month to the shared plan (saved locally only): " + e.message, true);
+        }
+      }
+
+      function setCalStatus(msg, isError) {
+        const el = document.getElementById("calSaveStatus");
+        el.textContent = msg; el.style.color = isError ? "var(--st-crit)" : "var(--text-3)";
+      }
+
+      function renderCalendar() {
+        const monthKey = calState.monthKey;
+        if (!monthKey) return;
+        const dow = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const n = daysInMonth(monthKey);
+        const lead = firstWeekday(monthKey);
+        const plan = STATE.calendarPlan[monthKey] || {};
+
+        let html = dow.map((d) => `<div class="cal-dow">${d}</div>`).join("");
+        for (let i = 0; i < lead; i++) html += `<div class="cal-day empty-cell"></div>`;
+        for (let day = 1; day <= n; day++) {
+          const picks = plan[day];
+          let inner = `<div class="d-num">${day}</div>`;
+          if (picks && picks.length) {
+            inner += picks.map((p) => {
+              const r = byId(p.kind, p.refId);
+              const nm = r ? r.name : "?";
+              return `<div class="cal-pick${p.slot === "backup" ? " backup" : ""}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(nm)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
+            }).join("");
+          } else {
+            inner += `<button class="cal-gen-btn" data-day="${day}">+ Generate</button>`;
+          }
+          html += `<div class="cal-day">${inner}</div>`;
+        }
+        document.getElementById("calGrid").innerHTML = html;
+      }
+
+      document.getElementById("calGrid").addEventListener("click", (e) => {
+        const pick = e.target.closest(".cal-pick");
+        if (pick) { const r = byId(pick.dataset.kind, pick.dataset.id); if (r) openModal(r); return; }
+        const genBtn = e.target.closest(".cal-gen-btn");
+        if (genBtn) generateDay(calState.monthKey, +genBtn.dataset.day);
+      });
+      document.getElementById("calKind").addEventListener("click", (e) => {
+        const btn = e.target.closest("button"); if (!btn) return;
+        calState.kind = btn.dataset.v;
+        document.querySelectorAll("#calKind button").forEach((b) => b.classList.toggle("active", b === btn));
+      });
+      document.getElementById("calTags").addEventListener("click", async (e) => {
+        const chip = e.target.closest(".tag-chip"); if (!chip) return;
+        if (calState.tags.has(chip.dataset.k)) calState.tags.delete(chip.dataset.k); else calState.tags.add(chip.dataset.k);
+        renderCalTagChips();
+        try {
+          await api("saveCalendarTheme", { monthKey: calState.monthKey, tags: [...calState.tags] });
+          setCalStatus("Theme saved.", false);
+        } catch (e2) {
+          setCalStatus("Could not save the theme (kept locally only): " + e2.message, true);
+        }
+      });
+      document.getElementById("calGenMonth").addEventListener("click", generateMonth);
+      document.getElementById("calMonth").addEventListener("change", (e) => {
+        calState.monthKey = monthKeyOf(e.target.value);
+        const theme = STATE.calendarTheme[calState.monthKey];
+        calState.tags = new Set(theme ? theme.tags : []);
+        renderCalTagChips();
+        renderCalendar();
+      });
+
+      function initCalendarDefaultMonth() {
+        const now = new Date();
+        const val = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+        document.getElementById("calMonth").value = val;
+        calState.monthKey = monthKeyOf(val);
+        const theme = STATE.calendarTheme[calState.monthKey];
+        calState.tags = new Set(theme ? theme.tags : []);
+      }
+
+      /* ===== app bootstrap ===== */
+      function initApp(payload) {
+        STATE.villages = payload.villages || [];
+        STATE.buildings = payload.buildings || [];
+        STATE.calendarTheme = {};
+        (payload.calendarTheme || []).forEach((row) => {
+          STATE.calendarTheme[row.monthKey] = { tags: String(row.tagsCsv || "").split(",").filter(Boolean) };
+        });
+        STATE.calendarPlan = {};
+        (payload.calendarPlan || []).forEach((row) => {
+          if (!STATE.calendarPlan[row.monthKey]) STATE.calendarPlan[row.monthKey] = {};
+          if (!STATE.calendarPlan[row.monthKey][row.day]) STATE.calendarPlan[row.monthKey][row.day] = [];
+          STATE.calendarPlan[row.monthKey][row.day].push({ slot: row.slot, kind: row.kind, refId: row.refId });
+        });
+
+        document.getElementById("topbarMeta").textContent =
+          STATE.villages.length + " villages · " + STATE.buildings.length + " buildings";
+
+        initMap();
+        populateSearchFilters();
+        renderSearch();
+        renderRecTagChips();
+        renderRecommend();
+        initCalendarDefaultMonth();
+        renderCalTagChips();
+        renderCalendar();
+      }
+
+      /* ===== Google Sign-In =====
+         Fill these in once you've completed the Google Cloud / Apps Script
+         setup in README.md. Until then, the page falls back to a small
+         embedded mock dataset so the UI can be built and reviewed locally
+         (see USE_MOCK below) -- same idea as TOL Tracker's REPLACE_WITH
+         check, extended to also unblock local development. */
+      const GOOGLE_CLIENT_ID = "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com";
+      const DEFAULT_SYNC_URL = "REPLACE_WITH_APPS_SCRIPT_WEB_APP_URL";
+      const USE_MOCK = GOOGLE_CLIENT_ID.indexOf("REPLACE_WITH") === 0;
+
+      async function api(action, fields) {
+        const res = await fetch(DEFAULT_SYNC_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action, idToken: STATE.idToken, ...fields }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "request failed");
+        return data;
+      }
+
+      function showLoginStatus(html, isError) {
+        const el = document.getElementById("loginStatus");
+        el.innerHTML = html; el.style.display = "block"; el.classList.toggle("error", !!isError);
+      }
+
+      let appInitialized = false;
+      async function onGoogleSignIn(response) {
+        STATE.idToken = response.credential;
+        document.getElementById("gsiButton").style.display = "none";
+        showLoginStatus('<div class="login-spinner"></div>', false);
+        try {
+          const data = await api("myData", {});
+          document.getElementById("loginGate").style.display = "none";
+          if (!appInitialized) { initApp(data.payload); appInitialized = true; }
+        } catch (e) {
+          document.getElementById("gsiButton").style.display = "flex";
+          showLoginStatus(e.message || "Sign-in failed.", true);
+        }
+      }
+
+      window.addEventListener("load", () => {
+        if (USE_MOCK) {
+          document.getElementById("loginGate").style.display = "none";
+          document.getElementById("mockBanner").style.display = "block";
+          initApp(MOCK_PAYLOAD);
+          appInitialized = true;
+          return;
+        }
+        if (!(window.google && google.accounts && google.accounts.id)) {
+          showLoginStatus("Could not load Google Sign-In. Check your connection and reload.", true);
+          return;
+        }
+        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleSignIn });
+        google.accounts.id.renderButton(document.getElementById("gsiButton"), { theme: "outline", size: "large" });
+      });
+
+      /* ===== mock data (local preview only) ===== */
+      const MOCK_PAYLOAD = {
+        villages: [
+          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePct: 0.37, competitor: 95, mksTrue: 0.42, faultAvg: 0.5, faultGrade: "L", churn3m: 3, churnRate: 0.02, churnGrade: "low", gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
+          { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, faultAvg: 0, faultGrade: "L", churn3m: 0, churnRate: 0, churnGrade: "low", gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
+          { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, faultAvg: 1.2, faultGrade: "M", churn3m: 6, churnRate: 0.04, churnGrade: "mid", gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 79.4 },
+          { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, faultAvg: 0, faultGrade: "L", churn3m: 0, churnRate: 0, churnGrade: "low", gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },
+          { id: "v5", name: "หมู่บ้านบางบัวทองพาร์ค", district: "บางบัวทอง", subdistrict: "บางบัวทอง", lat: 13.924, lng: 100.417, status: "เปิด", closed: false, houseAll: 550, totalPort: 500, totalAvailable: 300, active: 180, activePct: 0.36, competitor: 130, mksTrue: 0.39, faultAvg: 2.1, faultGrade: "H", churn3m: 12, churnRate: 0.06, churnGrade: "high", gradeSale: "H", scoreSale: 1.6, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 82.0 },
+          { id: "v6", name: "หมู่บ้านสายไหมการ์เดนท์", district: "ปากเกร็ด", subdistrict: "คลองพระอุดม", lat: 13.94, lng: 100.46, status: "เปิด", closed: false, houseAll: 95, totalPort: 80, totalAvailable: 55, active: 15, activePct: 0.19, competitor: 12, mksTrue: 0.18, faultAvg: 0.3, faultGrade: "L", churn3m: 1, churnRate: 0.01, churnGrade: "low", gradeSale: "L", scoreSale: 0.8, mainGroup: "G3", tags: ["low_fault"], autoScore: 45.1 },
+        ],
+        buildings: [
+          { id: "b1", name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, faultAvg: 0, faultGrade: "L", churn3m: 0, churnPct: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "high_competitor", "low_fault"], autoScore: 76.3 },
+          { id: "b2", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, faultAvg: 0.4, faultGrade: "L", churn3m: 2, churnPct: 0.01, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large", "high_competitor"], autoScore: 85.9 },
+          { id: "b3", name: "RIVERINE PLACE BUILDING 4", prov: "นนทบุรี", amp: "เมืองนนทบุรี", tam: "สวนใหญ่", lat: 13.85, lng: 100.49, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 4, units: 8, occupancy: 0.5, totalPort: 8, totalAvailable: 4, active: 0, activePct: 0, arpu: null, competitor: 2, mksTrue: 0, faultAvg: 0, faultGrade: "L", churn3m: 0, churnPct: 0, gradeSale: "L", scoreSale: 0.6, groupBuilding: "RIVERINE PLACE", tags: ["low_fault"], autoScore: 22.1 },
+        ],
+        calendarTheme: [],
+        calendarPlan: [],
+      };
+    </script>
+  </body>
+</html>
