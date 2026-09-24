@@ -95,6 +95,25 @@ def chunk_tabs(tabs, max_bytes=400_000):
         yield chunk
 
 
+PROGRESS_TOTAL_STEPS = 3
+
+
+def progress(step, label, width=28):
+    filled = int(width * step / PROGRESS_TOTAL_STEPS)
+    bar = "█" * filled + "░" * (width - filled)
+    pct = int(100 * step / PROGRESS_TOTAL_STEPS)
+    print(f"\n[{bar}] {pct:3d}%  Step {step}/{PROGRESS_TOTAL_STEPS}: {label}")
+
+
+def upload_bar(done_bytes, total_bytes, width=28):
+    frac = min(done_bytes / total_bytes, 1) if total_bytes else 1
+    filled = int(width * frac)
+    bar = "█" * filled + "░" * (width - filled)
+    pct = int(100 * frac)
+    print(f"\r  [{bar}] {pct:3d}%  {done_bytes / 1e6:.2f}/{total_bytes / 1e6:.2f} MB uploaded",
+          end="", flush=True)
+
+
 def main():
     if not SYNC_SECRET_FILE.exists():
         raise SystemExit(
@@ -110,11 +129,13 @@ def main():
             "your Apps Script Web App URL -- see this repo's README."
         )
 
+    progress(1, "Curating villages + buildings")
     print("Curating villages + buildings from the raw workbooks...")
     out = aggregate_suggestion.build_output()
     out["meta"]["syncedAt"] = datetime.now(timezone.utc).isoformat()
     print(f"  {out['meta']['villageCount']} villages, {out['meta']['buildingCount']} buildings")
 
+    progress(2, "Preparing tabs to upload")
     tabs = sheet_schema.flatten(out)
     total_rows = sum(len(t["rows"]) for t in tabs.values())
     print(f"Flattened into {len(tabs)} tabs, {total_rows} rows total:")
@@ -122,17 +143,23 @@ def main():
         print(f"  {name:<12} {len(t['rows']):>6} rows")
 
     payload_preview = json.dumps(tabs, ensure_ascii=False)
-    print(f"Upload size: {len(payload_preview) / 1e6:.2f} MB")
+    total_bytes = len(payload_preview.encode("utf-8"))
+    print(f"Upload size: {total_bytes / 1e6:.2f} MB")
 
-    print("Uploading to Google Sheet...")
+    progress(3, "Uploading to Google Sheet")
     total_tabs = 0
     total_rows = 0
+    done_bytes = 0
     for i, chunk in enumerate(chunk_tabs(tabs), 1):
-        chunk_mb = len(json.dumps(chunk, ensure_ascii=False)) / 1e6
+        chunk_json = json.dumps(chunk, ensure_ascii=False)
+        chunk_mb = len(chunk_json) / 1e6
         print(f"  chunk {i}: {list(chunk.keys())} ({chunk_mb:.2f} MB)")
         result = post(sync_secret, "syncData", tabs=chunk)
         total_tabs += result.get("tabs", 0)
         total_rows += result.get("rows", 0)
+        done_bytes += len(chunk_json.encode("utf-8"))
+        upload_bar(done_bytes, total_bytes)
+    print()
     print(f"Done -- {total_rows} rows synced across {total_tabs} tabs.")
 
 
