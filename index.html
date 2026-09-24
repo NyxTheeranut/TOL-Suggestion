@@ -461,6 +461,7 @@
                 <button data-v="village">Villages</button>
                 <button data-v="building">Buildings</button>
               </div>
+              <select id="calStatus"><option value="all">Any village status</option></select>
               <button class="btn primary" id="calGenMonth">Generate whole month</button>
             </div>
             <div class="tag-chips" id="calTags"></div>
@@ -916,7 +917,21 @@
       wireResultList(document.getElementById("recList"));
 
       /* ===== Section 3: Calendar ===== */
-      const calState = { monthKey: null, kind: "both", tags: new Set() };
+      const calState = { monthKey: null, kind: "both", tags: new Set(), status: "all" };
+
+      function populateCalStatusFilter() {
+        const sel = document.getElementById("calStatus");
+        if (calState.kind === "building") {
+          sel.style.display = "none";
+          calState.status = "all";
+          return;
+        }
+        sel.style.display = "";
+        const statuses = [...new Set(STATE.villages.map((r) => r.status).filter(Boolean))];
+        sel.innerHTML = `<option value="all">Any village status</option>` + statuses.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
+        sel.value = statuses.includes(calState.status) ? calState.status : "all";
+        calState.status = sel.value;
+      }
 
       function monthKeyOf(dateVal) { return dateVal.replace("-", ""); } // "2026-10" -> "202610"
       function daysInMonth(monthKey) {
@@ -936,7 +951,16 @@
       }
 
       function rankedPoolForCalendar() {
-        const pool = poolFor(calState.kind).filter((r) => !r.closed);
+        // Buildings have no "status" (ปิด/เปิด/...) field at all -- the
+        // status filter only ever narrows villages, so picking a specific
+        // status in "Villages + Buildings" mode doesn't wipe out every
+        // building (which would otherwise fail a raw r.status === value
+        // check since r.status is undefined for them).
+        const pool = poolFor(calState.kind).filter((r) => {
+          if (kindOf(r) === "building") return !r.closed;
+          if (calState.status !== "all") return r.status === calState.status;
+          return !r.closed;
+        });
         const filtered = calState.tags.size
           ? pool.filter((r) => [...calState.tags].every((t) => (r.tags || []).includes(t)))
           : pool;
@@ -1155,7 +1179,9 @@
         const btn = e.target.closest("button"); if (!btn) return;
         calState.kind = btn.dataset.v;
         document.querySelectorAll("#calKind button").forEach((b) => b.classList.toggle("active", b === btn));
+        populateCalStatusFilter();
       });
+      document.getElementById("calStatus").addEventListener("change", (e) => { calState.status = e.target.value; });
       document.getElementById("calTags").addEventListener("click", async (e) => {
         const chip = e.target.closest(".tag-chip"); if (!chip) return;
         if (calState.tags.has(chip.dataset.k)) calState.tags.delete(chip.dataset.k); else calState.tags.add(chip.dataset.k);
@@ -1209,6 +1235,7 @@
         renderRecTagChips();
         renderRecommend();
         initCalendarDefaultMonth();
+        populateCalStatusFilter();
         renderCalTagChips();
         renderCalendar();
       }
