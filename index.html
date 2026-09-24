@@ -14,6 +14,7 @@
     />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="boundaries.js"></script>
     <style>
       /* ── tokens (same palette as TOL Tracker / L2 Discount Map / Route
          Planner, so this reads as part of the same family of pages) ────── */
@@ -465,6 +466,11 @@
               <button class="btn primary" id="calGenMonth">Generate whole month</button>
             </div>
             <div class="tag-chips" id="calTags"></div>
+            <div class="district-panel" style="max-height:190px;margin-top:10px;">
+              <div class="amphur-row" id="calAmphurRow"></div>
+              <button class="district-clear" id="calDistrictClearBtn">Clear district/subdistrict filter</button>
+              <div id="calDistrictGrid"></div>
+            </div>
             <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
           </div>
           <div class="card">
@@ -522,10 +528,14 @@
         return STATE.villages.concat(STATE.buildings).map((r, i) => r); // "both"
       }
       function kindOf(r) { return "houseAll" in r ? "village" : "building"; }
-      function locOf(r) {
-        return kindOf(r) === "village" ? [r.district, r.subdistrict].filter(Boolean).join(" · ")
-                                        : [r.amp, r.tam].filter(Boolean).join(" · ");
-      }
+      // District/subdistrict live under different field names per kind
+      // (village: district/subdistrict, building: amp/tam) -- these read
+      // whichever applies to a given record, so a mixed village+building
+      // pool (the Calendar's "Villages + Buildings" mode) can still be
+      // grouped/filtered by area with one accessor instead of two.
+      function ampOf(r) { return kindOf(r) === "village" ? r.district : r.amp; }
+      function tamOf(r) { return kindOf(r) === "village" ? r.subdistrict : r.tam; }
+      function locOf(r) { return [ampOf(r), tamOf(r)].filter(Boolean).join(" · "); }
 
       /* ===== theme toggle ===== */
       (function () {
@@ -648,12 +658,60 @@
       }
 
       /* ===== Leaflet map (Section 1) ===== */
-      let map, markerLayer;
+      let map, markerLayer, boundaryLayer;
       const markersById = {}; // "kind:id" -> Leaflet marker, so a list-row click can find and open its own pin's popup
       function initMap() {
         map = L.map("mapView", { preferCanvas: true }).setView([13.85, 100.45], 11);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+        // Added before markerLayer so the real administrative outlines sit
+        // underneath the pins, not on top of them.
+        boundaryLayer = L.layerGroup().addTo(map);
         markerLayer = L.layerGroup().addTo(map);
+      }
+
+      // Real district/tambon boundary polygons (boundaries.js), drilling down
+      // like Route Planner's map does: with no district picked, show all 3
+      // district outlines; pick one and its tambons appear individually;
+      // pick a tambon and it's highlighted solidly while its siblings stay
+      // faint. Clicking a shape sets the same searchState.amp/tam the
+      // sidebar pills/cards do, so the map and the sidebar always agree.
+      function renderBoundaries() {
+        boundaryLayer.clearLayers();
+        const districtsPresent = [...new Set(poolFor(searchState.kind).map(ampOf).filter(Boolean))];
+
+        if (searchState.amp === "all") {
+          districtsPresent.forEach((district) => {
+            const boundary = DISTRICT_BOUNDARIES[district];
+            if (!boundary) return;
+            const color = colorForDistrict(district);
+            const layer = L.geoJSON(
+              { type: "Feature", geometry: boundary, properties: {} },
+              { style: { color, weight: 2, dashArray: "8 6", fillColor: color, fillOpacity: 0.05, opacity: 0.8 } },
+            );
+            layer.on("click", () => { searchState.amp = district; searchState.tam = "all"; renderSearch(); });
+            layer.addTo(boundaryLayer);
+          });
+          return;
+        }
+
+        // A district is selected -- show ITS tambons individually so the
+        // grid actually reads as a grid, not one big outline.
+        Object.keys(TAMBON_BOUNDARIES).forEach((key) => {
+          const [district, tambon] = key.split("|");
+          if (district !== searchState.amp) return;
+          const color = colorForDistrict(district);
+          const isSelected = searchState.tam === "all" || searchState.tam === tambon;
+          const style = {
+            color, weight: searchState.tam === tambon ? 3 : 1.5,
+            dashArray: searchState.tam === tambon ? null : "6 5",
+            fillColor: color, fillOpacity: searchState.tam === tambon ? 0.22 : (isSelected ? 0.07 : 0.02),
+            opacity: isSelected ? 0.9 : 0.3,
+          };
+          const layer = L.geoJSON({ type: "Feature", geometry: TAMBON_BOUNDARIES[key], properties: {} }, { style });
+          layer.on("click", () => { searchState.tam = searchState.tam === tambon ? "all" : tambon; renderSearch(); });
+          layer.addTo(boundaryLayer);
+          if (searchState.tam === tambon) map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 16 });
+        });
       }
 
       // Heat-style pins: color (and slightly, size) ramp with autoScore
@@ -722,10 +780,6 @@
       /* ===== Section 1: Search ===== */
       const searchState = { kind: "village", amp: "all", tam: "all", status: "all", text: "" };
 
-      function ampTamKeys(kind) {
-        return kind === "village" ? ["district", "subdistrict"] : ["amp", "tam"];
-      }
-
       // District colors -- same mapping Route Planner uses for this exact
       // cluster, so a district reads as the same color across both pages.
       const DISTRICT_COLOR_MAP = { "ปากเกร็ด": "#2f6fed", "บางบัวทอง": "#1ea672", "ไทรน้อย": "#e0453c" };
@@ -745,11 +799,10 @@
       // every option other than the active one collapse toward zero).
       function searchPool(ignore) {
         ignore = ignore || new Set();
-        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
         const text = searchState.text.trim().toLowerCase();
         return poolFor(searchState.kind).filter((r) => {
-          if (!ignore.has("amp") && searchState.amp !== "all" && r[ampKey] !== searchState.amp) return false;
-          if (!ignore.has("tam") && searchState.tam !== "all" && r[tamKey] !== searchState.tam) return false;
+          if (!ignore.has("amp") && searchState.amp !== "all" && ampOf(r) !== searchState.amp) return false;
+          if (!ignore.has("tam") && searchState.tam !== "all" && tamOf(r) !== searchState.tam) return false;
           if (!ignore.has("status") && searchState.status !== "all" && r.status !== searchState.status) return false;
           if (!ignore.has("text") && text && !(r.name || "").toLowerCase().includes(text)) return false;
           return true;
@@ -757,50 +810,51 @@
       }
       function filteredSearchResults() { return searchPool(); }
 
-      function renderAmphurRow() {
-        const [ampKey] = ampTamKeys(searchState.kind);
-        const base = searchPool(new Set(["amp", "tam"]));
+      // Generic amphur-pill row / subdistrict grid -- shared by Search
+      // (map sidebar) and Calendar (pool scoping), each passing their own
+      // base pool, mutable {amp, tam} state, element ids, and a callback to
+      // re-render after a click changes that state.
+      function renderAmphurRowFor(basePool, state, rowElId, onChange) {
         const counts = new Map();
-        base.forEach((r) => {
-          const label = r[ampKey];
+        basePool.forEach((r) => {
+          const label = ampOf(r);
           if (!label) return;
           counts.set(label, (counts.get(label) || 0) + 1);
         });
-        if (searchState.amp !== "all" && !counts.has(searchState.amp)) { searchState.amp = "all"; searchState.tam = "all"; }
+        if (state.amp !== "all" && !counts.has(state.amp)) { state.amp = "all"; state.tam = "all"; }
         const entries = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
-        const el = document.getElementById("amphurRow");
+        const el = document.getElementById(rowElId);
         el.innerHTML = entries.map(([label, count]) => {
           const color = colorForDistrict(label);
-          const active = searchState.amp === label;
+          const active = state.amp === label;
           return `<div class="amphur-pill${active ? " active" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><span class="dot"></span>${escapeHtml(label)}<span class="pill-count">${count}</span></div>`;
         }).join("");
         Array.from(el.children).forEach((pill) => {
           pill.addEventListener("click", () => {
             const label = pill.dataset.label;
-            searchState.amp = searchState.amp === label ? "all" : label;
-            searchState.tam = "all";
-            renderSearch();
+            state.amp = state.amp === label ? "all" : label;
+            state.tam = "all";
+            onChange();
           });
         });
       }
 
-      function renderDistrictGrid() {
-        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
-        const base = searchPool(new Set(["tam"]));
+      function renderDistrictGridFor(basePool, state, gridElId, clearBtnId, onChange) {
         const counts = new Map();
-        const ampOf = new Map();
-        base.forEach((r) => {
-          const label = r[tamKey];
+        const ampByTam = new Map();
+        basePool.forEach((r) => {
+          const label = tamOf(r);
           if (!label) return;
           counts.set(label, (counts.get(label) || 0) + 1);
-          if (!ampOf.has(label)) ampOf.set(label, r[ampKey] || "");
+          if (!ampByTam.has(label)) ampByTam.set(label, ampOf(r) || "");
         });
-        if (searchState.tam !== "all" && !counts.has(searchState.tam)) searchState.tam = "all";
-        document.getElementById("districtClearBtn").style.display = (searchState.amp !== "all" || searchState.tam !== "all") ? "block" : "none";
+        if (state.tam !== "all" && !counts.has(state.tam)) state.tam = "all";
+        const clearBtn = document.getElementById(clearBtnId);
+        if (clearBtn) clearBtn.style.display = (state.amp !== "all" || state.tam !== "all") ? "block" : "none";
 
         const groups = new Map();
         counts.forEach((count, label) => {
-          const amp = ampOf.get(label);
+          const amp = ampByTam.get(label);
           if (!groups.has(amp)) groups.set(amp, []);
           groups.get(amp).push([label, count]);
         });
@@ -808,7 +862,7 @@
           .map(([amp, items]) => [amp, items, items.reduce((s, [, c]) => s + c, 0)])
           .sort((a, b) => b[2] - a[2]);
 
-        const gridEl = document.getElementById("districtGrid");
+        const gridEl = document.getElementById(gridElId);
         gridEl.innerHTML = "";
         ordered.forEach(([amp, items]) => {
           items.sort((a, b) => b[1] - a[1]);
@@ -822,14 +876,14 @@
           const grid = document.createElement("div");
           grid.className = "district-grid";
           grid.innerHTML = items.map(([label, count]) => {
-            const active = searchState.tam === label;
+            const active = state.tam === label;
             return `<div class="district-card${active ? " active" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><div class="dname">${escapeHtml(label)}</div><div class="dcount">${count}</div></div>`;
           }).join("");
           Array.from(grid.children).forEach((card) => {
             card.addEventListener("click", () => {
               const label = card.dataset.label;
-              searchState.tam = searchState.tam === label ? "all" : label;
-              renderSearch();
+              state.tam = state.tam === label ? "all" : label;
+              onChange();
             });
           });
           groupDiv.appendChild(header);
@@ -837,6 +891,9 @@
           gridEl.appendChild(groupDiv);
         });
       }
+
+      function renderAmphurRow() { renderAmphurRowFor(searchPool(new Set(["amp", "tam"])), searchState, "amphurRow", renderSearch); }
+      function renderDistrictGrid() { renderDistrictGridFor(searchPool(new Set(["tam"])), searchState, "districtGrid", "districtClearBtn", renderSearch); }
 
       function populateStatusFilter() {
         const statusSel = document.getElementById("searchStatus");
@@ -860,6 +917,7 @@
           ? results.slice(0, 300).map(resultRowHtml).join("")
           : `<div class="empty-note">No matches.</div>`;
         renderMap(results);
+        renderBoundaries();
       }
       document.getElementById("searchKind").addEventListener("click", (e) => {
         const btn = e.target.closest("button"); if (!btn) return;
@@ -917,7 +975,7 @@
       wireResultList(document.getElementById("recList"));
 
       /* ===== Section 3: Calendar ===== */
-      const calState = { monthKey: null, kind: "both", tags: new Set(), status: "all" };
+      const calState = { monthKey: null, kind: "both", tags: new Set(), status: "all", amp: "all", tam: "all" };
 
       function populateCalStatusFilter() {
         const sel = document.getElementById("calStatus");
@@ -950,17 +1008,32 @@
         }).join("");
       }
 
-      function rankedPoolForCalendar() {
-        // Buildings have no "status" (ปิด/เปิด/...) field at all -- the
-        // status filter only ever narrows villages, so picking a specific
-        // status in "Villages + Buildings" mode doesn't wipe out every
-        // building (which would otherwise fail a raw r.status === value
-        // check since r.status is undefined for them).
-        const pool = poolFor(calState.kind).filter((r) => {
+      // Same "ignore a facet for counting purposes" trick as searchPool --
+      // used both to build the pool that actually gets ranked and to count
+      // the calendar's own amphur-pill/district-grid options.
+      function calAreaPool(ignore) {
+        ignore = ignore || new Set();
+        return poolFor(calState.kind).filter((r) => {
+          if (!ignore.has("amp") && calState.amp !== "all" && ampOf(r) !== calState.amp) return false;
+          if (!ignore.has("tam") && calState.tam !== "all" && tamOf(r) !== calState.tam) return false;
+          // Buildings have no "status" (ปิด/เปิด/...) field at all -- the
+          // status filter only ever narrows villages, so picking a specific
+          // status in "Villages + Buildings" mode doesn't wipe out every
+          // building (which would otherwise fail a raw r.status === value
+          // check since r.status is undefined for them).
           if (kindOf(r) === "building") return !r.closed;
           if (calState.status !== "all") return r.status === calState.status;
           return !r.closed;
         });
+      }
+
+      function renderCalAreaFilter() {
+        renderAmphurRowFor(calAreaPool(new Set(["amp", "tam"])), calState, "calAmphurRow", renderCalAreaFilter);
+        renderDistrictGridFor(calAreaPool(new Set(["tam"])), calState, "calDistrictGrid", "calDistrictClearBtn", renderCalAreaFilter);
+      }
+
+      function rankedPoolForCalendar() {
+        const pool = calAreaPool();
         const filtered = calState.tags.size
           ? pool.filter((r) => [...calState.tags].every((t) => (r.tags || []).includes(t)))
           : pool;
@@ -1177,11 +1250,15 @@
 
       document.getElementById("calKind").addEventListener("click", (e) => {
         const btn = e.target.closest("button"); if (!btn) return;
-        calState.kind = btn.dataset.v;
+        calState.kind = btn.dataset.v; calState.amp = "all"; calState.tam = "all";
         document.querySelectorAll("#calKind button").forEach((b) => b.classList.toggle("active", b === btn));
         populateCalStatusFilter();
+        renderCalAreaFilter();
       });
-      document.getElementById("calStatus").addEventListener("change", (e) => { calState.status = e.target.value; });
+      document.getElementById("calStatus").addEventListener("change", (e) => { calState.status = e.target.value; renderCalAreaFilter(); });
+      document.getElementById("calDistrictClearBtn").addEventListener("click", () => {
+        calState.amp = "all"; calState.tam = "all"; renderCalAreaFilter();
+      });
       document.getElementById("calTags").addEventListener("click", async (e) => {
         const chip = e.target.closest(".tag-chip"); if (!chip) return;
         if (calState.tags.has(chip.dataset.k)) calState.tags.delete(chip.dataset.k); else calState.tags.add(chip.dataset.k);
@@ -1236,6 +1313,7 @@
         renderRecommend();
         initCalendarDefaultMonth();
         populateCalStatusFilter();
+        renderCalAreaFilter();
         renderCalTagChips();
         renderCalendar();
       }
