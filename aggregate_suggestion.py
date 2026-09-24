@@ -39,14 +39,22 @@ BUILDING_XLSX = HERE / "data" / "BMA-West TOL - Building Inventory_2026.xlsx"
 
 CLOSED_STATUS = "ปิด"
 
+# Scoped to just this PBH cluster (matches TOL Tracker) -- both workbooks
+# cover the whole of BMA-West, but this dashboard only needs Pak Kret / Bang
+# Bua Thong / Sai Noi. Villages carry this in "HOP_HOZ", buildings in
+# "New PBH" -- same exact string in both, confirmed against the raw exports.
+PBH_FILTER = "NTB : Pak Kret, Bang Bua Thong, Sai Noi"
+
 
 def clean(v):
     """Excel formula-error strings (#REF!, #VALUE!, #N/A, ...) show up in a
     handful of columns in these exports -- a broken source reference, not a
     real value. Scrub them to None everywhere rather than letting "#REF!"
     leak into the dashboard as if it were a grade or a date."""
-    if isinstance(v, str) and v.startswith("#"):
-        return None
+    if isinstance(v, str):
+        v = v.strip()
+        if v.startswith("#") or v == "":
+            return None
     return v
 
 
@@ -149,6 +157,8 @@ def load_villages(path=VILLAGE_XLSB):
         vid = v[i_id]
         if vid is None or v[i_name] is None:
             continue
+        if clean(v[i_hop]) != PBH_FILTER:
+            continue
         out.append({
             "id": str(int(vid)) if isinstance(vid, float) and vid.is_integer() else str(vid),
             "name": clean(v[i_name]),
@@ -197,6 +207,7 @@ def load_buildings(path=BUILDING_XLSX):
 
     i_id = col(header, 13, "BUILDING_ID")
     i_name = col(header, 14, "BUILDING_NAME")
+    i_pbh = col(header, 1, "New PBH")
     i_prov = col(header, 4, "PROV_NAMT")
     i_amp = col(header, 5, "AMP_NAMT")
     i_tam = col(header, 6, "TAM_NAMT")
@@ -235,6 +246,8 @@ def load_buildings(path=BUILDING_XLSX):
     for row in ws.iter_rows(min_row=3, values_only=True):
         bid = row[i_id]
         if bid is None or row[i_name] is None:
+            continue
+        if clean(row[i_pbh]) != PBH_FILTER:
             continue
         out.append({
             "id": str(int(bid)) if isinstance(bid, (int, float)) else str(bid),

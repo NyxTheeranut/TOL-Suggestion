@@ -99,12 +99,18 @@
       }
 
       * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      html, body { margin: 0; padding: 0; height: 100%; }
       body {
         background: var(--page); color: var(--ink);
         font-family: "Inter", system-ui, -apple-system, sans-serif;
         -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.5;
       }
+      /* App shell -- fixed to the viewport (like Route Planner / L2 Discount
+         Map) rather than a normal scrolling page, so the Search section's
+         map+sidebar can fill all available height edge to edge instead of
+         sitting inside a padded, max-width-capped card with wasted margin
+         on a wide screen. */
+      #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
       h1, h2, h3 { font-family: "Space Grotesk", system-ui, sans-serif; margin: 0; letter-spacing: -0.015em; }
       .mono, .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
       button, select, input { font-family: inherit; }
@@ -127,11 +133,11 @@
       .login-status.error { color: #d03b3b; }
       .login-spinner { width: 20px; height: 20px; margin: 0 auto; border-radius: 50%; border: 2.5px solid #e3e8ef; border-top-color: #12897f; animation: spin .8s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      .mock-banner { background: var(--st-warn-soft); color: #7a5b0a; border-bottom: 1px solid var(--line); padding: 7px 16px; font-size: 12px; text-align: center; }
+      .mock-banner { flex: none; background: var(--st-warn-soft); color: #7a5b0a; border-bottom: 1px solid var(--line); padding: 7px 16px; font-size: 12px; text-align: center; }
       :root[data-theme="dark"] .mock-banner, @media (prefers-color-scheme: dark) { .mock-banner { color: #f0d089; } }
 
       /* ── topbar ─────────────────────────────────────────────────────────── */
-      .topbar { position: sticky; top: 0; z-index: 40; background: var(--topbar-bg); color: var(--topbar-fg); padding: 12px 24px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 16px; row-gap: 10px; }
+      .topbar { flex: none; background: var(--topbar-bg); color: var(--topbar-fg); padding: 12px 24px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 16px; row-gap: 10px; }
       .brand { grid-column: 1; display: flex; align-items: center; gap: 11px; min-width: 0; }
       .brand .bars-icon i { background: var(--accent-mark); }
       .brand .bars-icon i:nth-child(1), .brand .bars-icon i:nth-child(2) { opacity: .5; }
@@ -146,16 +152,19 @@
       .theme-btn { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16); color: rgba(255,255,255,.85); border-radius: 8px; width: 30px; height: 30px; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }
       .theme-btn:hover { background: rgba(255,255,255,.16); }
 
-      .wrap { max-width: 1280px; margin: 0 auto; padding: 22px 22px 72px; }
-      .app-section { display: none; }
-      .app-section.active { display: block; }
+      .app-section { display: none; flex: 1; min-height: 0; }
+      .app-section.active { display: flex; flex-direction: column; }
+      /* Recommend/Calendar aren't map-first, so they keep a normal scrolling
+         pane -- but full width with a modest gutter, not the old centered
+         1280px column that left large idle margins on a wide monitor. */
+      .section-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 20px 48px; }
 
       .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
       .card + .card { margin-top: 14px; }
       .card h2 { font-size: 15.5px; font-weight: 600; margin-bottom: 2px; }
       .card .hint { font-size: 12px; color: var(--text-3); margin-bottom: 12px; }
 
-      /* ── filter bar ─────────────────────────────────────────────────────── */
+      /* ── filter bar (Recommend/Calendar controls) ──────────────────────── */
       .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
       .kind-toggle { display: flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; flex: none; }
       .kind-toggle button { border: none; background: var(--panel-2); color: var(--text-2); font-size: 12.5px; font-weight: 600; padding: 8px 14px; }
@@ -165,9 +174,6 @@
         color: var(--ink); font-size: 12.5px; padding: 8px 10px; min-width: 0;
       }
       .text-input { flex: 1; min-width: 160px; }
-      .search-wrap { position: relative; flex: 1; min-width: 180px; display: flex; align-items: center; }
-      .search-wrap svg { position: absolute; left: 10px; color: var(--text-3); pointer-events: none; }
-      .search-wrap input { padding-left: 30px; width: 100%; }
 
       .tag-chips { display: flex; flex-wrap: wrap; gap: 7px; }
       .tag-chip {
@@ -182,12 +188,56 @@
       .switch.on { background: var(--accent); }
       .switch.on::after { transform: translateX(16px); }
 
-      /* ── map + list layout (borrowed from TOL Tracker's territory map) ──── */
-      .map-layout { display: flex; gap: 14px; height: calc(100vh - 320px); min-height: 420px; }
-      #mapView { flex: 1; border-radius: 11px; z-index: 0; min-height: 0; }
-      .list-panel { width: 320px; flex: none; display: flex; flex-direction: column; min-height: 0; }
-      .list-summary { font-size: 11.5px; color: var(--text-3); padding: 0 2px 8px; flex: none; }
-      .result-list { flex: 1; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; padding: 4px; min-height: 0; }
+      /* ── Search: sidebar + map filling the whole section, edge to edge
+         (Route Planner / L2 Discount Map's app-shell layout, not a padded
+         card) ────────────────────────────────────────────────────────────── */
+      .search-shell { display: flex; flex: 1; min-height: 0; }
+      .search-sidebar {
+        width: 340px; min-width: 280px; max-width: 400px; flex: none;
+        background: var(--panel); border-right: 1px solid var(--line);
+        display: flex; flex-direction: column; min-height: 0;
+      }
+      .sidebar-fixed { flex: none; padding: 12px 12px 8px; display: flex; flex-direction: column; gap: 8px; }
+      .search-wrap { position: relative; display: flex; align-items: center; }
+      .search-wrap svg { position: absolute; left: 10px; color: var(--text-3); pointer-events: none; }
+      .search-wrap input { padding-left: 30px; width: 100%; }
+      .sidebar-row { display: flex; gap: 8px; }
+      .sidebar-row select { flex: 1; min-width: 0; }
+
+      /* District grid -- ported from Route Planner: an amphur pill row (top
+         level) plus subdistrict tiles grouped underneath, each colored
+         consistently per district so the same place reads the same color
+         across this dashboard and Route Planner. */
+      .district-panel { flex: none; max-height: 230px; overflow-y: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-top: 6px; }
+      .amphur-row { display: flex; gap: 6px; flex-wrap: wrap; padding: 2px 12px 8px; }
+      .amphur-pill {
+        --pill-color: #888; display: flex; align-items: center; gap: 6px;
+        font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 14px;
+        border: 1.5px solid var(--pill-color); background: var(--panel); color: var(--pill-color);
+        cursor: pointer; user-select: none;
+      }
+      .amphur-pill:hover { filter: brightness(0.97); }
+      .amphur-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pill-color); flex-shrink: 0; }
+      .amphur-pill .pill-count { opacity: .7; font-weight: 600; }
+      .amphur-pill.active { background: var(--pill-color); color: #fff; }
+      .amphur-pill.active .dot { background: #fff; }
+      .district-group { margin-bottom: 4px; }
+      .district-group-header { --pill-color: #888; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--pill-color); padding: 6px 12px 4px; }
+      .district-group-header .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pill-color); flex-shrink: 0; }
+      .district-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; padding: 0 12px 6px; }
+      .district-card {
+        --pill-color: #888; text-align: center; background: var(--panel);
+        border: 1px solid var(--line); border-left: 4px solid var(--pill-color);
+        border-radius: 9px; padding: 7px 4px 6px; cursor: pointer; user-select: none;
+      }
+      .district-card:hover { background: var(--panel-2); }
+      .district-card.active { background: color-mix(in srgb, var(--pill-color) 16%, var(--panel)); border-color: var(--pill-color); }
+      .district-card .dname { font-size: 10.5px; font-weight: 600; line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .district-card .dcount { font-size: 14px; font-weight: 700; margin-top: 2px; color: var(--pill-color); }
+      .district-clear { font-size: 11px; color: var(--accent-ink); background: none; border: none; padding: 0 12px 6px; text-align: left; display: none; }
+
+      .list-summary { font-size: 11.5px; color: var(--text-3); padding: 8px 12px 6px; flex: none; }
+      .result-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; min-height: 0; }
       .result-row { padding: 9px 10px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
       .result-row:hover { background: var(--panel-2); }
       .result-row + .result-row { margin-top: 1px; }
@@ -202,6 +252,8 @@
       :root[data-theme="dark"] .stat-pill.tag-large, @media (prefers-color-scheme: dark) { .stat-pill.tag-large { color: #7fb0ee; } }
       .empty-note { padding: 24px 14px; color: var(--text-3); font-size: 12.5px; text-align: center; }
 
+      .search-map-panel { flex: 1; min-width: 0; position: relative; }
+      #mapView { position: absolute; inset: 0; z-index: 0; }
       .prop-pin { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
 
       /* ── modal ──────────────────────────────────────────────────────────── */
@@ -239,11 +291,18 @@
       .cal-gen-btn { margin-top: auto; font-size: 10.5px; padding: 4px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--text-3); }
       .cal-gen-btn:hover { background: var(--panel); color: var(--accent-ink); border-color: var(--accent); }
 
+      /* Recommend/Calendar's result-list sits inside a .card there (unlike
+         the Search sidebar, which is already boxed by its own border), so
+         it keeps its own inset border/radius there specifically. */
+      .card .result-list { border: 1px solid var(--line); border-radius: 11px; padding: 4px; }
+
       @media (max-width: 860px) {
-        .map-layout { flex-direction: column; height: auto; }
-        #mapView { height: 320px; }
-        .list-panel { width: 100%; }
-        .result-list { max-height: 360px; }
+        /* Sidebar above map, both full width, instead of side by side --
+           there isn't room for both at a useful width on a phone. */
+        .search-shell { flex-direction: column; overflow-y: auto; }
+        .search-sidebar { display: block; width: 100%; max-width: none; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+        .search-map-panel { flex: none; height: 320px; }
+        .result-list { flex: none; max-height: 360px; }
         .demo-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 700px) {
@@ -278,106 +337,131 @@
       </div>
     </div>
 
-    <div id="mockBanner" class="mock-banner" style="display:none">
-      Local preview — showing sample data. Set GOOGLE_CLIENT_ID / DEFAULT_SYNC_URL in index.html to connect the real Sheet.
-    </div>
-
-    <div class="topbar">
-      <div class="brand">
-        <div class="bars-icon"><i></i><i></i><i></i></div>
-        <div>
-          <h1>TOL Suggestion</h1>
-          <div class="sub">BMA-West · Villages &amp; Buildings</div>
+    <div id="app">
+      <div id="mockBanner" class="mock-banner" style="display:none">
+        Local preview — showing sample data. Set GOOGLE_CLIENT_ID / DEFAULT_SYNC_URL in index.html to connect the real Sheet.
+      </div>
+      <div class="topbar">
+        <div class="brand">
+          <div class="bars-icon"><i></i><i></i><i></i></div>
+          <div>
+            <h1>TOL Suggestion</h1>
+            <div class="sub">Pak Kret · Bang Bua Thong · Sai Noi</div>
+          </div>
+        </div>
+        <div class="section-nav" id="sectionNav">
+          <a href="#search" data-sec="search" class="active">Search</a>
+          <a href="#recommend" data-sec="recommend">Recommend</a>
+          <a href="#calendar" data-sec="calendar">Calendar</a>
+        </div>
+        <div class="topbar-right">
+          <div class="meta" id="topbarMeta">—</div>
+          <button class="theme-btn" id="themeBtn" title="Toggle light / dark">◐</button>
         </div>
       </div>
-      <div class="section-nav" id="sectionNav">
-        <a href="#search" data-sec="search" class="active">Search</a>
-        <a href="#recommend" data-sec="recommend">Recommend</a>
-        <a href="#calendar" data-sec="calendar">Calendar</a>
-      </div>
-      <div class="topbar-right">
-        <div class="meta" id="topbarMeta">—</div>
-        <button class="theme-btn" id="themeBtn" title="Toggle light / dark">◐</button>
-      </div>
-    </div>
 
-    <div class="wrap">
       <!-- ===== Section 1: Search & Demographic ===== -->
       <section class="app-section active" id="sec-search">
-        <div class="card">
-          <h2>Search</h2>
-          <div class="hint">Filter by district / subdistrict / status, or search a name directly.</div>
-          <div class="filter-bar">
-            <div class="kind-toggle" id="searchKind">
-              <button data-v="village" class="active">Villages</button>
-              <button data-v="building">Buildings</button>
+        <div class="search-shell">
+          <div class="search-sidebar">
+            <div class="sidebar-fixed">
+              <div class="kind-toggle" id="searchKind">
+                <button data-v="village" class="active">Villages</button>
+                <button data-v="building">Buildings</button>
+              </div>
+              <div class="search-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input id="searchText" class="text-input" type="text" placeholder="Search by name…" autocomplete="off">
+              </div>
+              <div class="sidebar-row">
+                <select id="searchStatus"><option value="all">Any status</option></select>
+              </div>
             </div>
-            <select id="searchAmp"><option value="all">All districts</option></select>
-            <select id="searchTam"><option value="all">All subdistricts</option></select>
-            <select id="searchStatus"><option value="all">Any status</option></select>
-            <div class="search-wrap">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              <input id="searchText" class="text-input" type="text" placeholder="Search by name…" autocomplete="off">
+            <div class="district-panel">
+              <div class="amphur-row" id="amphurRow"></div>
+              <button class="district-clear" id="districtClearBtn">Clear district/subdistrict filter</button>
+              <div id="districtGrid"></div>
             </div>
+            <div class="list-summary">Showing <b id="searchCount">0</b> results</div>
+            <div class="result-list" id="searchList"></div>
           </div>
-          <div class="map-layout">
+          <div class="search-map-panel">
             <div id="mapView"></div>
-            <div class="list-panel">
-              <div class="list-summary">Showing <b id="searchCount">0</b> results</div>
-              <div class="result-list" id="searchList"></div>
-            </div>
           </div>
         </div>
       </section>
 
       <!-- ===== Section 2: Recommendation ===== -->
       <section class="app-section" id="sec-recommend">
-        <div class="card">
-          <h2>Recommended</h2>
-          <div class="hint">Pick tags to filter (multiple tags narrow the list), or switch on auto-suggest to just rank everything by the composite score.</div>
-          <div class="filter-bar">
-            <div class="kind-toggle" id="recKind">
-              <button data-v="village" class="active">Villages</button>
-              <button data-v="building">Buildings</button>
+        <div class="section-scroll">
+          <div class="card">
+            <h2>Recommended</h2>
+            <div class="hint">Pick tags to filter (multiple tags narrow the list), or switch on auto-suggest to just rank everything by the composite score.</div>
+            <div class="filter-bar">
+              <div class="kind-toggle" id="recKind">
+                <button data-v="village" class="active">Villages</button>
+                <button data-v="building">Buildings</button>
+              </div>
+              <div class="auto-toggle">
+                Auto-suggest
+                <button class="switch" id="autoToggle"></button>
+              </div>
             </div>
-            <div class="auto-toggle">
-              Auto-suggest
-              <button class="switch" id="autoToggle"></button>
-            </div>
+            <div class="tag-chips" id="recTags"></div>
           </div>
-          <div class="tag-chips" id="recTags"></div>
-        </div>
-        <div class="card">
-          <div class="list-summary">Showing <b id="recCount">0</b> results, ranked highest first</div>
-          <div class="result-list" id="recList" style="max-height: 640px;"></div>
+          <div class="card">
+            <div class="list-summary">Showing <b id="recCount">0</b> results, ranked highest first</div>
+            <div class="result-list" id="recList" style="max-height: 640px;"></div>
+          </div>
         </div>
       </section>
 
       <!-- ===== Section 3: Calendar ===== -->
       <section class="app-section" id="sec-calendar">
-        <div class="card">
-          <h2>Monthly sales calendar</h2>
-          <div class="hint">Pick this month's theme (optional — leave blank to draw from the whole ranked pool), then generate a day, or the whole month, at a time.</div>
-          <div class="cal-controls">
-            <input type="month" id="calMonth">
-            <div class="kind-toggle" id="calKind">
-              <button data-v="both" class="active">Villages + Buildings</button>
-              <button data-v="village">Villages</button>
-              <button data-v="building">Buildings</button>
+        <div class="section-scroll">
+          <div class="card">
+            <h2>Monthly sales calendar</h2>
+            <div class="hint">Pick this month's theme (optional — leave blank to draw from the whole ranked pool), then generate a day, or the whole month, at a time.</div>
+            <div class="cal-controls">
+              <input type="month" id="calMonth">
+              <div class="kind-toggle" id="calKind">
+                <button data-v="both" class="active">Villages + Buildings</button>
+                <button data-v="village">Villages</button>
+                <button data-v="building">Buildings</button>
+              </div>
+              <button class="btn primary" id="calGenMonth">Generate whole month</button>
             </div>
-            <button class="btn primary" id="calGenMonth">Generate whole month</button>
+            <div class="tag-chips" id="calTags"></div>
+            <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
           </div>
-          <div class="tag-chips" id="calTags"></div>
-          <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
-        </div>
-        <div class="card">
-          <div class="cal-grid" id="calGrid"></div>
+          <div class="card">
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
         </div>
       </section>
     </div>
 
     <div class="modal-overlay" id="modalOverlay">
       <div class="modal-card" id="modalCard"></div>
+    </div>
+
+    <div class="modal-overlay" id="dayEditOverlay">
+      <div class="modal-card" id="dayEditCard" style="width: 460px;">
+        <div class="modal-head">
+          <h3 id="dayEditTitle">Edit day</h3>
+          <button class="modal-close" id="dayEditCloseBtn">✕</button>
+        </div>
+        <div style="display: flex; gap: 8px; margin: 10px 0;">
+          <button class="btn primary" id="dayEditAutoBtn" style="flex: 1;">Auto-generate</button>
+          <button class="btn" id="dayEditRouteBtn" style="flex: 1;">🗺 View route</button>
+        </div>
+        <div id="dayEditSlots"></div>
+        <div class="search-wrap" style="margin: 12px 0 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="dayEditSearch" class="text-input" placeholder="Search to add a village or building…" autocomplete="off">
+        </div>
+        <div class="result-list" id="dayEditResults" style="max-height: 220px; border: 1px solid var(--line); border-radius: 9px;"></div>
+      </div>
     </div>
 
     <script>
@@ -412,11 +496,14 @@
 
       /* ===== theme toggle ===== */
       (function () {
-        const saved = localStorage.getItem("tolSuggestionTheme");
-        if (saved) document.documentElement.setAttribute("data-theme", saved);
+        // Defaults to light regardless of the OS/browser's own dark-mode
+        // setting -- unlike the tokens' @media(prefers-color-scheme:dark)
+        // block (which would otherwise auto-follow system dark mode), this
+        // page only ever goes dark from an explicit click on themeBtn.
+        const saved = localStorage.getItem("tolSuggestionTheme") || "light";
+        document.documentElement.setAttribute("data-theme", saved);
         document.getElementById("themeBtn").addEventListener("click", () => {
-          const cur = document.documentElement.getAttribute("data-theme") ||
-            (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          const cur = document.documentElement.getAttribute("data-theme") || "light";
           const next = cur === "dark" ? "light" : "dark";
           document.documentElement.setAttribute("data-theme", next);
           localStorage.setItem("tolSuggestionTheme", next);
@@ -543,16 +630,120 @@
       function ampTamKeys(kind) {
         return kind === "village" ? ["district", "subdistrict"] : ["amp", "tam"];
       }
-      function populateSearchFilters() {
-        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
-        const pool = poolFor(searchState.kind);
-        const amps = [...new Set(pool.map((r) => r[ampKey]).filter(Boolean))].sort();
-        const ampSel = document.getElementById("searchAmp");
-        ampSel.innerHTML = `<option value="all">All districts</option>` + amps.map((a) => `<option>${escapeHtml(a)}</option>`).join("");
-        ampSel.value = searchState.amp === "all" || !amps.includes(searchState.amp) ? "all" : searchState.amp;
-        searchState.amp = ampSel.value;
-        populateTamFilter();
 
+      // District colors -- same mapping Route Planner uses for this exact
+      // cluster, so a district reads as the same color across both pages.
+      const DISTRICT_COLOR_MAP = { "ปากเกร็ด": "#2f6fed", "บางบัวทอง": "#1ea672", "ไทรน้อย": "#e0453c" };
+      const DISTRICT_PALETTE = ["#a855f7", "#f59e0b", "#0891b2", "#be185d", "#65a30d", "#c2410c"];
+      function colorForDistrict(name) {
+        if (!name) return "#9aa1ab";
+        if (DISTRICT_COLOR_MAP[name]) return DISTRICT_COLOR_MAP[name];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+        return DISTRICT_PALETTE[hash % DISTRICT_PALETTE.length];
+      }
+
+      // Filters the current kind's pool by every active facet except the
+      // ones named in `ignore` -- so an amphur pill's or district card's
+      // count reflects "how many you'd get by picking this," not the count
+      // AFTER already narrowing to the current selection (which would make
+      // every option other than the active one collapse toward zero).
+      function searchPool(ignore) {
+        ignore = ignore || new Set();
+        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
+        const text = searchState.text.trim().toLowerCase();
+        return poolFor(searchState.kind).filter((r) => {
+          if (!ignore.has("amp") && searchState.amp !== "all" && r[ampKey] !== searchState.amp) return false;
+          if (!ignore.has("tam") && searchState.tam !== "all" && r[tamKey] !== searchState.tam) return false;
+          if (!ignore.has("status") && searchState.status !== "all" && r.status !== searchState.status) return false;
+          if (!ignore.has("text") && text && !(r.name || "").toLowerCase().includes(text)) return false;
+          return true;
+        });
+      }
+      function filteredSearchResults() { return searchPool(); }
+
+      function renderAmphurRow() {
+        const [ampKey] = ampTamKeys(searchState.kind);
+        const base = searchPool(new Set(["amp", "tam"]));
+        const counts = new Map();
+        base.forEach((r) => {
+          const label = r[ampKey];
+          if (!label) return;
+          counts.set(label, (counts.get(label) || 0) + 1);
+        });
+        if (searchState.amp !== "all" && !counts.has(searchState.amp)) { searchState.amp = "all"; searchState.tam = "all"; }
+        const entries = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+        const el = document.getElementById("amphurRow");
+        el.innerHTML = entries.map(([label, count]) => {
+          const color = colorForDistrict(label);
+          const active = searchState.amp === label;
+          return `<div class="amphur-pill${active ? " active" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><span class="dot"></span>${escapeHtml(label)}<span class="pill-count">${count}</span></div>`;
+        }).join("");
+        Array.from(el.children).forEach((pill) => {
+          pill.addEventListener("click", () => {
+            const label = pill.dataset.label;
+            searchState.amp = searchState.amp === label ? "all" : label;
+            searchState.tam = "all";
+            renderSearch();
+          });
+        });
+      }
+
+      function renderDistrictGrid() {
+        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
+        const base = searchPool(new Set(["tam"]));
+        const counts = new Map();
+        const ampOf = new Map();
+        base.forEach((r) => {
+          const label = r[tamKey];
+          if (!label) return;
+          counts.set(label, (counts.get(label) || 0) + 1);
+          if (!ampOf.has(label)) ampOf.set(label, r[ampKey] || "");
+        });
+        if (searchState.tam !== "all" && !counts.has(searchState.tam)) searchState.tam = "all";
+        document.getElementById("districtClearBtn").style.display = (searchState.amp !== "all" || searchState.tam !== "all") ? "block" : "none";
+
+        const groups = new Map();
+        counts.forEach((count, label) => {
+          const amp = ampOf.get(label);
+          if (!groups.has(amp)) groups.set(amp, []);
+          groups.get(amp).push([label, count]);
+        });
+        const ordered = Array.from(groups.entries())
+          .map(([amp, items]) => [amp, items, items.reduce((s, [, c]) => s + c, 0)])
+          .sort((a, b) => b[2] - a[2]);
+
+        const gridEl = document.getElementById("districtGrid");
+        gridEl.innerHTML = "";
+        ordered.forEach(([amp, items]) => {
+          items.sort((a, b) => b[1] - a[1]);
+          const color = colorForDistrict(amp);
+          const groupDiv = document.createElement("div");
+          groupDiv.className = "district-group";
+          const header = document.createElement("div");
+          header.className = "district-group-header";
+          header.style.setProperty("--pill-color", color);
+          header.innerHTML = `<span class="dot"></span>${escapeHtml(amp)}`;
+          const grid = document.createElement("div");
+          grid.className = "district-grid";
+          grid.innerHTML = items.map(([label, count]) => {
+            const active = searchState.tam === label;
+            return `<div class="district-card${active ? " active" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><div class="dname">${escapeHtml(label)}</div><div class="dcount">${count}</div></div>`;
+          }).join("");
+          Array.from(grid.children).forEach((card) => {
+            card.addEventListener("click", () => {
+              const label = card.dataset.label;
+              searchState.tam = searchState.tam === label ? "all" : label;
+              renderSearch();
+            });
+          });
+          groupDiv.appendChild(header);
+          groupDiv.appendChild(grid);
+          gridEl.appendChild(groupDiv);
+        });
+      }
+
+      function populateStatusFilter() {
         const statusSel = document.getElementById("searchStatus");
         if (searchState.kind === "village") {
           const statuses = [...new Set(STATE.villages.map((r) => r.status).filter(Boolean))];
@@ -563,27 +754,10 @@
           searchState.status = "all";
         }
       }
-      function populateTamFilter() {
-        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
-        const pool = poolFor(searchState.kind).filter((r) => searchState.amp === "all" || r[ampKey] === searchState.amp);
-        const tams = [...new Set(pool.map((r) => r[tamKey]).filter(Boolean))].sort();
-        const tamSel = document.getElementById("searchTam");
-        tamSel.innerHTML = `<option value="all">All subdistricts</option>` + tams.map((t) => `<option>${escapeHtml(t)}</option>`).join("");
-        tamSel.value = tams.includes(searchState.tam) ? searchState.tam : "all";
-        searchState.tam = tamSel.value;
-      }
-      function filteredSearchResults() {
-        const [ampKey, tamKey] = ampTamKeys(searchState.kind);
-        const text = searchState.text.trim().toLowerCase();
-        return poolFor(searchState.kind).filter((r) => {
-          if (searchState.amp !== "all" && r[ampKey] !== searchState.amp) return false;
-          if (searchState.tam !== "all" && r[tamKey] !== searchState.tam) return false;
-          if (searchState.status !== "all" && r.status !== searchState.status) return false;
-          if (text && !(r.name || "").toLowerCase().includes(text)) return false;
-          return true;
-        });
-      }
+
       function renderSearch() {
+        renderAmphurRow();
+        renderDistrictGrid();
         const results = filteredSearchResults();
         document.getElementById("searchCount").textContent = results.length;
         const listEl = document.getElementById("searchList");
@@ -596,12 +770,13 @@
         const btn = e.target.closest("button"); if (!btn) return;
         searchState.kind = btn.dataset.v; searchState.amp = "all"; searchState.tam = "all";
         document.querySelectorAll("#searchKind button").forEach((b) => b.classList.toggle("active", b === btn));
-        populateSearchFilters(); renderSearch();
+        populateStatusFilter(); renderSearch();
       });
-      document.getElementById("searchAmp").addEventListener("change", (e) => { searchState.amp = e.target.value; populateTamFilter(); renderSearch(); });
-      document.getElementById("searchTam").addEventListener("change", (e) => { searchState.tam = e.target.value; renderSearch(); });
       document.getElementById("searchStatus").addEventListener("change", (e) => { searchState.status = e.target.value; renderSearch(); });
       document.getElementById("searchText").addEventListener("input", (e) => { searchState.text = e.target.value; renderSearch(); });
+      document.getElementById("districtClearBtn").addEventListener("click", () => {
+        searchState.amp = "all"; searchState.tam = "all"; renderSearch();
+      });
       wireResultList(document.getElementById("searchList"));
 
       /* ===== Section 2: Recommendation ===== */
@@ -684,26 +859,47 @@
         return used;
       }
 
+      // Great-circle distance in km -- good enough to keep a day's stops
+      // from being scattered across the whole cluster; no routing API
+      // needed just to compare "close" vs "far".
+      function haversineKm(a, b) {
+        if (a.lat == null || a.lng == null || b.lat == null || b.lng == null) return Infinity;
+        const R = 6371, toRad = (x) => (x * Math.PI) / 180;
+        const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+        const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(s));
+      }
+
+      // Anchors a day on its single highest-scoring candidate, then fills
+      // the rest from whatever's nearby -- Pak Kret to Sai Noi is a real
+      // drive, so pure top-4-by-score could otherwise hand someone a day
+      // that zigzags across the whole cluster. Widens past the radius only
+      // if there genuinely aren't 3 other candidates within it.
+      const DAY_TRAVEL_RADIUS_KM = 6;
       function pickForDay(monthKey, day, excludeExtra) {
         const used = usedIdsInMonth(monthKey, day);
         (excludeExtra || []).forEach((k) => used.add(k));
         const candidates = rankedPoolForCalendar().filter((r) => !used.has(kindOf(r) + ":" + r.id));
-        const chosen = candidates.slice(0, 4);
+        if (!candidates.length) return [];
+        const anchor = candidates[0];
+        const withDist = candidates.slice(1).map((r) => ({ r, d: haversineKm(anchor, r) })).sort((a, b) => a.d - b.d);
+        let nearby = withDist.filter((x) => x.d <= DAY_TRAVEL_RADIUS_KM);
+        if (nearby.length < 3) nearby = withDist.slice(0, 3);
+        const chosen = [anchor, ...nearby.slice(0, 3).map((x) => x.r)];
         const slots = ["1", "2", "3", "backup"];
         return chosen.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id }));
       }
 
-      async function generateDay(monthKey, day) {
-        const picks = pickForDay(monthKey, day);
-        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
-        STATE.calendarPlan[monthKey][day] = picks;
-        renderCalendar();
-        try {
-          await api("saveCalendarDay", { monthKey, day, picks });
-        } catch (e) {
-          console.warn("saveCalendarDay failed", e);
-          setCalStatus("Could not save that day to the shared plan (saved locally only): " + e.message, true);
-        }
+      // Opens a driving route through a day's picks in Google Maps -- no
+      // API key needed, just the public maps.google.com URL scheme.
+      function mapsRouteUrl(picks) {
+        const pts = (picks || []).map((p) => byId(p.kind, p.refId)).filter((r) => r && r.lat != null && r.lng != null);
+        if (!pts.length) return null;
+        const dest = pts[pts.length - 1];
+        const waypoints = pts.slice(0, -1).map((r) => `${r.lat},${r.lng}`).join("|");
+        let url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+        if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+        return url;
       }
 
       async function generateMonth() {
@@ -751,8 +947,9 @@
               const nm = r ? r.name : "?";
               return `<div class="cal-pick${p.slot === "backup" ? " backup" : ""}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(nm)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
             }).join("");
+            inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ Edit</button>`;
           } else {
-            inner += `<button class="cal-gen-btn" data-day="${day}">+ Generate</button>`;
+            inner += `<button class="cal-gen-btn" data-edit-day="${day}">+ Plan day</button>`;
           }
           html += `<div class="cal-day">${inner}</div>`;
         }
@@ -762,9 +959,104 @@
       document.getElementById("calGrid").addEventListener("click", (e) => {
         const pick = e.target.closest(".cal-pick");
         if (pick) { const r = byId(pick.dataset.kind, pick.dataset.id); if (r) openModal(r); return; }
-        const genBtn = e.target.closest(".cal-gen-btn");
-        if (genBtn) generateDay(calState.monthKey, +genBtn.dataset.day);
+        const editBtn = e.target.closest("[data-edit-day]");
+        if (editBtn) openDayEditor(calState.monthKey, +editBtn.dataset.editDay);
       });
+
+      /* ===== day editor: manual add/remove, or auto-generate, one day at a
+         time -- the grid's bulk "Generate whole month" still uses the same
+         pickForDay() directly. ===== */
+      let dayEditState = null; // { monthKey, day }
+
+      function currentDayPicks() {
+        if (!dayEditState) return [];
+        const { monthKey, day } = dayEditState;
+        return (STATE.calendarPlan[monthKey] && STATE.calendarPlan[monthKey][day]) || [];
+      }
+
+      async function saveDayPicks(picks) {
+        const { monthKey, day } = dayEditState;
+        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
+        STATE.calendarPlan[monthKey][day] = picks;
+        renderCalendar();
+        renderDayEditSlots();
+        try {
+          await api("saveCalendarDay", { monthKey, day, picks });
+        } catch (e) {
+          setCalStatus("Could not save that day to the shared plan (saved locally only): " + e.message, true);
+        }
+      }
+
+      const SLOT_LABELS = { 1: "Primary 1", 2: "Primary 2", 3: "Primary 3", backup: "Backup" };
+      function renderDayEditSlots() {
+        const picks = currentDayPicks();
+        const el = document.getElementById("dayEditSlots");
+        el.innerHTML = picks.length ? picks.map((p) => {
+          const r = byId(p.kind, p.refId);
+          return `<div class="result-row" style="display:flex;align-items:center;gap:8px;cursor:default;">
+            <span class="stat-pill">${SLOT_LABELS[p.slot] || p.slot}</span>
+            <span style="flex:1;font-weight:600;font-size:12.5px;">${escapeHtml(r ? r.name : "?")}</span>
+            <button class="modal-close" data-remove="${p.kind}:${p.refId}" title="Remove" style="width:22px;height:22px;font-size:11px;">✕</button>
+          </div>`;
+        }).join("") : `<div class="empty-note">No picks yet — auto-generate, or search below to add some.</div>`;
+      }
+
+      function renderDayEditResults(text) {
+        text = text.trim().toLowerCase();
+        const used = new Set(currentDayPicks().map((p) => p.kind + ":" + p.refId));
+        const pool = STATE.villages.concat(STATE.buildings)
+          .filter((r) => !r.closed && !used.has(kindOf(r) + ":" + r.id) && (!text || (r.name || "").toLowerCase().includes(text)))
+          .sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0))
+          .slice(0, 40);
+        document.getElementById("dayEditResults").innerHTML = pool.length
+          ? pool.map(resultRowHtml).join("")
+          : `<div class="empty-note">No matches.</div>`;
+      }
+
+      function openDayEditor(monthKey, day) {
+        dayEditState = { monthKey, day };
+        document.getElementById("dayEditTitle").textContent =
+          "Edit " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0");
+        renderDayEditSlots();
+        document.getElementById("dayEditSearch").value = "";
+        renderDayEditResults("");
+        document.getElementById("dayEditOverlay").classList.add("open");
+      }
+      function closeDayEditor() {
+        document.getElementById("dayEditOverlay").classList.remove("open");
+        dayEditState = null;
+      }
+
+      document.getElementById("dayEditSearch").addEventListener("input", (e) => renderDayEditResults(e.target.value));
+      document.getElementById("dayEditResults").addEventListener("click", (e) => {
+        const row = e.target.closest(".result-row"); if (!row) return;
+        const r = byId(row.dataset.kind, row.dataset.id); if (!r) return;
+        const picks = currentDayPicks().slice();
+        const usedSlots = new Set(picks.map((p) => p.slot));
+        const nextSlot = ["1", "2", "3", "backup"].find((s) => !usedSlots.has(s));
+        if (!nextSlot) { setCalStatus("This day already has 4 picks — remove one first.", true); return; }
+        picks.push({ slot: nextSlot, kind: kindOf(r), refId: r.id });
+        saveDayPicks(picks).then(() => renderDayEditResults(document.getElementById("dayEditSearch").value));
+      });
+      document.getElementById("dayEditSlots").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-remove]"); if (!btn) return;
+        const key = btn.dataset.remove;
+        const picks = currentDayPicks().filter((p) => p.kind + ":" + p.refId !== key);
+        saveDayPicks(picks).then(() => renderDayEditResults(document.getElementById("dayEditSearch").value));
+      });
+      document.getElementById("dayEditAutoBtn").addEventListener("click", async () => {
+        const { monthKey, day } = dayEditState;
+        await saveDayPicks(pickForDay(monthKey, day));
+        renderDayEditResults(document.getElementById("dayEditSearch").value);
+      });
+      document.getElementById("dayEditRouteBtn").addEventListener("click", () => {
+        const url = mapsRouteUrl(currentDayPicks());
+        if (url) window.open(url, "_blank");
+        else setCalStatus("No located picks yet for this day.", true);
+      });
+      document.getElementById("dayEditCloseBtn").addEventListener("click", closeDayEditor);
+      document.getElementById("dayEditOverlay").addEventListener("click", (e) => { if (e.target.id === "dayEditOverlay") closeDayEditor(); });
+
       document.getElementById("calKind").addEventListener("click", (e) => {
         const btn = e.target.closest("button"); if (!btn) return;
         calState.kind = btn.dataset.v;
@@ -818,7 +1110,7 @@
           STATE.villages.length + " villages · " + STATE.buildings.length + " buildings";
 
         initMap();
-        populateSearchFilters();
+        populateStatusFilter();
         renderSearch();
         renderRecTagChips();
         renderRecommend();
@@ -835,7 +1127,11 @@
          check, extended to also unblock local development. */
       const GOOGLE_CLIENT_ID = "901392336998-q3osh55eoravuqq9j2j9o5mtlthqlatr.apps.googleusercontent.com";
       const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbxto0D-v5bV2zRRI70xug8I9Q85lAj1iqxAaGB30sVsjYYhfkgOFYQHrlHLin2-z77lGg/exec";
-      const USE_MOCK = GOOGLE_CLIENT_ID.indexOf("REPLACE_WITH") === 0;
+      // ?mock=1 forces the embedded sample dataset even once real
+      // credentials are wired in -- harmless for real visitors (nobody adds
+      // that to the URL by accident), useful for local UI work without
+      // needing a real Google sign-in against localhost.
+      const USE_MOCK = GOOGLE_CLIENT_ID.indexOf("REPLACE_WITH") === 0 || new URLSearchParams(location.search).has("mock");
 
       async function api(action, fields) {
         const res = await fetch(DEFAULT_SYNC_URL, {
