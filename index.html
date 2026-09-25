@@ -332,12 +332,18 @@
          a flex item's default min-width is its unwrapped content size, which
          overrides overflow/ellipsis entirely and pushes a long name straight
          through the day cell's border. */
-      .cal-pick { font-size: 10.8px; padding: 3px 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-      .cal-pick.backup { border: 1px dashed var(--line); }
-      /* Colored by whichever carrier (True/Fibre3/NT) actually wins MKS here -- same win-*/-soft palette as the demo card's badge. A pick with no MKS data at all keeps the plain accent look above. */
-      .cal-pick.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
-      .cal-pick.win-fibre3 { background: var(--st-good-soft); color: var(--st-good); }
-      .cal-pick.win-nt { background: var(--st-warn-soft); color: var(--st-warn); }
+      .cal-pick { font-size: 10.8px; padding: 3px 6px 3px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; border-left: 3px solid transparent; font-weight: 600; }
+      .cal-pick.backup { border-top: 1px dashed var(--line); border-right: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+      /* Colored by whichever carrier (True/Fibre3/NT) actually wins MKS here.
+         Mixed straight off the same --st-crit/-good/-warn text color (not
+         the shared "-soft" tokens, which read too close to each other in
+         dark mode to tell apart at this chip size) plus a solid left-border
+         stripe, so red/green/amber stay visually distinct at a glance in
+         both themes. A pick with no MKS data at all keeps the plain accent
+         look above. */
+      .cal-pick.win-true { background: color-mix(in srgb, var(--st-crit) 22%, var(--panel-2)); color: var(--st-crit); border-left-color: var(--st-crit); }
+      .cal-pick.win-fibre3 { background: color-mix(in srgb, var(--st-good) 22%, var(--panel-2)); color: var(--st-good); border-left-color: var(--st-good); }
+      .cal-pick.win-nt { background: color-mix(in srgb, var(--st-warn) 26%, var(--panel-2)); color: var(--st-warn); border-left-color: var(--st-warn); }
       .cal-gen-btn { margin-top: auto; font-size: 10.5px; padding: 4px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--text-3); }
       .cal-gen-btn:hover { background: var(--panel); color: var(--accent-ink); border-color: var(--accent); }
 
@@ -693,7 +699,9 @@
       // dynamic per record, not a fixed color.
       function mksTrueCls(v, r) {
         const rivals = [r.mksFibre3, r.mksNt].filter((x) => x != null);
-        if (v == null || !rivals.length) return "";
+        // Same "all zero means no real sample data, not a tie True wins"
+        // fix as mksWinner() below.
+        if (v == null || !rivals.length || (v === 0 && rivals.every((x) => x === 0))) return "";
         return v >= Math.max(...rivals) ? "mks-true-win" : "mks-true-lose";
       }
       function hhOf(r) { return kindOf(r) === "village" ? r.houseAll : r.units; }
@@ -782,7 +790,10 @@
       ];
       function mksWinner(record) {
         const known = MKS_WINNERS.map((w) => ({ ...w, v: w.get(record) })).filter((w) => w.v != null);
-        if (!known.length) return null;
+        // All three known shares at exactly 0 means no real OOKLA sample
+        // data at all here, not a literal "True has 0% and still wins" tie
+        // -- showing a colored winner badge in that case is misleading.
+        if (!known.length || known.every((w) => w.v === 0)) return null;
         return known.reduce((a, b) => (b.v > a.v ? b : a));
       }
 
