@@ -117,6 +117,17 @@ def find_latest_series(header, value_pattern, pct_pattern):
     return value_idx, pct_idx
 
 
+def find_prev_value(header, value_pattern):
+    """Same matching as find_latest_series, but returns the SECOND-to-last
+    month's value column index (for a month-over-month delta) -- or None if
+    only one month of the series exists yet."""
+    matches = [
+        i for i, h in enumerate(header)
+        if h is not None and value_pattern.search(str(h).strip())
+    ]
+    return matches[-2] if len(matches) >= 2 else None
+
+
 def find_latest_paired(header, vol_pattern, vol_prefix, invol_prefix):
     """Finds the rightmost "Vol ..." column, then looks up its exact
     "Invol ..." counterpart by swapping the prefix on that same matched
@@ -173,6 +184,7 @@ def load_villages(path=VILLAGE_XLSB):
     i_total_port = col(header, 23, "FTTH TOTAL PORT")
     i_total_avail = col(header, 24, "FTTH AVAILABLE")
     i_active, i_active_pct = find_latest_series(header, VILLAGE_ACTIVE_VALUE_RE, VILLAGE_ACTIVE_PCT_RE)
+    i_active_prev = find_prev_value(header, VILLAGE_ACTIVE_VALUE_RE)
     i_competitor = col(header, 417, "Competitor")
     i_mks_true = col(header, 234, "TRUE OOKLA MKS")
     i_mks_fibre3 = col(header, 232, "Fiber3 OOKLA MKS")
@@ -216,6 +228,7 @@ def load_villages(path=VILLAGE_XLSB):
             continue
 
         active = num(v[i_active])
+        active_prev = num(v[i_active_prev]) if i_active_prev is not None else None
         mks_true = num(v[i_mks_true])
         mks_fibre3 = num(v[i_mks_fibre3])
         mks_nt = num(v[i_mks_nt])
@@ -249,6 +262,7 @@ def load_villages(path=VILLAGE_XLSB):
             "totalPort": num(v[i_total_port]),
             "totalAvailable": num(v[i_total_avail]),
             "active": active,
+            "activePrevMonth": active_prev,
             "activePct": num(v[i_active_pct]),
             "competitor": num(v[i_competitor]),
             "mksTrue": mks_true,
@@ -319,6 +333,7 @@ def load_buildings(path=BUILDING_XLSX):
     i_total_port = col(header, 20, "FTTH TOTAL")
     i_total_avail = col(header, 21, "FTTH TOTAL AVAILABLE")
     i_active, i_active_pct = find_latest_series(header, BUILDING_ACTIVE_VALUE_RE, BUILDING_ACTIVE_PCT_RE)
+    i_active_prev = find_prev_value(header, BUILDING_ACTIVE_VALUE_RE)
     i_arpu = col(header, 254, "ARPU")
     i_competitor = col(header, 470, "Competitor")
     i_mks_true = col(header, 358, "TRUE OOKLA MKS")
@@ -361,6 +376,7 @@ def load_buildings(path=BUILDING_XLSX):
             continue
 
         active = num(row[i_active])
+        active_prev = num(row[i_active_prev]) if i_active_prev is not None else None
         mks_true = num(row[i_mks_true])
         mks_fibre3 = num(row[i_mks_fibre3])
         mks_nt = num(row[i_mks_nt])
@@ -393,6 +409,7 @@ def load_buildings(path=BUILDING_XLSX):
             "totalPort": num(row[i_total_port]),
             "totalAvailable": num(row[i_total_avail]),
             "active": active,
+            "activePrevMonth": active_prev,
             "activePct": num(row[i_active_pct]),
             "arpu": num(row[i_arpu]),
             "competitor": num(row[i_competitor]),

@@ -18,6 +18,7 @@ TAB_NAMES = ["Meta", "Villages", "Buildings", "CalendarTheme", "CalendarPlan"]
 VILLAGE_FIELDS = [
     "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
     "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
+    "activePrevMonth",
     "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
     "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
     "faultAvg", "faultGrade", "faultTruckRoll",
@@ -31,7 +32,8 @@ VILLAGE_FIELDS = [
 BUILDING_FIELDS = [
     "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
     "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
-    "occupancy", "totalPort", "totalAvailable", "active", "activePct",
+    "occupancy", "totalPort", "totalAvailable", "active", "activePrevMonth",
+    "activePct",
     "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
     "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
     "faultAvg", "faultGrade", "faultTruckRoll",

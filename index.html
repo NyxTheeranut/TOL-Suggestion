@@ -305,6 +305,11 @@
       .demo-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
       .demo-pair-cell .pair-lbl { font-size: 9.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .02em; }
       .demo-pair-cell .pair-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+      .pair-val.rate-high, td.rate-high { color: var(--st-crit); }
+      .delta-up { color: var(--st-good); font-weight: 700; }
+      .delta-down { color: var(--st-crit); font-weight: 700; }
+      .pair-val.mks-true-win, td.mks-true-win { color: var(--st-good); }
+      .pair-val.mks-true-lose, td.mks-true-lose { color: var(--st-crit); }
       .demo-item.mks-true { background: var(--st-crit-soft); border-color: transparent; }
       .demo-item.mks-fibre3 { background: var(--st-good-soft); border-color: transparent; }
       .demo-item.mks-nt { background: var(--st-warn-soft); border-color: transparent; }
@@ -659,6 +664,30 @@
       function fmt(v) { return v == null ? "—" : (typeof v === "number" ? Math.round(v * 100) / 100 : v); }
       function pct(v) { return v == null ? "—" : (Math.round(v * 1000) / 10) + "%"; }
       function mbps(v) { return v == null ? "—" : fmt(v) + " Mbps"; }
+      // Counts of people/subs/units never show fractional decimals -- unlike
+      // fmt(), which keeps 2dp for things like scores where the precision
+      // is meaningful.
+      function whole(v) { return v == null ? "—" : String(Math.round(v)); }
+      // Flags a rate cell red once it crosses 1% -- used for churn/fault
+      // rates specifically, not every percentage (MKS share isn't a
+      // "problem" the way an elevated churn or fault rate is).
+      function rateCls(v) { return (v != null && v > 0.01) ? "rate-high" : ""; }
+      // Small inline "(+3)"/(-3)" vs last month, green/red -- left blank
+      // entirely when either month is missing or nothing changed (no "+0").
+      function deltaSpan(curr, prev) {
+        if (curr == null || prev == null) return "";
+        const d = Math.round(curr) - Math.round(prev);
+        if (!d) return "";
+        return ` <span class="${d > 0 ? "delta-up" : "delta-down"}">(${d > 0 ? "+" : ""}${d})</span>`;
+      }
+      // True's own MKS cell is colored green when True is actually ahead of
+      // both named competitors here, red when a competitor leads instead --
+      // dynamic per record, not a fixed color.
+      function mksTrueCls(v, r) {
+        const rivals = [r.mksFibre3, r.mksNt].filter((x) => x != null);
+        if (v == null || !rivals.length) return "";
+        return v >= Math.max(...rivals) ? "mks-true-win" : "mks-true-lose";
+      }
       function hhOf(r) { return kindOf(r) === "village" ? r.houseAll : r.units; }
 
       // Backs out an implied total addressable (OOKLA-sampled) market from
@@ -669,65 +698,69 @@
       function totalMarketOf(r) { return (r.active != null && r.mksTrue) ? r.active / r.mksTrue : null; }
       function carrierActiveOf(mksShare, market) { return (mksShare != null && market != null) ? mksShare * market : null; }
 
-      // 10-item, 2-column demographic grid -- same shape for villages and
-      // buildings (a building's "ครัวเรือน/ยูนิต" box just reads r.units via
-      // hhOf() instead of r.houseAll). `box` tints the tile to match the
-      // carrier it's about; `sub` is a small secondary line explaining how
-      // a paired value was derived. Every item except the first is itself a
-      // 2-cell mini-grid (`pair`), so e.g. MKS and Active each get their own
-      // labeled cell instead of a single "42% / 140" string.
+      // Single source of truth for every metric shown in the demographic
+      // card -- grouped into paired boxes here, and flattened straight into
+      // the Recommend table's sortable columns below (REC_COLUMNS), so the
+      // two views can never drift apart on formula or formatting. `box`
+      // tints a tile to match the carrier it's about; `wide` spans the full
+      // card width (and is excluded from the table, `excludeFromTable`,
+      // since it's a speed comparison rather than a rankable metric);
+      // `single` is a lone value, `pair` is a 2-to-4-cell mini-grid inside
+      // one box. Each pair cell's own `colLabel` is its fully-qualified
+      // name for a standalone table column header (a box's inner cell just
+      // says "MKS" -- a table column needs "MKS True").
       const DEMO_ITEMS = [
-        { label: "ครัวเรือน/ยูนิต", single: (r) => fmt(hhOf(r)) },
+        { label: "ครัวเรือน/ยูนิต", single: { key: "hh", get: hhOf, fmt: whole } },
 
         { label: "พอร์ต (ว่าง / ทั้งหมด)", pair: [
-          { lbl: "ว่าง", val: (r) => fmt(r.totalAvailable) },
-          { lbl: "ทั้งหมด", val: (r) => fmt(r.totalPort) },
+          { key: "portsAvail", lbl: "ว่าง", colLabel: "พอร์ตว่าง", get: (r) => r.totalAvailable, fmt: whole },
+          { key: "portsTotal", lbl: "ทั้งหมด", colLabel: "พอร์ตทั้งหมด", get: (r) => r.totalPort, fmt: whole },
         ] },
 
         { label: "True (MKS / Active)", box: "mks-true", pair: [
-          { lbl: "MKS", val: (r) => pct(r.mksTrue) },
-          { lbl: "Active", val: (r) => fmt(r.active) },
+          { key: "trueMks", lbl: "MKS", colLabel: "MKS True", get: (r) => r.mksTrue, fmt: pct, cls: mksTrueCls },
+          { key: "trueActive", lbl: "Active", colLabel: "Active True", get: (r) => r.active, fmt: whole, extra: (r) => deltaSpan(r.active, r.activePrevMonth) },
         ] },
         { label: "Fibre3 (MKS / Active)", box: "mks-fibre3", pair: [
-          { lbl: "MKS", val: (r) => pct(r.mksFibre3) },
-          { lbl: "Active", val: (r) => fmt(carrierActiveOf(r.mksFibre3, totalMarketOf(r))) },
+          { key: "fibre3Mks", lbl: "MKS", colLabel: "MKS Fibre3", get: (r) => r.mksFibre3, fmt: pct },
+          { key: "fibre3Active", lbl: "Active", colLabel: "Active Fibre3", get: (r) => carrierActiveOf(r.mksFibre3, totalMarketOf(r)), fmt: whole },
         ] },
 
         { label: "NT (MKS / Active)", box: "mks-nt", pair: [
-          { lbl: "MKS", val: (r) => pct(r.mksNt) },
-          { lbl: "Active", val: (r) => fmt(carrierActiveOf(r.mksNt, totalMarketOf(r))) },
+          { key: "ntMks", lbl: "MKS", colLabel: "MKS NT", get: (r) => r.mksNt, fmt: pct },
+          { key: "ntActive", lbl: "Active", colLabel: "Active NT", get: (r) => carrierActiveOf(r.mksNt, totalMarketOf(r)), fmt: whole },
         ] },
         { label: "Market Size / %Penetration", pair: [
-          { lbl: "Market Size", val: (r) => fmt(totalMarketOf(r)) },
-          { lbl: "%Penetration", val: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return pct(hh ? m / hh : null); } },
+          { key: "marketSize", lbl: "Market Size", get: (r) => totalMarketOf(r), fmt: whole },
+          { key: "penetration", lbl: "%Penetration", get: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return hh ? m / hh : null; }, fmt: pct },
         ] },
 
         // Full-width so it doesn't shove Churn/Truck Roll/Other Fault's
         // existing pairs out of alignment -- a 4-cell box next to a 2-cell
         // one would misalign the grid below it.
-        { label: "ความเร็วดาวน์โหลด (True / Fibre3)", wide: true, pair: [
-          { lbl: "True Avg", val: (r) => mbps(r.trueAvgDl) },
-          { lbl: "Fibre3 Avg", val: (r) => mbps(r.fibre3AvgDl) },
-          { lbl: "True Max", val: (r) => mbps(r.trueMaxDl) },
-          { lbl: "Fibre3 Max", val: (r) => mbps(r.fibre3MaxDl) },
+        { label: "ความเร็วดาวน์โหลด (True / Fibre3)", wide: true, excludeFromTable: true, pair: [
+          { key: "trueAvgDl", lbl: "True Avg", get: (r) => r.trueAvgDl, fmt: mbps },
+          { key: "fibre3AvgDl", lbl: "Fibre3 Avg", get: (r) => r.fibre3AvgDl, fmt: mbps },
+          { key: "trueMaxDl", lbl: "True Max", get: (r) => r.trueMaxDl, fmt: mbps },
+          { key: "fibre3MaxDl", lbl: "Fibre3 Max", get: (r) => r.fibre3MaxDl, fmt: mbps },
         ] },
 
         { label: "Churn Subs (Volun / Involun)", pair: [
-          { lbl: "Volun", val: (r) => fmt(r.churnVolMonthly) },
-          { lbl: "Involun", val: (r) => fmt(r.churnInvolMonthly) },
+          { key: "churnVol", lbl: "Volun", colLabel: "Churn Volun", get: (r) => r.churnVolMonthly, fmt: whole },
+          { key: "churnInvol", lbl: "Involun", colLabel: "Churn Involun", get: (r) => r.churnInvolMonthly, fmt: whole },
         ] },
         { label: "All Churn (Subs / Rate)", pair: [
-          { lbl: "Subs", val: (r) => fmt(r.churnMonthly) },
-          { lbl: "Rate", val: (r) => pct(r.churnMonthlyRate) },
+          { key: "churnAllSubs", lbl: "Subs", colLabel: "All Churn Subs", get: (r) => r.churnMonthly, fmt: whole },
+          { key: "churnAllRate", lbl: "Rate", colLabel: "All Churn Rate", get: (r) => r.churnMonthlyRate, fmt: pct, cls: rateCls },
         ] },
 
         { label: "Truck Roll (Sub / Rate)", pair: [
-          { lbl: "Sub", val: (r) => fmt(r.faultTruckRoll) },
-          { lbl: "Rate", val: (r) => pct(r.faultTruckRollPct) },
+          { key: "truckRollSub", lbl: "Sub", colLabel: "Truck Roll Sub", get: (r) => r.faultTruckRoll, fmt: whole },
+          { key: "truckRollRate", lbl: "Rate", colLabel: "Truck Roll Rate", get: (r) => r.faultTruckRollPct, fmt: pct, cls: rateCls },
         ] },
         { label: "Other Fault (Sub / Rate)", pair: [
-          { lbl: "Sub", val: (r) => fmt(r.faultOther) },
-          { lbl: "Rate", val: (r) => pct(r.faultOtherPct) },
+          { key: "otherFaultSub", lbl: "Sub", colLabel: "Other Fault Sub", get: (r) => r.faultOther, fmt: whole },
+          { key: "otherFaultRate", lbl: "Rate", colLabel: "Other Fault Rate", get: (r) => r.faultOtherPct, fmt: pct, cls: rateCls },
         ] },
       ];
 
@@ -743,6 +776,17 @@
         const known = MKS_WINNERS.map((w) => ({ ...w, v: w.get(record) })).filter((w) => w.v != null);
         if (!known.length) return null;
         return known.reduce((a, b) => (b.v > a.v ? b : a));
+      }
+
+      // Renders one metric cell (used by both the demo card's pair boxes and
+      // the Recommend table's <td>s) -- formatted value, an optional
+      // dynamic color class, and an optional trusted-HTML "extra" suffix
+      // (the delta badge) that must NOT be escaped along with the rest.
+      function metricCellHtml(field, record) {
+        const raw = field.get(record);
+        const cls = field.cls ? field.cls(raw, record) : "";
+        const extra = field.extra ? field.extra(record) : "";
+        return { cls, html: escapeHtml(String(field.fmt(raw))) + extra };
       }
 
       function openModal(record) {
@@ -767,13 +811,16 @@
               <div class="demo-item ${item.box || ""} ${item.wide ? "demo-item-wide" : ""}">
                 <div class="lbl">${item.label}</div>
                 ${item.single
-                  ? `<div class="val">${escapeHtml(String(item.single(record)))}</div>`
+                  ? `<div class="val">${metricCellHtml(item.single, record).html}</div>`
                   : `<div class="demo-pair">
-                      ${item.pair.map((p) => `
+                      ${item.pair.map((p) => {
+                        const cell = metricCellHtml(p, record);
+                        return `
                         <div class="demo-pair-cell">
                           <div class="pair-lbl">${p.lbl}</div>
-                          <div class="pair-val">${escapeHtml(String(p.val(record)))}</div>
-                        </div>`).join("")}
+                          <div class="pair-val ${cell.cls}">${cell.html}</div>
+                        </div>`;
+                      }).join("")}
                     </div>`}
                 ${item.sub ? `<div class="sub">${item.sub}</div>` : ""}
               </div>`).join("")}
@@ -1146,20 +1193,18 @@
       /* ===== Section 2: Recommendation ===== */
       const recState = { kind: "village", tags: new Set(), auto: false, sortKey: "autoScore", sortDir: "desc" };
 
-      // Sortable columns for the Recommend table -- the 5 metrics asked for
-      // (HH / Active True vs competitor / MKS True vs competitor / Churn
-      // per month / Fault), plus the composite score. `get` returns the raw
-      // sortable number; `fmt` formats it for display -- kept separate so
-      // sorting never has to re-parse a formatted string.
+      // Every sortable column here is flattened straight out of DEMO_ITEMS
+      // (the same card shown in the modal) -- the wide download-speed box
+      // is skipped (excludeFromTable), and the composite score is kept as
+      // its own final column exactly as before. `get` returns the raw
+      // sortable number; `fmt`/`cls`/`extra` format/color/annotate it for
+      // display -- kept separate from `get` so sorting never has to
+      // re-parse a formatted string.
       const REC_COLUMNS = [
         { key: "name", label: "ทรัพย์สิน" },
-        { key: "hh", label: "ครัวเรือน/ยูนิต", get: (r) => kindOf(r) === "village" ? r.houseAll : r.units, fmt: fmt },
-        { key: "active", label: "Active True", get: (r) => r.active, fmt: fmt },
-        { key: "competitorSubs", label: "Sub คู่แข่ง", get: (r) => r.competitorSubs, fmt: fmt },
-        { key: "mksTrue", label: "MKS True", get: (r) => r.mksTrue, fmt: pct },
-        { key: "competitorMks", label: "MKS คู่แข่ง", get: (r) => r.competitorMks, fmt: pct },
-        { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
-        { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
+        ...DEMO_ITEMS.filter((item) => !item.excludeFromTable).flatMap((item) =>
+          item.single ? [{ ...item.single, label: item.label }] : item.pair.map((p) => ({ ...p, label: p.colLabel || p.lbl }))
+        ),
         { key: "autoScore", label: "คะแนน", get: (r) => r.autoScore, fmt: fmt },
       ];
 
@@ -1215,7 +1260,10 @@
           return;
         }
         body.innerHTML = results.slice(0, 300).map((r) => {
-          const cells = REC_COLUMNS.slice(1).map((c) => `<td>${escapeHtml(String(c.fmt(c.get(r))))}</td>`).join("");
+          const cells = REC_COLUMNS.slice(1).map((c) => {
+            const cell = metricCellHtml(c, r);
+            return `<td class="${cell.cls}">${cell.html}</td>`;
+          }).join("");
           return `<tr data-kind="${kindOf(r)}" data-id="${r.id}">
             <td><div class="nm">${escapeHtml(r.name || "—")}</div><div class="loc">${escapeHtml(locOf(r))}</div></td>
             ${cells}
@@ -1999,6 +2047,7 @@
       const VILLAGE_FIELDS = [
         "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
         "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
+        "activePrevMonth",
         "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
         "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
         "faultAvg", "faultGrade", "faultTruckRoll",
@@ -2011,7 +2060,8 @@
       const BUILDING_FIELDS = [
         "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
         "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
-        "occupancy", "totalPort", "totalAvailable", "active", "activePct",
+        "occupancy", "totalPort", "totalAvailable", "active", "activePrevMonth",
+        "activePct",
         "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
         "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
         "faultAvg", "faultGrade", "faultTruckRoll",
@@ -2085,7 +2135,7 @@
       /* ===== mock data (local preview only) ===== */
       const MOCK_PAYLOAD = {
         villages: [
-          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
+          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePrevMonth: 135, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
           { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, mksFibre3: 0.5, mksNt: 0.29, competitorMks: 0.79, competitorSubs: 75.2, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 0, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
           { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, mksFibre3: 0.4, mksNt: 0.27, competitorMks: 0.67, competitorSubs: 121.8, faultAvg: 1.2, faultGrade: "M", faultTruckRoll: 8, faultTruckRollPct: 0.73, faultOther: 3, faultOtherPct: 0.27, churn3m: 6, churnRate: 0.04, churnGrade: "mid", churnMonthly: 4, churnMonthlyRate: 0.067, gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 79.4 },
           { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, mksFibre3: 0.35, mksNt: 0.18, competitorMks: 0.53, competitorSubs: 14.7, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },
