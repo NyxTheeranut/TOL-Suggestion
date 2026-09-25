@@ -323,7 +323,15 @@
       .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
       .btn:hover { filter: brightness(0.97); }
       .btn:disabled { opacity: .5; cursor: default; }
-      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 14px; }
+      /* minmax(0, 1fr), not plain 1fr -- a bare 1fr track's implicit minimum
+         is its content's auto/min-content size, so if any single day cell's
+         content wanted more than its fair 1/7th share the whole grid (and
+         with it the whole page) would grow wider than the viewport and
+         start scrolling horizontally. minmax(0, ...) removes that implicit
+         floor so tracks always fit, letting overflow/ellipsis inside each
+         cell do its job instead. (The mobile breakpoint below already had
+         this; the desktop default didn't.) */
+      .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
       .cal-dow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 4px; }
       .cal-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 118px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; }
       .cal-day.empty-cell { background: transparent; border-color: transparent; }
@@ -614,6 +622,24 @@
       </div>
     </div>
 
+    <!-- App's own confirm dialog -- not window.confirm(), which a browser
+         can permanently silence per-site after a "don't ask again"/"prevent
+         this page from creating additional dialogs" click, with no way for
+         the page to detect that or recover (confirm() just always returns
+         false afterwards). -->
+    <div class="modal-overlay" id="confirmOverlay" style="z-index: 1100;">
+      <div class="modal-card" id="confirmCard" style="width: 360px;">
+        <div class="modal-head">
+          <h3 id="confirmTitle">ยืนยัน</h3>
+        </div>
+        <div id="confirmMsg" style="font-size: 13px; color: var(--text-2); line-height: 1.5; margin: 8px 0 18px;"></div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button class="btn" id="confirmCancelBtn">ยกเลิก</button>
+          <button class="btn primary" id="confirmOkBtn">ยืนยัน</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       /* ===== state ===== */
       const STATE = {
@@ -852,6 +878,36 @@
       document.getElementById("modalOverlay").addEventListener("click", (e) => { if (e.target.id === "modalOverlay") closeModal(); });
       function tagLabel(key) { const t = TAGS.find((x) => x.key === key); return t ? t.label : key; }
       function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+      // Promise<boolean> confirm dialog, styled like every other modal here --
+      // used instead of window.confirm() so a browser's own "don't ask again"
+      // dialog suppression (permanent, per-site, with no way for the page to
+      // detect it) can't silently break destructive actions like clearing a
+      // month.
+      function confirmDialog(message, okLabel, cancelLabel) {
+        return new Promise((resolve) => {
+          const overlay = document.getElementById("confirmOverlay");
+          const okBtn = document.getElementById("confirmOkBtn");
+          const cancelBtn = document.getElementById("confirmCancelBtn");
+          document.getElementById("confirmMsg").textContent = message;
+          okBtn.textContent = okLabel || "ยืนยัน";
+          cancelBtn.textContent = cancelLabel || "ยกเลิก";
+          overlay.classList.add("open");
+          function finish(result) {
+            overlay.classList.remove("open");
+            okBtn.removeEventListener("click", onOk);
+            cancelBtn.removeEventListener("click", onCancel);
+            overlay.removeEventListener("click", onOverlay);
+            resolve(result);
+          }
+          function onOk() { finish(true); }
+          function onCancel() { finish(false); }
+          function onOverlay(e) { if (e.target === overlay) finish(false); }
+          okBtn.addEventListener("click", onOk);
+          cancelBtn.addEventListener("click", onCancel);
+          overlay.addEventListener("click", onOverlay);
+        });
+      }
 
       /* ===== result row + stat pill rendering (shared by search & recommend) ===== */
       function resultRowHtml(r) {
@@ -1796,7 +1852,8 @@
       document.getElementById("calGenMonth").addEventListener("click", generateMonth);
       document.getElementById("calClearMonth").addEventListener("click", async () => {
         const monthKey = calState.monthKey;
-        if (!confirm("Clear every pick and the theme for this month? This can't be undone.")) return;
+        const ok = await confirmDialog("ล้างทุกรายการและธีมของเดือนนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้", "ล้างเดือน", "ยกเลิก");
+        if (!ok) return;
         delete STATE.calendarPlan[monthKey];
         delete STATE.calendarTheme[monthKey];
         calState.tags = new Set();
