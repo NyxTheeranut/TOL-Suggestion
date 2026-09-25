@@ -388,11 +388,21 @@
       .rec-table tbody tr:hover { background: var(--panel-2); }
       .rec-table td:first-child, .rec-table th:first-child {
         position: sticky; left: 0; background: var(--panel); box-shadow: 1px 0 0 var(--line);
+        white-space: normal;
       }
       .rec-table thead th:first-child { background: var(--panel-2); z-index: 2; }
       .rec-table tbody tr:hover td:first-child { background: var(--panel-2); }
-      .rec-table .nm { font-weight: 600; color: var(--ink); }
-      .rec-table .loc { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-top: 1px; }
+      /* An explicit width (not max-width) on these inner divs, not the
+         td/th -- a table cell's own width is only a hint under auto layout
+         (the default) and browsers don't reliably honor it, and max-width
+         alone still lets the shrink-to-fit wrapping algorithm settle on
+         something narrower and choppier than necessary. An explicit width
+         on a block-level div is what actually holds. Without this, the
+         column sized itself to the longest unwrapped name in the whole
+         table (some run 50+ characters), leaving almost no room on a
+         phone-width screen to see any other column at all. */
+      .rec-table .nm { font-weight: 600; color: var(--ink); white-space: normal; word-break: break-word; width: 140px; }
+      .rec-table .loc { font-size: 10.5px; color: var(--text-3); font-weight: 400; margin-top: 1px; white-space: normal; word-break: break-word; width: 140px; }
       .rec-table .sub { font-size: 10.5px; color: var(--text-3); }
 
       /* ── Analysis: 4-quadrant scatter ───────────────────────────────────── */
@@ -446,6 +456,7 @@
         .brand, .section-nav, .topbar-right { grid-column: 1; grid-row: auto; justify-self: stretch; }
         .section-nav { justify-content: flex-start; }
         .topbar-right { justify-content: space-between; }
+        .rec-table .nm, .rec-table .loc { width: 110px; }
       }
       @media (max-width: 480px) {
         .cal-grid { grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
@@ -1341,7 +1352,7 @@
       // display -- kept separate from `get` so sorting never has to
       // re-parse a formatted string.
       const REC_COLUMNS = [
-        { key: "name", label: "ทรัพย์สิน" },
+        { key: "name", label: "หมู่บ้าน/อาคาร" },
         ...DEMO_ITEMS.filter((item) => !item.excludeFromTable).flatMap((item) =>
           item.single ? [{ ...item.single, label: item.label }] : item.pair.map((p) => ({ ...p, label: p.colLabel || p.lbl }))
         ),
