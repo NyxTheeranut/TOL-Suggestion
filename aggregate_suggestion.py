@@ -162,13 +162,25 @@ def load_villages(path=VILLAGE_XLSB):
     i_lng = col(header, 11, "LONGITUDE")
     i_house = col(header, 19, "HOUSE_ALL")
     i_status = col(header, 390, "หมู่บ้านปิด/ปิดทำกิจกรรมได้/เปิด")
-    i_total_port = col(header, 144, "TOTAL PORT")
-    i_total_avail = col(header, 145, "TOTAL AVAILABLE")
+    # FTTH-specific, not the "TOTAL PORT"/"TOTAL AVAILABLE" columns a few
+    # dozen over -- those sum ports across every access technology the
+    # village has (FTTH+FTTB+FTTC), which massively overstates available
+    # capacity for this FTTH sales tool wherever a village also has legacy
+    # FTTC/FTTB build-out (confirmed against real data: a village with
+    # "*Revised Network" = FTTH,FTTB,FTTC showed FTTH TOTAL PORT 904 / FTTH
+    # AVAILABLE 344, but the combined TOTAL PORT/TOTAL AVAILABLE columns
+    # read 2502/1908).
+    i_total_port = col(header, 23, "FTTH TOTAL PORT")
+    i_total_avail = col(header, 24, "FTTH AVAILABLE")
     i_active, i_active_pct = find_latest_series(header, VILLAGE_ACTIVE_VALUE_RE, VILLAGE_ACTIVE_PCT_RE)
     i_competitor = col(header, 417, "Competitor")
     i_mks_true = col(header, 234, "TRUE OOKLA MKS")
     i_mks_fibre3 = col(header, 232, "Fiber3 OOKLA MKS")
     i_mks_nt = col(header, 236, "NT OOKLA MKS")
+    i_true_avg_dl = col(header, 221, "avg_dl")
+    i_true_max_dl = col(header, 222, "max_dl")
+    i_fibre3_avg_dl = col(header, 191, "avg_dl")
+    i_fibre3_max_dl = col(header, 192, "max_dl")
     i_fault_avg = col(header, 363, "Average Fault 3 months")
     i_fault_grade = col(header, 364, "Fault Grade")
     i_case_mgmt = col(header, 365, "Case Management")
@@ -244,6 +256,10 @@ def load_villages(path=VILLAGE_XLSB):
             "mksNt": mks_nt,
             "competitorMks": competitor_mks,
             "competitorSubs": round(competitor_subs, 1) if competitor_subs is not None else None,
+            "trueAvgDl": num(v[i_true_avg_dl]),
+            "trueMaxDl": num(v[i_true_max_dl]),
+            "fibre3AvgDl": num(v[i_fibre3_avg_dl]),
+            "fibre3MaxDl": num(v[i_fibre3_max_dl]),
             "faultAvg": num(v[i_fault_avg]),
             "faultGrade": clean(v[i_fault_grade]),
             "faultTruckRoll": fault_truck_roll,
@@ -297,14 +313,21 @@ def load_buildings(path=BUILDING_XLSX):
     i_floors = col(header, 213, "จำนวนชั้น")
     i_units = col(header, 214, "จำนวนห้องพักอาศัย (Unit)")
     i_occupancy = col(header, 216, "จำนวนห้อง\nที่มีผู้อยู่อาศัยแล้ว(Occupancy)")
-    i_total_port = col(header, 161, "TOTAL PORT")
-    i_total_avail = col(header, 162, "TOTAL AVAILABLE")
+    # FTTH-specific, same reasoning as the village sheet -- "TOTAL PORT"/
+    # "TOTAL AVAILABLE" a few dozen columns over sum every access
+    # technology (FTTH+FTTB+FTTC), overstating available capacity.
+    i_total_port = col(header, 20, "FTTH TOTAL")
+    i_total_avail = col(header, 21, "FTTH TOTAL AVAILABLE")
     i_active, i_active_pct = find_latest_series(header, BUILDING_ACTIVE_VALUE_RE, BUILDING_ACTIVE_PCT_RE)
     i_arpu = col(header, 254, "ARPU")
     i_competitor = col(header, 470, "Competitor")
     i_mks_true = col(header, 358, "TRUE OOKLA MKS")
     i_mks_fibre3 = col(header, 356, "Fiber3 OOKLA MKS")
     i_mks_nt = col(header, 360, "NT OOKLA MKS")
+    i_true_avg_dl = col(header, 366, "TRUE Avg Speed")
+    i_true_max_dl = col(header, 367, "TRUE Max Speed")
+    i_fibre3_avg_dl = col(header, 328, "Avg Speed")
+    i_fibre3_max_dl = col(header, 329, "Max Speed")
     i_fault_avg = col(header, 311, "Avg Fault Rate")
     i_fault_grade = col(header, 312, "Fault Grade")
     i_case_mgmt = col(header, 313, "Case Management")
@@ -378,6 +401,10 @@ def load_buildings(path=BUILDING_XLSX):
             "mksNt": mks_nt,
             "competitorMks": competitor_mks,
             "competitorSubs": round(competitor_subs, 1) if competitor_subs is not None else None,
+            "trueAvgDl": num(row[i_true_avg_dl]),
+            "trueMaxDl": num(row[i_true_max_dl]),
+            "fibre3AvgDl": num(row[i_fibre3_avg_dl]),
+            "fibre3MaxDl": num(row[i_fibre3_max_dl]),
             "faultAvg": num(row[i_fault_avg]),
             "faultGrade": clean(row[i_fault_grade]),
             "faultTruckRoll": fault_truck_roll,
