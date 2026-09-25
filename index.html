@@ -329,7 +329,11 @@
       .cal-day.empty-cell { background: transparent; border-color: transparent; }
       .cal-day .d-num { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
       .cal-pick { font-size: 10.8px; padding: 3px 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .cal-pick.backup { background: var(--panel); border: 1px dashed var(--line); color: var(--text-2); }
+      .cal-pick.backup { border: 1px dashed var(--line); }
+      /* Colored by whichever carrier (True/Fibre3/NT) actually wins MKS here -- same win-*/-soft palette as the demo card's badge. A pick with no MKS data at all keeps the plain accent look above. */
+      .cal-pick.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
+      .cal-pick.win-fibre3 { background: var(--st-good-soft); color: var(--st-good); }
+      .cal-pick.win-nt { background: var(--st-warn-soft); color: var(--st-warn); }
       .cal-gen-btn { margin-top: auto; font-size: 10.5px; padding: 4px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--text-3); }
       .cal-gen-btn:hover { background: var(--panel); color: var(--accent-ink); border-color: var(--accent); }
 
@@ -1560,7 +1564,9 @@
             inner += picks.map((p) => {
               const r = byId(p.kind, p.refId);
               const nm = r ? r.name : "?";
-              return `<div class="cal-pick${p.slot === "backup" ? " backup" : ""}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(nm)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
+              const winner = r ? mksWinner(r) : null;
+              const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "");
+              return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(nm)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
             }).join("");
             inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ แก้ไข</button>`;
           } else {

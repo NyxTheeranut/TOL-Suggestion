@@ -279,7 +279,14 @@ def load_villages(path=VILLAGE_XLSB):
             "faultTruckRoll": fault_truck_roll,
             "faultTruckRollPct": num(v[i_truck_roll_pct]),
             "faultOther": fault_other,
-            "faultOtherPct": (fault_other / (fault_other + fault_truck_roll)) if (fault_other is not None and fault_truck_roll is not None and (fault_other + fault_truck_roll) > 0) else None,
+            # Same denominator as the source's own "%Truck Roll" column
+            # (verified against real data: matches TruckRoll/active to 5
+            # decimal places, using the PRIOR month's active count since the
+            # fault block runs a month behind the active-subscriber series)
+            # -- NOT other/(other+truckRoll), which was a different,
+            # incomparable composition-of-fault-types ratio on a totally
+            # different scale (40-75% vs. Truck Roll Rate's typical 1-6%).
+            "faultOtherPct": (fault_other / active_prev) if (fault_other is not None and active_prev) else ((fault_other / active) if (fault_other is not None and active) else None),
             "churn3m": num(v[i_churn_3m]),
             "churnRate": num(v[i_churn_rate]),
             "churnGrade": clean(v[i_churn_grade]),
@@ -427,7 +434,9 @@ def load_buildings(path=BUILDING_XLSX):
             "faultTruckRoll": fault_truck_roll,
             "faultTruckRollPct": num(row[i_truck_roll_pct]),
             "faultOther": fault_other,
-            "faultOtherPct": (fault_other / (fault_other + fault_truck_roll)) if (fault_other is not None and fault_truck_roll is not None and (fault_other + fault_truck_roll) > 0) else None,
+            # Same denominator as the source's own "%Truck Roll" column --
+            # see the matching comment in curate_villages().
+            "faultOtherPct": (fault_other / active_prev) if (fault_other is not None and active_prev) else ((fault_other / active) if (fault_other is not None and active) else None),
             "churn3m": num(row[i_churn_3m]),
             "churnPct": num(row[i_churn_pct]),
             "churnVolMonthly": vol_churn,
