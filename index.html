@@ -184,18 +184,12 @@
       }
       .tag-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
       .tag-chip .n { opacity: .65; font-weight: 500; margin-left: 4px; }
-      /* Colored per tag even before it's picked, so a viewer can tell at a
-         glance what each chip means -- same palette as the matching
-         stat-pill on a result row. Selecting one fills in that same color. */
-      .tag-chip.tag-high_available { border-color: var(--accent); color: var(--accent-ink); }
-      .tag-chip.tag-large { border-color: var(--s1); color: var(--s1); }
-      .tag-chip.tag-low_fault { border-color: var(--st-good); color: var(--st-good); }
+      /* Only the 3 MKS-winner tags get their own color (same palette as
+         their matching stat-pill) -- the rest keep the plain neutral chip
+         look above. */
       .tag-chip.tag-true_win { border-color: var(--st-crit); color: var(--st-crit); }
       .tag-chip.tag-fibre3_win { border-color: var(--st-good); color: var(--st-good); }
       .tag-chip.tag-nt_win { border-color: var(--st-warn); color: var(--st-warn); }
-      .tag-chip.tag-high_available.active { background: var(--accent-soft); }
-      .tag-chip.tag-large.active { background: #e4edfb; }
-      .tag-chip.tag-low_fault.active { background: var(--st-good-soft); }
       .tag-chip.tag-true_win.active { background: var(--st-crit-soft); }
       .tag-chip.tag-fibre3_win.active { background: var(--st-good-soft); }
       .tag-chip.tag-nt_win.active { background: var(--st-warn-soft); }
