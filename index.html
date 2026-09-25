@@ -184,6 +184,21 @@
       }
       .tag-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
       .tag-chip .n { opacity: .65; font-weight: 500; margin-left: 4px; }
+      /* Colored per tag even before it's picked, so a viewer can tell at a
+         glance what each chip means -- same palette as the matching
+         stat-pill on a result row. Selecting one fills in that same color. */
+      .tag-chip.tag-high_available { border-color: var(--accent); color: var(--accent-ink); }
+      .tag-chip.tag-large { border-color: var(--s1); color: var(--s1); }
+      .tag-chip.tag-low_fault { border-color: var(--st-good); color: var(--st-good); }
+      .tag-chip.tag-true_win { border-color: var(--st-crit); color: var(--st-crit); }
+      .tag-chip.tag-fibre3_win { border-color: var(--st-good); color: var(--st-good); }
+      .tag-chip.tag-nt_win { border-color: var(--st-warn); color: var(--st-warn); }
+      .tag-chip.tag-high_available.active { background: var(--accent-soft); }
+      .tag-chip.tag-large.active { background: #e4edfb; }
+      .tag-chip.tag-low_fault.active { background: var(--st-good-soft); }
+      .tag-chip.tag-true_win.active { background: var(--st-crit-soft); }
+      .tag-chip.tag-fibre3_win.active { background: var(--st-good-soft); }
+      .tag-chip.tag-nt_win.active { background: var(--st-warn-soft); }
       .auto-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); margin-left: auto; }
       .switch { position: relative; width: 36px; height: 20px; background: var(--line); border-radius: 999px; border: none; flex: none; }
       .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
@@ -501,6 +516,7 @@
               </div>
               <div class="sidebar-row">
                 <select id="searchStatus"><option value="all">สถานะทั้งหมด</option></select>
+                <button class="btn" id="searchTagFilterBtn" style="flex: none; white-space: nowrap;">🏷 ตัวกรองแท็ก</button>
               </div>
             </div>
             <div class="district-panel">
@@ -639,6 +655,20 @@
           <button class="btn" id="confirmCancelBtn">ยกเลิก</button>
           <button class="btn primary" id="confirmOkBtn">ยืนยัน</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Search's own tag filter -- a popup instead of inline chips (like
+         Recommend/Calendar have) since Search's sidebar is already fairly
+         busy; opens from the 🏷 button next to the status dropdown. -->
+    <div class="modal-overlay" id="searchTagOverlay">
+      <div class="modal-card" id="searchTagCard" style="width: 380px;">
+        <div class="modal-head">
+          <h3>ตัวกรองแท็ก</h3>
+          <button class="modal-close" id="searchTagCloseBtn">✕</button>
+        </div>
+        <div class="hint" style="margin-bottom: 10px;">เลือกได้หลายแท็ก (ต้องตรงทุกแท็กที่เลือกไว้)</div>
+        <div class="tag-chips" id="searchTagChips"></div>
       </div>
     </div>
 
@@ -1112,7 +1142,7 @@
       }
 
       /* ===== Section 1: Search ===== */
-      const searchState = { kind: "village", amp: "all", tam: "all", status: "all", text: "" };
+      const searchState = { kind: "village", amp: "all", tam: "all", status: "all", text: "", tags: new Set() };
 
       // District colors -- same mapping Route Planner uses for this exact
       // cluster, so a district reads as the same color across both pages.
@@ -1142,6 +1172,7 @@
           // mode doesn't silently exclude every building.
           if (!ignore.has("status") && kindOf(r) === "village" && searchState.status !== "all" && r.status !== searchState.status) return false;
           if (!ignore.has("text") && text && !(r.name || "").toLowerCase().includes(text)) return false;
+          if (!ignore.has("tags") && searchState.tags.size && ![...searchState.tags].every((t) => (r.tags || []).includes(t))) return false;
           return true;
         });
       }
@@ -1247,6 +1278,7 @@
       function renderSearch() {
         renderAmphurRow();
         renderDistrictGrid();
+        renderSearchTagFilterBtn();
         const results = filteredSearchResults();
         document.getElementById("searchCount").textContent = results.length;
         const listEl = document.getElementById("searchList");
@@ -1256,6 +1288,41 @@
         renderMap(results);
         renderBoundaries();
       }
+
+      // Reflects the current tag selection on the 🏷 button itself (a count
+      // badge + a filled/active look) so it's clear filters are applied
+      // even with the popup closed.
+      function renderSearchTagFilterBtn() {
+        const btn = document.getElementById("searchTagFilterBtn");
+        const n = searchState.tags.size;
+        btn.textContent = n ? `🏷 ตัวกรองแท็ก · ${n}` : "🏷 ตัวกรองแท็ก";
+        btn.classList.toggle("primary", n > 0);
+      }
+
+      function renderSearchTagChips() {
+        const pool = searchPool(new Set(["tags"]));
+        document.getElementById("searchTagChips").innerHTML = TAGS.map((t) => {
+          const n = pool.filter((r) => (r.tags || []).includes(t.key)).length;
+          const active = searchState.tags.has(t.key);
+          return `<button class="tag-chip tag-${t.key}${active ? " active" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
+        }).join("");
+      }
+      document.getElementById("searchTagFilterBtn").addEventListener("click", () => {
+        renderSearchTagChips();
+        document.getElementById("searchTagOverlay").classList.add("open");
+      });
+      document.getElementById("searchTagCloseBtn").addEventListener("click", () => {
+        document.getElementById("searchTagOverlay").classList.remove("open");
+      });
+      document.getElementById("searchTagOverlay").addEventListener("click", (e) => {
+        if (e.target.id === "searchTagOverlay") document.getElementById("searchTagOverlay").classList.remove("open");
+      });
+      document.getElementById("searchTagChips").addEventListener("click", (e) => {
+        const chip = e.target.closest(".tag-chip"); if (!chip) return;
+        if (searchState.tags.has(chip.dataset.k)) searchState.tags.delete(chip.dataset.k); else searchState.tags.add(chip.dataset.k);
+        renderSearchTagChips();
+        renderSearch();
+      });
       document.getElementById("searchKind").addEventListener("click", (e) => {
         const btn = e.target.closest("button"); if (!btn) return;
         searchState.kind = btn.dataset.v; searchState.amp = "all"; searchState.tam = "all";
@@ -1292,7 +1359,7 @@
         document.getElementById("recTags").innerHTML = TAGS.map((t) => {
           const n = pool.filter((r) => (r.tags || []).includes(t.key)).length;
           const active = recState.tags.has(t.key);
-          return `<button class="tag-chip${active ? " active" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
+          return `<button class="tag-chip tag-${t.key}${active ? " active" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
         }).join("");
       }
 
@@ -1416,7 +1483,7 @@
       function renderCalTagChips() {
         document.getElementById("calTags").innerHTML = TAGS.map((t) => {
           const active = calState.tags.has(t.key);
-          return `<button class="tag-chip${active ? " active" : ""}" data-k="${t.key}">${t.label}</button>`;
+          return `<button class="tag-chip tag-${t.key}${active ? " active" : ""}" data-k="${t.key}">${t.label}</button>`;
         }).join("");
       }
 
