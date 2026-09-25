@@ -249,8 +249,10 @@
       .stat-pill { font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--panel-2); color: var(--text-2); }
       .stat-pill.tag-high_available { background: var(--accent-soft); color: var(--accent-ink); }
       .stat-pill.tag-large { background: #e4edfb; color: var(--s1); }
-      .stat-pill.tag-high_competitor { background: var(--st-warn-soft); color: #8a5a06; }
       .stat-pill.tag-low_fault { background: var(--st-good-soft); color: var(--st-good); }
+      .stat-pill.tag-true_win { background: var(--st-crit-soft); color: var(--st-crit); }
+      .stat-pill.tag-fibre3_win { background: var(--st-good-soft); color: var(--st-good); }
+      .stat-pill.tag-nt_win { background: var(--st-warn-soft); color: var(--st-warn); }
       :root[data-theme="dark"] .stat-pill.tag-large, @media (prefers-color-scheme: dark) { .stat-pill.tag-large { color: #7fb0ee; } }
       .empty-note { padding: 24px 14px; color: var(--text-3); font-size: 12.5px; text-align: center; }
 
@@ -652,8 +654,10 @@
       const TAGS = [
         { key: "high_available", label: "พอร์ตว่างสูง" },
         { key: "large", label: "ขนาดใหญ่ (ครัวเรือน/ยูนิต)" },
-        { key: "high_competitor", label: "คู่แข่งเยอะ" },
         { key: "low_fault", label: "Fault น้อย" },
+        { key: "true_win", label: "True ชนะ" },
+        { key: "fibre3_win", label: "Fibre3 ชนะ" },
+        { key: "nt_win", label: "NT ชนะ" },
       ];
 
       function byId(kind, id) {
@@ -2046,6 +2050,19 @@
           STATE.calendarPlan[row.monthKey][row.day].push({ slot: row.slot, kind: row.kind, refId: row.refId });
         });
 
+        // "true_win"/"fibre3_win"/"nt_win" -- a filterable tag for whichever
+        // carrier actually wins MKS here, computed once at load time (not a
+        // Python-side tag) so it reuses the exact same mksWinner() logic
+        // already driving the demo card's badge and the calendar picks'
+        // color. No tag at all when there's no real MKS data (mksWinner
+        // returns null for that).
+        STATE.villages.concat(STATE.buildings).forEach((r) => {
+          const winner = mksWinner(r);
+          if (!winner) return;
+          r.tags = r.tags || [];
+          if (!r.tags.includes(winner.key + "_win")) r.tags.push(winner.key + "_win");
+        });
+
         document.getElementById("topbarMeta").textContent =
           STATE.villages.length + " หมู่บ้าน · " + STATE.buildings.length + " อาคาร";
 
@@ -2231,16 +2248,16 @@
       /* ===== mock data (local preview only) ===== */
       const MOCK_PAYLOAD = {
         villages: [
-          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePrevMonth: 135, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 88.2 },
+          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePrevMonth: 135, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 88.2 },
           { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, mksFibre3: 0.5, mksNt: 0.29, competitorMks: 0.79, competitorSubs: 75.2, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 0, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
-          { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, mksFibre3: 0.4, mksNt: 0.27, competitorMks: 0.67, competitorSubs: 121.8, faultAvg: 1.2, faultGrade: "M", faultTruckRoll: 8, faultTruckRollPct: 0.73, faultOther: 3, faultOtherPct: 0.27, churn3m: 6, churnRate: 0.04, churnGrade: "mid", churnMonthly: 4, churnMonthlyRate: 0.067, gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 79.4 },
+          { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, mksFibre3: 0.4, mksNt: 0.27, competitorMks: 0.67, competitorSubs: 121.8, faultAvg: 1.2, faultGrade: "M", faultTruckRoll: 8, faultTruckRollPct: 0.73, faultOther: 3, faultOtherPct: 0.27, churn3m: 6, churnRate: 0.04, churnGrade: "mid", churnMonthly: 4, churnMonthlyRate: 0.067, gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 79.4 },
           { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, mksFibre3: 0.35, mksNt: 0.18, competitorMks: 0.53, competitorSubs: 14.7, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },
-          { id: "v5", name: "หมู่บ้านบางบัวทองพาร์ค", district: "บางบัวทอง", subdistrict: "บางบัวทอง", lat: 13.924, lng: 100.417, status: "เปิด", closed: false, houseAll: 550, totalPort: 500, totalAvailable: 300, active: 180, activePct: 0.36, competitor: 130, mksTrue: 0.39, mksFibre3: 0.36, mksNt: 0.25, competitorMks: 0.61, competitorSubs: 281.5, faultAvg: 2.1, faultGrade: "H", faultTruckRoll: 15, faultTruckRollPct: 0.68, faultOther: 7, faultOtherPct: 0.32, churn3m: 12, churnRate: 0.06, churnGrade: "high", churnMonthly: 9, churnMonthlyRate: 0.05, gradeSale: "H", scoreSale: 1.6, mainGroup: "G1", tags: ["high_available", "large", "high_competitor"], autoScore: 82.0 },
+          { id: "v5", name: "หมู่บ้านบางบัวทองพาร์ค", district: "บางบัวทอง", subdistrict: "บางบัวทอง", lat: 13.924, lng: 100.417, status: "เปิด", closed: false, houseAll: 550, totalPort: 500, totalAvailable: 300, active: 180, activePct: 0.36, competitor: 130, mksTrue: 0.39, mksFibre3: 0.36, mksNt: 0.25, competitorMks: 0.61, competitorSubs: 281.5, faultAvg: 2.1, faultGrade: "H", faultTruckRoll: 15, faultTruckRollPct: 0.68, faultOther: 7, faultOtherPct: 0.32, churn3m: 12, churnRate: 0.06, churnGrade: "high", churnMonthly: 9, churnMonthlyRate: 0.05, gradeSale: "H", scoreSale: 1.6, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 82.0 },
           { id: "v6", name: "หมู่บ้านสายไหมการ์เดนท์", district: "ปากเกร็ด", subdistrict: "คลองพระอุดม", lat: 13.94, lng: 100.46, status: "เปิด", closed: false, houseAll: 95, totalPort: 80, totalAvailable: 55, active: 15, activePct: 0.19, competitor: 12, mksTrue: 0.18, mksFibre3: 0.52, mksNt: 0.3, competitorMks: 0.82, competitorSubs: 68.3, faultAvg: 0.3, faultGrade: "L", faultTruckRoll: 1, faultTruckRollPct: 0.5, faultOther: 1, faultOtherPct: 0.5, churn3m: 1, churnRate: 0.01, churnGrade: "low", churnMonthly: 1, churnMonthlyRate: 0.067, gradeSale: "L", scoreSale: 0.8, mainGroup: "G3", tags: ["low_fault"], autoScore: 45.1 },
         ],
         buildings: [
-          { id: "b1", name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, mksFibre3: 0.6, mksNt: 0.26, competitorMks: 0.86, competitorSubs: 18.4, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 1, faultOtherPct: 1, churn3m: 0, churnPct: 0, churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "high_competitor", "low_fault"], autoScore: 76.3 },
-          { id: "b2", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, mksFibre3: 0.44, mksNt: 0.2, competitorMks: 0.64, competitorSubs: 106.7, faultAvg: 0.4, faultGrade: "L", faultTruckRoll: 2, faultTruckRollPct: 0.4, faultOther: 3, faultOtherPct: 0.6, churn3m: 2, churnPct: 0.01, churnMonthly: 1, churnMonthlyRate: 0.017, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large", "high_competitor"], autoScore: 85.9 },
+          { id: "b1", name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, mksFibre3: 0.6, mksNt: 0.26, competitorMks: 0.86, competitorSubs: 18.4, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 1, faultOtherPct: 1, churn3m: 0, churnPct: 0, churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "low_fault"], autoScore: 76.3 },
+          { id: "b2", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, mksFibre3: 0.44, mksNt: 0.2, competitorMks: 0.64, competitorSubs: 106.7, faultAvg: 0.4, faultGrade: "L", faultTruckRoll: 2, faultTruckRollPct: 0.4, faultOther: 3, faultOtherPct: 0.6, churn3m: 2, churnPct: 0.01, churnMonthly: 1, churnMonthlyRate: 0.017, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large"], autoScore: 85.9 },
           { id: "b3", name: "RIVERINE PLACE BUILDING 4", prov: "นนทบุรี", amp: "เมืองนนทบุรี", tam: "สวนใหญ่", lat: 13.85, lng: 100.49, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 4, units: 8, occupancy: 0.5, totalPort: 8, totalAvailable: 4, active: 0, activePct: 0, arpu: null, competitor: 2, mksTrue: 0, mksFibre3: 0, mksNt: 0, competitorMks: null, competitorSubs: null, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnPct: 0, churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 0.6, groupBuilding: "RIVERINE PLACE", tags: ["low_fault"], autoScore: 22.1 },
         ],
         calendarTheme: [],

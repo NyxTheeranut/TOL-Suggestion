@@ -480,7 +480,6 @@ def add_tags_and_scores(records, size_key):
 
     avail_p75 = percentile([r["totalAvailable"] for r in is_open], 0.75)
     size_p75 = percentile([r[size_key] for r in records], 0.75)
-    competitor_p75 = percentile([r["competitor"] for r in records], 0.75)
     fault_p25 = percentile([r["faultAvg"] for r in records], 0.25)
 
     avail_lo, avail_hi = percentile([r["totalAvailable"] for r in records], 0.05), percentile([r["totalAvailable"] for r in records], 0.95)
@@ -495,8 +494,6 @@ def add_tags_and_scores(records, size_key):
             tags.append("high_available")
         if size_p75 is not None and (r[size_key] or 0) >= size_p75 and size_p75 > 0:
             tags.append("large")
-        if competitor_p75 is not None and (r["competitor"] or 0) >= competitor_p75 and competitor_p75 > 0:
-            tags.append("high_competitor")
         if fault_p25 is not None and r["faultAvg"] is not None and r["faultAvg"] <= fault_p25:
             tags.append("low_fault")
         r["tags"] = tags
