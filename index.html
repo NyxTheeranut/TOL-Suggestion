@@ -301,6 +301,7 @@
       .modal-card { width: 560px; max-width: 100%; max-height: 86vh; overflow-y: auto; background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px 28px; }
       .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
       .modal-head h3 { font-size: 16px; font-weight: 700; }
+      .modal-head h3 .modal-id { font-size: 11.5px; font-weight: 500; color: var(--text-3); margin-left: 5px; }
       .modal-head .loc { font-size: 12px; color: var(--text-3); margin-top: 3px; }
       .modal-close { border: none; background: var(--panel-2); color: var(--text-2); width: 26px; height: 26px; border-radius: 50%; flex: none; font-size: 14px; }
       .modal-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
@@ -881,7 +882,7 @@
         document.getElementById("modalCard").innerHTML = `
           <div class="modal-head">
             <div>
-              <h3>${escapeHtml(record.name || "—")}</h3>
+              <h3>${escapeHtml(record.name || "—")} <span class="modal-id">#${escapeHtml(record.id)}</span></h3>
               <div class="loc">${escapeHtml(locLine)}</div>
             </div>
             <button class="modal-close" id="modalCloseBtn">✕</button>
