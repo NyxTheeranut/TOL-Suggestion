@@ -328,7 +328,11 @@
       .cal-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 118px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; }
       .cal-day.empty-cell { background: transparent; border-color: transparent; }
       .cal-day .d-num { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
-      .cal-pick { font-size: 10.8px; padding: 3px 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* min-width: 0 is load-bearing here -- .cal-day is a flex column, and
+         a flex item's default min-width is its unwrapped content size, which
+         overrides overflow/ellipsis entirely and pushes a long name straight
+         through the day cell's border. */
+      .cal-pick { font-size: 10.8px; padding: 3px 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
       .cal-pick.backup { border: 1px dashed var(--line); }
       /* Colored by whichever carrier (True/Fibre3/NT) actually wins MKS here -- same win-*/-soft palette as the demo card's badge. A pick with no MKS data at all keeps the plain accent look above. */
       .cal-pick.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
@@ -2014,29 +2018,47 @@
       // (so a hung request fails instead of spinning forever) plus turning
       // that parse failure into a clear message -- same fix TOL Tracker
       // already has for this exact failure mode.
+      // Retries transient failures (an aborted/timed-out fetch, a dropped
+      // connection, or the HTML-instead-of-JSON hiccup above) up to 3
+      // attempts with backoff -- same cadence as the sign-in retry below.
+      // Generating a whole month fires off ~30 sequential saveCalendarDay
+      // calls, so a single transient hiccup on any one of them used to
+      // abort the entire month ("signal is aborted without reason") instead
+      // of just retrying that one call. A real application error (data.ok
+      // false for a legitimate reason) is NOT retried -- that won't be
+      // fixed by trying again.
       async function api(action, fields, timeoutMs) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs || 20000);
-        let text;
-        try {
-          const res = await fetch(DEFAULT_SYNC_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action, idToken: STATE.idToken, ...fields }),
-            signal: controller.signal,
-          });
-          text = await res.text();
-        } finally {
-          clearTimeout(timer);
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), timeoutMs || 20000);
+          try {
+            const res = await fetch(DEFAULT_SYNC_URL, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ action, idToken: STATE.idToken, ...fields }),
+              signal: controller.signal,
+            });
+            const text = await res.text();
+            let data;
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              throw new Error("The server sent back something unexpected instead of data -- usually a brief Apps Script/Google hiccup. Try again in a moment.");
+            }
+            if (!data.ok) throw new Error(data.error || "request failed");
+            return data;
+          } catch (e) {
+            const transient = e.name === "AbortError" || e instanceof TypeError || /unexpected instead of data/.test(e.message || "");
+            if (transient && attempt < MAX_ATTEMPTS) {
+              await new Promise((r) => setTimeout(r, 1200 * attempt));
+              continue;
+            }
+            throw e;
+          } finally {
+            clearTimeout(timer);
+          }
         }
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          throw new Error("The server sent back something unexpected instead of data -- usually a brief Apps Script/Google hiccup. Try again in a moment.");
-        }
-        if (!data.ok) throw new Error(data.error || "request failed");
-        return data;
       }
 
       function showLoginStatus(html, isError) {
