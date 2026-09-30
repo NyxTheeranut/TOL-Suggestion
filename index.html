@@ -2120,6 +2120,7 @@
         { key: "mksFibre3", label: "MKS Fibre3", get: (r) => r.mksFibre3, fmt: pct },
         { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
         { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
+        { key: "marketSize", label: "Market Size", get: (r) => totalMarketOf(r), fmt: whole },
         { key: "ftthAvailable", label: "FTTH Available", get: (r) => r.totalAvailable, fmt: whole },
         { key: "utilization", label: "%Utilization (Active FTTH/FTTH Port)", get: (r) => (r.totalPort ? r.active / r.totalPort : null), fmt: pct },
         { key: "activePenetration", label: "%Penetration (Active Subs True/HH)", get: (r) => { const hh = hhOf(r); return hh ? r.active / hh : null; }, fmt: pct },
