@@ -536,19 +536,25 @@ def load_l2_by_village():
     splitter, and that splitter's own discount terms -- matched by village
     NAME against the exact same two source files L2 Discount Map's own
     update_l2_sheet.py reads (there's no ID shared between the two
-    projects' source data). Returns {} (skip enrichment, not an error) if
-    those files aren't present on this machine -- L2 is a bonus layer here,
-    not something TOL Suggestion depends on to function.
+    projects' source data). Returns ({}, {}) (skip enrichment, not an
+    error) if those files aren't present on this machine -- L2 is a bonus
+    layer here, not something TOL Suggestion depends on to function.
 
     Mirrors that project's own filtering logic (a Condition-table lookup
-    resolving to a nonzero discount), just trimmed to the fields this
-    dashboard's L2 tab actually shows -- see that project's
-    update_l2_sheet.py for the fuller original."""
+    resolving to a nonzero discount) -- see that project's
+    update_l2_sheet.py for the fuller original. The per-package MKT
+    discount table is deduped to once per (arch, port, arpaGroup, nad)
+    combo actually used at a village, keyed by condKey, rather than
+    repeated on every point -- a housing estate can have 40+ points that
+    almost all share the same 1-2 combos, and embedding the full 9-package
+    table on each one blew a single village's Sheet cell well past
+    Google Sheets' 50,000-character-per-cell limit (confirmed against real
+    data: one village hit 62,779 characters undeduped)."""
     xlsx = _find_l2_xlsx()
     lookup_file = _find_village_lookup_file()
     if not xlsx or not lookup_file:
         print("  (L2 source files not found on this machine -- skipping L2 enrichment)")
-        return {}
+        return {}, {}
 
     village_lookup = {}
     with open(lookup_file, encoding="utf-8-sig") as f:
@@ -568,7 +574,21 @@ def load_l2_by_village():
     for r in wb["Condition"].iter_rows(min_row=3, values_only=True):
         if r[1] is None:
             continue
-        conditions.append({"arch": r[1], "arpaGroup": r[2], "port": r[3], "nad": r[4], "discPct": r[5]})
+        # Each condition row carries its own 9-package MKT sub-table (code,
+        # description, discount %, normal price, special/discounted price) --
+        # same layout L2 Discount Map's own load_conditions() reads.
+        mkts = []
+        idx = 6
+        for _ in range(9):
+            code, desc, disc, normal, special = r[idx], r[idx + 1], r[idx + 2], r[idx + 3], r[idx + 4]
+            mkts.append({
+                "code": code, "desc": desc,
+                "disc": round(disc, 4) if disc is not None else None,
+                "normal": normal,
+                "special": round(special, 2) if special is not None else None,
+            })
+            idx += 5
+        conditions.append({"arch": r[1], "arpaGroup": r[2], "port": r[3], "nad": r[4], "discPct": r[5], "mkts": mkts})
 
     def find_condition(arch, arpa_group, port, nad):
         for c in conditions:
@@ -577,6 +597,7 @@ def load_l2_by_village():
         return None
 
     by_village = {}
+    mkts_by_village = {}  # vname -> {condKey: [mkts...]}, deduped
     # Sheet name is hardcoded in L2 Discount Map's own script too, regardless
     # of the *file*name's month -- the source Atlas workbook doesn't rename
     # this internal sheet month to month.
@@ -588,6 +609,7 @@ def load_l2_by_village():
         vname = village_lookup.get(row[10])
         if not vname:
             continue
+        cond_key = f"{arch}|{arpa_group}|{port}|{nad}"
         by_village.setdefault(vname, []).append({
             "id": row[10],
             "arch": arch,
@@ -597,8 +619,12 @@ def load_l2_by_village():
             "discPct": round(cond["discPct"], 4),
             "lat": round(row[8], 6) if row[8] is not None else None,
             "lng": round(row[9], 6) if row[9] is not None else None,
+            "condKey": cond_key,
         })
-    return by_village
+        mkts_by_village.setdefault(vname, {})
+        if cond_key not in mkts_by_village[vname]:
+            mkts_by_village[vname][cond_key] = cond["mkts"]
+    return by_village, mkts_by_village
 
 
 def build_output():
@@ -607,11 +633,12 @@ def build_output():
     add_tags_and_scores(villages, "houseAll")
     add_tags_and_scores(buildings, "units")
 
-    l2_by_village = load_l2_by_village()
+    l2_by_village, l2_mkts_by_village = load_l2_by_village()
     for r in villages:
         points = l2_by_village.get(r["name"], [])
         r["hasL2"] = bool(points)
         r["l2Points"] = points
+        r["l2Mkts"] = l2_mkts_by_village.get(r["name"], {})
 
     return {
         "meta": {

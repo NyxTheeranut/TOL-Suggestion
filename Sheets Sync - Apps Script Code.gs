@@ -63,7 +63,7 @@ var VILLAGE_FIELDS = [
   "churnMonthly", "churnMonthlyRate", "gradeSale",
   "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
   "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
-  "hasL2", "l2Points",
+  "hasL2", "l2Points", "l2Mkts",
 ];
 
 var BUILDING_FIELDS = [
@@ -91,7 +91,7 @@ var TEXT_COLUMNS = [
   "developer", "groupBuilding", "caretakerChannel", "caretakerName",
   "villageFile", "buildingFile", "syncedAt",
   "monthKey", "kind", "refId", "slot", "tagsCsv", "updatedBy", "updatedAt",
-  "l2Points",
+  "l2Points", "l2Mkts",
 ];
 
 function doPost(e) {
@@ -480,6 +480,9 @@ function rowObjects_(tab, fields) {
     if ("hasL2" in obj) obj.hasL2 = !!Number(obj.hasL2);
     if ("l2Points" in obj) {
       try { obj.l2Points = JSON.parse(obj.l2Points || "[]"); } catch (e) { obj.l2Points = []; }
+    }
+    if ("l2Mkts" in obj) {
+      try { obj.l2Mkts = JSON.parse(obj.l2Mkts || "{}"); } catch (e) { obj.l2Mkts = {}; }
     }
     Object.keys(obj).forEach(function (k) { if (obj[k] === "") obj[k] = null; });
     return obj;

@@ -28,7 +28,7 @@ VILLAGE_FIELDS = [
     "churnMonthly", "churnMonthlyRate", "gradeSale",
     "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
     "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
-    "hasL2", "l2Points",
+    "hasL2", "l2Points", "l2Mkts",
 ]
 
 BUILDING_FIELDS = [
@@ -57,7 +57,7 @@ TEXT_FIELDS = {
     "developer", "groupBuilding", "caretakerChannel", "caretakerName",
     "villageFile", "buildingFile", "syncedAt",
     "monthKey", "kind", "refId", "slot", "tagsCsv", "updatedBy", "updatedAt",
-    "l2Points",
+    "l2Points", "l2Mkts",
 }
 
 
@@ -71,6 +71,8 @@ def _row_from_record(record, fields):
             v = 1 if v else 0
         elif f == "l2Points":
             v = json.dumps(v or [], ensure_ascii=False)
+        elif f == "l2Mkts":
+            v = json.dumps(v or {}, ensure_ascii=False)
         elif v is None:
             v = ""
         row.append(v)
@@ -86,6 +88,11 @@ def _record_from_row(header, row, fields):
     obj["closed"] = bool(obj.get("closed"))
     if "hasL2" in obj:
         obj["hasL2"] = bool(obj.get("hasL2"))
+    if "l2Mkts" in obj:
+        try:
+            obj["l2Mkts"] = json.loads(obj.get("l2Mkts") or "{}")
+        except (TypeError, ValueError):
+            obj["l2Mkts"] = {}
     if "l2Points" in obj:
         try:
             obj["l2Points"] = json.loads(obj.get("l2Points") or "[]")

@@ -333,11 +333,19 @@
       .l2-summary { font-size: 12.5px; color: var(--text-2); margin-bottom: 10px; }
       .l2-summary b { color: var(--l2); }
       .l2-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
-      .l2-item { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }
+      .l2-item { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; cursor: pointer; }
       .l2-item-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
       .l2-id { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-2); }
       .l2-disc { font-weight: 700; color: var(--l2); font-size: 13px; }
       .l2-item-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+      .l2-item-chevron { color: var(--l2); font-weight: 600; margin-left: 4px; white-space: nowrap; }
+      .l2-item-detail { display: none; margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--line); cursor: default; }
+      .l2-item.expanded .l2-item-detail { display: block; }
+      .l2-mkt-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      .l2-mkt-table th { text-align: left; color: var(--text-3); font-weight: 600; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+      .l2-mkt-table td { padding: 5px 6px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+      .l2-mkt-table th:not(:first-child), .l2-mkt-table td:not(:first-child) { text-align: right; white-space: nowrap; }
+      .l2-mkt-desc { color: var(--text-3); font-size: 10px; margin-top: 1px; white-space: normal; }
       .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: var(--panel-2); color: var(--text-2); }
       .badge.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
       .badge.win-fibre3 { background: var(--st-good-soft); color: var(--st-good); }
@@ -919,6 +927,31 @@
       // L2 archetype/port-group codes are internal shorthand (e.g. "00_Low
       // <40%") -- shown verbatim since there's no simpler user-facing label
       // for them anywhere else in this dashboard either.
+      // Package-level breakdown (9 MKT codes, each with its own discount %,
+      // normal price, and special/discounted price) is deduped per village
+      // by condKey (see aggregate_suggestion.py) since most points at the
+      // same village share only 1-2 distinct condition combos -- looked up
+      // here rather than repeated per point.
+      function l2ItemDetailHtml(record, point) {
+        const mkts = (record.l2Mkts || {})[point.condKey] || [];
+        if (!mkts.length) return `<div class="l2-item-detail"><div class="empty-note">ไม่มีรายละเอียดแพ็กเกจ</div></div>`;
+        return `
+          <div class="l2-item-detail">
+            <table class="l2-mkt-table">
+              <thead><tr><th>แพ็กเกจ</th><th>ส่วนลด</th><th>ราคาปกติ</th><th>ราคาพิเศษ</th></tr></thead>
+              <tbody>
+                ${mkts.map((m) => `
+                  <tr>
+                    <td>${escapeHtml(m.code || "—")}<div class="l2-mkt-desc">${escapeHtml(m.desc || "")}</div></td>
+                    <td>${pct(m.disc)}</td>
+                    <td>${m.normal != null ? fmt(m.normal) : "—"}</td>
+                    <td>${m.special != null ? fmt(m.special) : "—"}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
       function l2PaneHtml(record) {
         const points = record.l2Points || [];
         if (!points.length) return `<div class="empty-note">ไม่มีข้อมูล L2</div>`;
@@ -929,13 +962,14 @@
         return `
           <div class="l2-summary">${summary}</div>
           <div class="l2-list">
-            ${points.map((p) => `
-              <div class="l2-item">
+            ${points.map((p, i) => `
+              <div class="l2-item" data-l2-idx="${i}">
                 <div class="l2-item-head">
                   <span class="l2-id">${escapeHtml(p.id || "—")}</span>
                   <span class="l2-disc">${pct(p.discPct)}</span>
                 </div>
-                <div class="l2-item-sub">${escapeHtml(p.arch || "—")} · ${escapeHtml(p.port || "—")} · ARPA ${p.arpa != null ? fmt(p.arpa) : "—"} (${escapeHtml(p.arpaGroup || "—")})</div>
+                <div class="l2-item-sub">${escapeHtml(p.arch || "—")} · ${escapeHtml(p.port || "—")} · ARPA ${p.arpa != null ? fmt(p.arpa) : "—"} (${escapeHtml(p.arpaGroup || "—")}) <span class="l2-item-chevron">▾ ดูราคาแพ็กเกจ</span></div>
+                ${l2ItemDetailHtml(record, p)}
               </div>`).join("")}
           </div>
         `;
@@ -996,10 +1030,19 @@
       function closeModal() { document.getElementById("modalOverlay").classList.remove("open"); }
       document.getElementById("modalOverlay").addEventListener("click", (e) => { if (e.target.id === "modalOverlay") closeModal(); });
       document.getElementById("modalCard").addEventListener("click", (e) => {
-        const tab = e.target.closest(".modal-tab"); if (!tab) return;
-        const card = document.getElementById("modalCard");
-        card.querySelectorAll(".modal-tab").forEach((t) => t.classList.toggle("active", t === tab));
-        card.querySelectorAll(".modal-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === tab.dataset.tab));
+        const tab = e.target.closest(".modal-tab");
+        if (tab) {
+          const card = document.getElementById("modalCard");
+          card.querySelectorAll(".modal-tab").forEach((t) => t.classList.toggle("active", t === tab));
+          card.querySelectorAll(".modal-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === tab.dataset.tab));
+          return;
+        }
+        const item = e.target.closest(".l2-item");
+        if (item) {
+          const expanded = item.classList.toggle("expanded");
+          const chevron = item.querySelector(".l2-item-chevron");
+          if (chevron) chevron.textContent = expanded ? "▴ ซ่อนราคาแพ็กเกจ" : "▾ ดูราคาแพ็กเกจ";
+        }
       });
       function tagLabel(key) { const t = TAGS.find((x) => x.key === key); return t ? t.label : key; }
       function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -1314,7 +1357,11 @@
           // fix as the calendar's area pool, so picking a status in "Both"
           // mode doesn't silently exclude every building.
           if (!ignore.has("status") && kindOf(r) === "village" && searchState.status !== "all" && r.status !== searchState.status) return false;
-          if (!ignore.has("text") && text && !(r.name || "").toLowerCase().includes(text)) return false;
+          if (!ignore.has("text") && text) {
+            const nameMatch = (r.name || "").toLowerCase().includes(text);
+            const l2Match = kindOf(r) === "village" && (r.l2Points || []).some((p) => (p.id || "").toLowerCase().includes(text));
+            if (!nameMatch && !l2Match) return false;
+          }
           if (!ignore.has("tags") && searchState.tags.size && ![...searchState.tags].every((t) => (r.tags || []).includes(t))) return false;
           return true;
         });
@@ -2422,7 +2469,7 @@
         "churnMonthly", "churnMonthlyRate", "gradeSale",
         "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
         "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
-        "hasL2", "l2Points",
+        "hasL2", "l2Points", "l2Mkts",
       ];
       const BUILDING_FIELDS = [
         "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
@@ -2447,6 +2494,9 @@
           if ("hasL2" in obj) obj.hasL2 = !!Number(obj.hasL2);
           if ("l2Points" in obj) {
             try { obj.l2Points = JSON.parse(obj.l2Points || "[]"); } catch (e) { obj.l2Points = []; }
+          }
+          if ("l2Mkts" in obj) {
+            try { obj.l2Mkts = JSON.parse(obj.l2Mkts || "{}"); } catch (e) { obj.l2Mkts = {}; }
           }
           Object.keys(obj).forEach((k) => { if (obj[k] === "") obj[k] = null; });
           return obj;
