@@ -12,6 +12,7 @@ ID or a grade string that happens to look date-ish.
 The Apps Script side's `reconstructPayload_` is a hand-ported mirror of
 `reconstruct()` below, same relationship as TOL Tracker's.
 """
+import json
 
 TAB_NAMES = ["Meta", "Villages", "Buildings", "CalendarTheme", "CalendarPlan"]
 
@@ -27,6 +28,7 @@ VILLAGE_FIELDS = [
     "churnMonthly", "churnMonthlyRate", "gradeSale",
     "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
     "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
+    "hasL2", "l2Points",
 ]
 
 BUILDING_FIELDS = [
@@ -55,6 +57,7 @@ TEXT_FIELDS = {
     "developer", "groupBuilding", "caretakerChannel", "caretakerName",
     "villageFile", "buildingFile", "syncedAt",
     "monthKey", "kind", "refId", "slot", "tagsCsv", "updatedBy", "updatedAt",
+    "l2Points",
 }
 
 
@@ -64,8 +67,10 @@ def _row_from_record(record, fields):
         v = record.get(f)
         if f == "tags":
             v = ",".join(v or [])
-        elif f == "closed":
+        elif f == "closed" or f == "hasL2":
             v = 1 if v else 0
+        elif f == "l2Points":
+            v = json.dumps(v or [], ensure_ascii=False)
         elif v is None:
             v = ""
         row.append(v)
@@ -79,6 +84,13 @@ def _record_from_row(header, row, fields):
             obj[f] = None
     obj["tags"] = [t for t in str(obj.get("tags") or "").split(",") if t]
     obj["closed"] = bool(obj.get("closed"))
+    if "hasL2" in obj:
+        obj["hasL2"] = bool(obj.get("hasL2"))
+    if "l2Points" in obj:
+        try:
+            obj["l2Points"] = json.loads(obj.get("l2Points") or "[]")
+        except (TypeError, ValueError):
+            obj["l2Points"] = []
     for k, v in list(obj.items()):
         if v == "":
             obj[k] = None

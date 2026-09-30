@@ -25,6 +25,7 @@ imports `build_output()` from here directly, the same relationship
 `update_bb_sheet.py` has with `aggregate_bb.py` in the TOL Tracker project.
 """
 import argparse
+import csv
 import json
 import re
 import sys
@@ -36,6 +37,13 @@ from pyxlsb import open_workbook
 HERE = Path(__file__).resolve().parent
 VILLAGE_XLSB = HERE / "data" / "BMA-West - Village Inventory_2026.xlsb"
 BUILDING_XLSX = HERE / "data" / "BMA-West TOL - Building Inventory_2026.xlsx"
+
+# Shared with the Dashboard's other projects (outside this repo) -- L2
+# Discount Map's own update_l2_sheet.py reads these same two files. There's
+# no ID shared between that project's source data and this one's, so
+# village NAME is the only link -- same assumption that project's own script
+# already makes for its village-name display.
+DASHBOARD_DIR = HERE.parent
 
 CLOSED_STATUS = "ปิด"
 
@@ -507,11 +515,104 @@ def add_tags_and_scores(records, size_key):
         r["closed"] = closed
 
 
+def _find_l2_xlsx():
+    for folder in ("L2", "Config", "."):
+        matches = sorted((DASHBOARD_DIR / folder).glob("*Project Atlas L2*.xlsx"), reverse=True)
+        if matches:
+            return matches[0]
+    return None
+
+
+def _find_village_lookup_file():
+    for folder in (Path("TOL") / "Data", "Config", "."):
+        candidate = DASHBOARD_DIR / folder / "Active FTTH In Village_BMA-West.TXT"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def load_l2_by_village():
+    """Optional enrichment: which villages have an active-discount L2
+    splitter, and that splitter's own discount terms -- matched by village
+    NAME against the exact same two source files L2 Discount Map's own
+    update_l2_sheet.py reads (there's no ID shared between the two
+    projects' source data). Returns {} (skip enrichment, not an error) if
+    those files aren't present on this machine -- L2 is a bonus layer here,
+    not something TOL Suggestion depends on to function.
+
+    Mirrors that project's own filtering logic (a Condition-table lookup
+    resolving to a nonzero discount), just trimmed to the fields this
+    dashboard's L2 tab actually shows -- see that project's
+    update_l2_sheet.py for the fuller original."""
+    xlsx = _find_l2_xlsx()
+    lookup_file = _find_village_lookup_file()
+    if not xlsx or not lookup_file:
+        print("  (L2 source files not found on this machine -- skipping L2 enrichment)")
+        return {}
+
+    village_lookup = {}
+    with open(lookup_file, encoding="utf-8-sig") as f:
+        reader = csv.reader(f, delimiter="^")
+        header = next(reader)
+        idx_l2 = header.index("Vill_SPLITTER_L2")
+        idx_vname = header.index("GIS_VILL_NAME")
+        for row in reader:
+            if len(row) <= max(idx_l2, idx_vname):
+                continue
+            l2, vname = row[idx_l2].strip(), row[idx_vname].strip()
+            if l2 and vname and l2 not in village_lookup:
+                village_lookup[l2] = vname
+
+    wb = openpyxl.load_workbook(xlsx, data_only=True, read_only=True)
+    conditions = []
+    for r in wb["Condition"].iter_rows(min_row=3, values_only=True):
+        if r[1] is None:
+            continue
+        conditions.append({"arch": r[1], "arpaGroup": r[2], "port": r[3], "nad": r[4], "discPct": r[5]})
+
+    def find_condition(arch, arpa_group, port, nad):
+        for c in conditions:
+            if c["arch"] == arch and c["arpaGroup"] == arpa_group and c["port"] == port and c["nad"] == nad:
+                return c
+        return None
+
+    by_village = {}
+    # Sheet name is hardcoded in L2 Discount Map's own script too, regardless
+    # of the *file*name's month -- the source Atlas workbook doesn't rename
+    # this internal sheet month to month.
+    for row in wb["L2 Data vAug"].iter_rows(min_row=2, values_only=True):
+        arch, arpa_group, port, nad = row[4], row[13], row[12], row[14]
+        cond = find_condition(arch, arpa_group, port, nad)
+        if cond is None or (cond["discPct"] or 0) <= 0:
+            continue
+        vname = village_lookup.get(row[10])
+        if not vname:
+            continue
+        by_village.setdefault(vname, []).append({
+            "id": row[10],
+            "arch": arch,
+            "port": port,
+            "arpa": round(row[11]) if row[11] is not None else None,
+            "arpaGroup": arpa_group,
+            "discPct": round(cond["discPct"], 4),
+            "lat": round(row[8], 6) if row[8] is not None else None,
+            "lng": round(row[9], 6) if row[9] is not None else None,
+        })
+    return by_village
+
+
 def build_output():
     villages = load_villages()
     buildings = load_buildings()
     add_tags_and_scores(villages, "houseAll")
     add_tags_and_scores(buildings, "units")
+
+    l2_by_village = load_l2_by_village()
+    for r in villages:
+        points = l2_by_village.get(r["name"], [])
+        r["hasL2"] = bool(points)
+        r["l2Points"] = points
+
     return {
         "meta": {
             "villageFile": VILLAGE_XLSB.name,

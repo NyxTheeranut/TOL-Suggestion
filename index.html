@@ -43,6 +43,8 @@
         --st-good-soft: #e6f6e6;
         --st-warn-soft: #fdf3e0;
         --st-crit-soft: #fbe9e9;
+        --l2: #7c3aed;
+        --l2-soft: #f1e9fe;
 
         --topbar-bg: #121a2b;
         --topbar-fg: #ffffff;
@@ -70,6 +72,8 @@
           --st-good-soft: #122a14;
           --st-warn-soft: #2e2410;
           --st-crit-soft: #2e1616;
+          --l2: #a78bfa;
+          --l2-soft: #241c38;
           --topbar-bg: #05070a;
           --topbar-fg: #f2f5f9;
           --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
@@ -95,6 +99,8 @@
         --st-good-soft: #122a14;
         --st-warn-soft: #2e2410;
         --st-crit-soft: #2e1616;
+        --l2: #a78bfa;
+        --l2-soft: #241c38;
         --topbar-bg: #05070a;
         --topbar-fg: #f2f5f9;
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
@@ -190,9 +196,11 @@
       .tag-chip.tag-true_win { border-color: var(--st-crit); color: var(--st-crit); }
       .tag-chip.tag-fibre3_win { border-color: var(--st-good); color: var(--st-good); }
       .tag-chip.tag-nt_win { border-color: var(--st-warn); color: var(--st-warn); }
+      .tag-chip.tag-has_l2 { border-color: var(--l2); color: var(--l2); }
       .tag-chip.tag-true_win.active { background: var(--st-crit-soft); }
       .tag-chip.tag-fibre3_win.active { background: var(--st-good-soft); }
       .tag-chip.tag-nt_win.active { background: var(--st-warn-soft); }
+      .tag-chip.tag-has_l2.active { background: var(--l2-soft); }
       .auto-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); margin-left: auto; }
       .switch { position: relative; width: 36px; height: 20px; background: var(--line); border-radius: 999px; border: none; flex: none; }
       .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
@@ -262,6 +270,7 @@
       .stat-pill.tag-true_win { background: var(--st-crit-soft); color: var(--st-crit); }
       .stat-pill.tag-fibre3_win { background: var(--st-good-soft); color: var(--st-good); }
       .stat-pill.tag-nt_win { background: var(--st-warn-soft); color: var(--st-warn); }
+      .stat-pill.tag-has_l2 { background: var(--l2-soft); color: var(--l2); }
       :root[data-theme="dark"] .stat-pill.tag-large, @media (prefers-color-scheme: dark) { .stat-pill.tag-large { color: #7fb0ee; } }
       .empty-note { padding: 24px 14px; color: var(--text-3); font-size: 12.5px; text-align: center; }
 
@@ -278,6 +287,14 @@
         width: 70px; height: 8px; border-radius: 4px;
         background: linear-gradient(to right, rgb(58,111,214), rgb(45,178,130), rgb(245,195,68), rgb(239,127,46), rgb(208,52,44));
       }
+      .map-l2-toggle {
+        position: absolute; right: 10px; top: 10px; z-index: 400;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+        padding: 7px 11px; display: flex; align-items: center; gap: 8px;
+        font-size: 11.5px; font-weight: 600; color: var(--text-2); box-shadow: var(--shadow);
+      }
+      .map-l2-toggle .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--l2); flex: none; }
+      .l2-pin { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
 
       /* Pin popup bubble (Route Planner's pattern: a quick preview anchored
          right at the pin, not a modal in the middle of the screen) --
@@ -305,6 +322,22 @@
       .modal-head .loc { font-size: 12px; color: var(--text-3); margin-top: 3px; }
       .modal-close { border: none; background: var(--panel-2); color: var(--text-2); width: 26px; height: 26px; border-radius: 50%; flex: none; font-size: 14px; }
       .modal-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+      /* Only shown when a village has L2 data -- everything else (buildings,
+         L2-less villages) renders a single plain pane, no tab strip at all. */
+      .modal-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+      .modal-tab { border: none; background: none; padding: 8px 4px; margin-right: 14px; font-size: 13px; font-weight: 600; color: var(--text-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+      .modal-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+      .modal-tab-badge { background: var(--l2-soft); color: var(--l2); font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; margin-left: 4px; }
+      .modal-pane { display: none; }
+      .modal-pane.active { display: block; }
+      .l2-summary { font-size: 12.5px; color: var(--text-2); margin-bottom: 10px; }
+      .l2-summary b { color: var(--l2); }
+      .l2-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+      .l2-item { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }
+      .l2-item-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      .l2-id { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-2); }
+      .l2-disc { font-weight: 700; color: var(--l2); font-size: 13px; }
+      .l2-item-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
       .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: var(--panel-2); color: var(--text-2); }
       .badge.win-true { background: var(--st-crit-soft); color: var(--st-crit); }
       .badge.win-fibre3 { background: var(--st-good-soft); color: var(--st-good); }
@@ -535,6 +568,11 @@
           </div>
           <div class="search-map-panel">
             <div id="mapView"></div>
+            <div class="map-l2-toggle">
+              <span class="dot"></span>
+              <span>หมุด L2</span>
+              <button class="switch" id="mapL2Toggle"></button>
+            </div>
             <div class="map-legend">
               <span>สีหมุด = คะแนน</span>
               <span class="heat-swatch"></span>
@@ -577,7 +615,10 @@
             </div>
           </div>
           <div class="card">
-            <div class="list-summary">แสดง <b id="recCount">0</b> รายการ — คลิกหัวคอลัมน์เพื่อจัดเรียง</div>
+            <div class="list-summary" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <span>แสดง <b id="recCount">0</b> รายการ — คลิกหัวคอลัมน์เพื่อจัดเรียง</span>
+              <button class="btn" id="recExportCsv" style="flex:none;">⬇ ส่งออก CSV</button>
+            </div>
             <div class="rec-table-wrap">
               <table class="rec-table" id="recTable">
                 <thead><tr id="recTableHead"></tr></thead>
@@ -694,6 +735,7 @@
         { key: "true_win", label: "True ชนะ" },
         { key: "fibre3_win", label: "Fibre3 ชนะ" },
         { key: "nt_win", label: "NT ชนะ" },
+        { key: "has_l2", label: "มี L2" },
       ];
 
       function byId(kind, id) {
@@ -874,23 +916,38 @@
         return { cls, html: escapeHtml(String(field.fmt(raw))) + extra };
       }
 
+      // L2 archetype/port-group codes are internal shorthand (e.g. "00_Low
+      // <40%") -- shown verbatim since there's no simpler user-facing label
+      // for them anywhere else in this dashboard either.
+      function l2PaneHtml(record) {
+        const points = record.l2Points || [];
+        if (!points.length) return `<div class="empty-note">ไม่มีข้อมูล L2</div>`;
+        const discounts = points.map((p) => p.discPct).filter((v) => v != null);
+        const summary = discounts.length
+          ? `พบ <b>${points.length}</b> จุด L2 · ส่วนลด <b>${pct(Math.min(...discounts))}–${pct(Math.max(...discounts))}</b>`
+          : `พบ <b>${points.length}</b> จุด L2`;
+        return `
+          <div class="l2-summary">${summary}</div>
+          <div class="l2-list">
+            ${points.map((p) => `
+              <div class="l2-item">
+                <div class="l2-item-head">
+                  <span class="l2-id">${escapeHtml(p.id || "—")}</span>
+                  <span class="l2-disc">${pct(p.discPct)}</span>
+                </div>
+                <div class="l2-item-sub">${escapeHtml(p.arch || "—")} · ${escapeHtml(p.port || "—")} · ARPA ${p.arpa != null ? fmt(p.arpa) : "—"} (${escapeHtml(p.arpaGroup || "—")})</div>
+              </div>`).join("")}
+          </div>
+        `;
+      }
+
       function openModal(record) {
         const winner = mksWinner(record);
         // Village status goes at the end of the location line (after
         // subdistrict/district), not as its own grid box.
         const locLine = locOf(record) + (kindOf(record) === "village" && record.status ? " · " + record.status : "");
-        document.getElementById("modalCard").innerHTML = `
-          <div class="modal-head">
-            <div>
-              <h3>${escapeHtml(record.name || "—")} <span class="modal-id">#${escapeHtml(record.id)}</span></h3>
-              <div class="loc">${escapeHtml(locLine)}</div>
-            </div>
-            <button class="modal-close" id="modalCloseBtn">✕</button>
-          </div>
-          <div class="modal-badges">
-            ${winner ? `<span class="badge ${winner.cls}">${winner.label} ชนะ</span>` : ""}
-            ${(record.tags || []).map((t) => `<span class="badge">${tagLabel(t)}</span>`).join("")}
-          </div>
+        const hasL2Tab = kindOf(record) === "village" && record.hasL2;
+        const detailsPane = `
           <div class="demo-grid">
             ${DEMO_ITEMS.map((item) => `
               <div class="demo-item ${item.box || ""} ${item.wide ? "demo-item-wide" : ""}">
@@ -911,11 +968,38 @@
               </div>`).join("")}
           </div>
         `;
+        document.getElementById("modalCard").innerHTML = `
+          <div class="modal-head">
+            <div>
+              <h3>${escapeHtml(record.name || "—")} <span class="modal-id">#${escapeHtml(record.id)}</span></h3>
+              <div class="loc">${escapeHtml(locLine)}</div>
+            </div>
+            <button class="modal-close" id="modalCloseBtn">✕</button>
+          </div>
+          <div class="modal-badges">
+            ${winner ? `<span class="badge ${winner.cls}">${winner.label} ชนะ</span>` : ""}
+            ${(record.tags || []).filter((t) => t !== "has_l2").map((t) => `<span class="badge">${tagLabel(t)}</span>`).join("")}
+          </div>
+          ${hasL2Tab ? `
+            <div class="modal-tabs">
+              <button class="modal-tab active" data-tab="details">รายละเอียด</button>
+              <button class="modal-tab" data-tab="l2">L2<span class="modal-tab-badge">${record.l2Points.length}</span></button>
+            </div>
+            <div class="modal-pane active" data-pane="details">${detailsPane}</div>
+            <div class="modal-pane" data-pane="l2">${l2PaneHtml(record)}</div>
+          ` : detailsPane}
+        `;
         document.getElementById("modalOverlay").classList.add("open");
         document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
       }
       function closeModal() { document.getElementById("modalOverlay").classList.remove("open"); }
       document.getElementById("modalOverlay").addEventListener("click", (e) => { if (e.target.id === "modalOverlay") closeModal(); });
+      document.getElementById("modalCard").addEventListener("click", (e) => {
+        const tab = e.target.closest(".modal-tab"); if (!tab) return;
+        const card = document.getElementById("modalCard");
+        card.querySelectorAll(".modal-tab").forEach((t) => t.classList.toggle("active", t === tab));
+        card.querySelectorAll(".modal-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === tab.dataset.tab));
+      });
       function tagLabel(key) { const t = TAGS.find((x) => x.key === key); return t ? t.label : key; }
       function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
@@ -1025,8 +1109,9 @@
         btn.addEventListener("click", () => setSearchMobileView(btn.dataset.view));
       });
 
-      let map, markerLayer, boundaryLayer;
+      let map, markerLayer, boundaryLayer, l2MarkerLayer;
       const markersById = {}; // "kind:id" -> Leaflet marker, so a list-row click can find and open its own pin's popup
+      let showL2Pins = false;
       function initMap() {
         map = L.map("mapView", { preferCanvas: true }).setView([13.85, 100.45], 11);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
@@ -1034,7 +1119,37 @@
         // underneath the pins, not on top of them.
         boundaryLayer = L.layerGroup().addTo(map);
         markerLayer = L.layerGroup().addTo(map);
+        l2MarkerLayer = L.layerGroup(); // not added to the map yet -- off by default, toggled by mapL2Toggle
       }
+
+      // Every L2 splitter point across every village currently in view --
+      // each village can carry several (a housing estate commonly has a
+      // dozen+), so this is flattened independently of the village pins
+      // above rather than one pin per village.
+      function renderL2Pins(records) {
+        l2MarkerLayer.clearLayers();
+        if (!showL2Pins) return;
+        records.forEach((r) => {
+          if (kindOf(r) !== "village" || !r.hasL2 || !r.l2Points) return;
+          r.l2Points.forEach((p) => {
+            if (p.lat == null || p.lng == null) return;
+            const m = L.circleMarker([p.lat, p.lng], {
+              radius: 4, weight: 1.5, color: "#fff", fillColor: "#7c3aed", fillOpacity: 0.9, className: "l2-pin",
+            });
+            m.bindTooltip(
+              `${escapeHtml(r.name)}<br>${escapeHtml(p.arch || "—")} · ${pct(p.discPct)} discount`,
+              { direction: "top" },
+            );
+            m.addTo(l2MarkerLayer);
+          });
+        });
+      }
+      document.getElementById("mapL2Toggle").addEventListener("click", (e) => {
+        showL2Pins = !showL2Pins;
+        e.target.classList.toggle("on", showL2Pins);
+        if (showL2Pins) l2MarkerLayer.addTo(map); else map.removeLayer(l2MarkerLayer);
+        renderL2Pins(filteredSearchResults());
+      });
 
       // Real district/tambon boundary polygons (boundaries.js), drilling down
       // like Route Planner's map does: with no district picked, show all 3
@@ -1145,6 +1260,7 @@
           pts.push([r.lat, r.lng]);
         });
         if (pts.length) map.fitBounds(pts, { maxZoom: 14, padding: [20, 20] });
+        renderL2Pins(records);
       }
 
       /* ===== Section 1: Search ===== */
@@ -1405,6 +1521,7 @@
           return (av - bv) * dir;
         });
 
+        STATE.recResults = results; // full filtered+sorted set, for CSV export (not capped at 300 like the DOM below)
         document.getElementById("recCount").textContent = results.length;
         const body = document.getElementById("recTableBody");
         if (!results.length) {
@@ -1453,6 +1570,35 @@
         const row = e.target.closest("tr[data-id]"); if (!row) return;
         const r = byId(row.dataset.kind, row.dataset.id);
         if (r) openModal(r);
+      });
+
+      // One field per CSV cell -- quoted whenever it contains a comma,
+      // quote, or newline, with embedded quotes doubled (standard CSV
+      // escaping). ﻿ (BOM) up front so Excel opens Thai text as UTF-8
+      // instead of guessing a Thai legacy codepage and mangling it.
+      function csvField(v) {
+        const s = String(v == null ? "" : v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }
+      document.getElementById("recExportCsv").addEventListener("click", () => {
+        const rows = STATE.recResults || [];
+        const header = REC_COLUMNS.map((c) => c.label);
+        const lines = [header.map(csvField).join(",")];
+        rows.forEach((r) => {
+          const cells = [r.name || ""].concat(REC_COLUMNS.slice(1).map((c) => c.fmt(c.get(r))));
+          lines.push(cells.map(csvField).join(","));
+        });
+        const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const kindLabel = { village: "หมู่บ้าน", building: "อาคาร", both: "ทั้งหมด" }[recState.kind] || recState.kind;
+        const stamp = new Date().toISOString().slice(0, 10);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `แนะนำ_${kindLabel}_${stamp}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       });
 
       /* ===== Section 3: Calendar ===== */
@@ -1974,6 +2120,9 @@
         { key: "mksFibre3", label: "MKS Fibre3", get: (r) => r.mksFibre3, fmt: pct },
         { key: "faultAvg", label: "Fault", get: (r) => r.faultAvg, fmt: fmt },
         { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
+        { key: "ftthAvailable", label: "FTTH Available", get: (r) => r.totalAvailable, fmt: whole },
+        { key: "utilization", label: "%Utilization (Active FTTH/FTTH Port)", get: (r) => (r.totalPort ? r.active / r.totalPort : null), fmt: pct },
+        { key: "activePenetration", label: "%Penetration (Active Subs True/HH)", get: (r) => { const hh = hhOf(r); return hh ? r.active / hh : null; }, fmt: pct },
       ];
       const anaState = { xKey: "hh", yKey: "mksTrue", quadrant: null };
 
@@ -2131,9 +2280,18 @@
         // returns null for that).
         STATE.villages.concat(STATE.buildings).forEach((r) => {
           const winner = mksWinner(r);
-          if (!winner) return;
-          r.tags = r.tags || [];
-          if (!r.tags.includes(winner.key + "_win")) r.tags.push(winner.key + "_win");
+          if (winner) {
+            r.tags = r.tags || [];
+            if (!r.tags.includes(winner.key + "_win")) r.tags.push(winner.key + "_win");
+          }
+        });
+        // L2 is villages-only (that's the only data the source L2 workbook
+        // matches against) -- r.hasL2 is simply undefined on every building.
+        STATE.villages.forEach((r) => {
+          if (r.hasL2) {
+            r.tags = r.tags || [];
+            if (!r.tags.includes("has_l2")) r.tags.push("has_l2");
+          }
         });
 
         document.getElementById("topbarMeta").textContent =
@@ -2242,6 +2400,7 @@
         "churnMonthly", "churnMonthlyRate", "gradeSale",
         "scoreSale", "gradeCare", "scoreCare", "finalGrade", "villageGrade",
         "actionGroup", "mainGroup", "contractEnd", "tags", "autoScore",
+        "hasL2", "l2Points",
       ];
       const BUILDING_FIELDS = [
         "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
@@ -2263,6 +2422,10 @@
           if (fields) fields.forEach((f) => { if (!(f in obj)) obj[f] = null; });
           if ("tags" in obj) obj.tags = String(obj.tags || "").split(",").filter((t) => t);
           if ("closed" in obj) obj.closed = !!Number(obj.closed);
+          if ("hasL2" in obj) obj.hasL2 = !!Number(obj.hasL2);
+          if ("l2Points" in obj) {
+            try { obj.l2Points = JSON.parse(obj.l2Points || "[]"); } catch (e) { obj.l2Points = []; }
+          }
           Object.keys(obj).forEach((k) => { if (obj[k] === "") obj[k] = null; });
           return obj;
         });
