@@ -157,7 +157,12 @@
       :root[data-theme="dark"] .mock-banner, @media (prefers-color-scheme: dark) { .mock-banner { color: #f0d089; } }
 
       /* ── topbar ─────────────────────────────────────────────────────────── */
-      .topbar { flex: none; background: var(--topbar-bg); color: var(--topbar-fg); padding: 12px 24px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 16px; row-gap: 10px; }
+      /* sticky/top:0/z-index mirrors TOL Tracker's topbar exactly -- that's
+         the pinned-header shape iOS Safari keys off to carry a header's
+         colour up behind the status bar instead of painting its own light
+         chrome there. Inside this fixed 100dvh shell sticky resolves like
+         static, so it costs nothing visually. */
+      .topbar { flex: none; position: sticky; top: 0; z-index: 40; background: var(--topbar-bg); color: var(--topbar-fg); padding: 12px 24px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 16px; row-gap: 10px; }
       .brand { grid-column: 1; display: flex; align-items: center; gap: 11px; min-width: 0; }
       .brand .bars-icon i { background: var(--accent-mark); }
       .brand .bars-icon i:nth-child(1), .brand .bars-icon i:nth-child(2) { opacity: .5; }
