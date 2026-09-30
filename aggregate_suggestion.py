@@ -627,6 +627,49 @@ def load_l2_by_village():
     return by_village, mkts_by_village
 
 
+def attach_l2_data(villages, l2_by_village, l2_mkts_by_village):
+    """Matching by name alone breaks when this dashboard's own village list
+    has two entries sharing a name (confirmed against real data: 12 village
+    names here have 2 entries each, e.g. two separate "หมู่บ้านชลลดา" ~5km
+    apart) -- naively doing villages_by_name.get(r["name"]) would attach the
+    SAME L2 points to both, falsely tagging the wrong one as having L2 (and
+    on the map, its "L2 pin" would actually render 5km away at the real
+    match's location). Where a name is ambiguous, this instead assigns the
+    points to whichever same-named candidate is geographically closest to
+    the L2 points' own centroid."""
+    for r in villages:
+        r["hasL2"] = False
+        r["l2Points"] = []
+        r["l2Mkts"] = {}
+
+    by_name = {}
+    for r in villages:
+        by_name.setdefault(r["name"], []).append(r)
+
+    for name, points in l2_by_village.items():
+        candidates = by_name.get(name)
+        if not candidates:
+            continue
+        if len(candidates) == 1:
+            target = candidates[0]
+        else:
+            lats = [p["lat"] for p in points if p.get("lat") is not None]
+            lngs = [p["lng"] for p in points if p.get("lng") is not None]
+            if not lats:
+                continue
+            centroid_lat, centroid_lng = sum(lats) / len(lats), sum(lngs) / len(lngs)
+
+            def dist(cand):
+                if cand["lat"] is None or cand["lng"] is None:
+                    return float("inf")
+                return (cand["lat"] - centroid_lat) ** 2 + (cand["lng"] - centroid_lng) ** 2
+
+            target = min(candidates, key=dist)
+        target["hasL2"] = True
+        target["l2Points"] = points
+        target["l2Mkts"] = l2_mkts_by_village.get(name, {})
+
+
 def build_output():
     villages = load_villages()
     buildings = load_buildings()
@@ -634,11 +677,7 @@ def build_output():
     add_tags_and_scores(buildings, "units")
 
     l2_by_village, l2_mkts_by_village = load_l2_by_village()
-    for r in villages:
-        points = l2_by_village.get(r["name"], [])
-        r["hasL2"] = bool(points)
-        r["l2Points"] = points
-        r["l2Mkts"] = l2_mkts_by_village.get(r["name"], {})
+    attach_l2_data(villages, l2_by_village, l2_mkts_by_village)
 
     return {
         "meta": {
