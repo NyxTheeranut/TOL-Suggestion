@@ -110,6 +110,16 @@
 
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; height: 100%; }
+      /* The canvas colour -- what the browser paints OUTSIDE body's box:
+         iOS Safari's status-bar/notch region and the overscroll area. Unlike
+         TOL Tracker this page is a fixed app shell (#app is 100dvh and never
+         scrolls at the document level), so Safari can't tint that region from
+         content scrolling under it and falls back to the canvas instead --
+         which, with html transparent, propagates body's light --page and
+         renders as a pale strip above the dark topbar. Painting html with the
+         topbar colour fixes that region without touching anything visible:
+         body still paints --page across the whole viewport on top of it. */
+      html { background: var(--topbar-bg); }
       body {
         background: var(--page); color: var(--ink);
         font-family: "Inter", system-ui, -apple-system, sans-serif;
