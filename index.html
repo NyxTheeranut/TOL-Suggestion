@@ -767,14 +767,16 @@
 
       /* ===== theme toggle ===== */
       (function () {
-        // Defaults to light regardless of the OS/browser's own dark-mode
-        // setting -- unlike the tokens' @media(prefers-color-scheme:dark)
-        // block (which would otherwise auto-follow system dark mode), this
-        // page only ever goes dark from an explicit click on themeBtn.
-        const saved = localStorage.getItem("tolSuggestionTheme") || "light";
-        document.documentElement.setAttribute("data-theme", saved);
+        // Follows the OS/browser's own dark-mode setting by default (like
+        // the tokens' @media(prefers-color-scheme:dark) block already
+        // supports) -- only stamps an explicit data-theme once the user has
+        // actually clicked themeBtn, matching TOL Tracker's pattern.
+        const saved = localStorage.getItem("tolSuggestionTheme");
+        if (saved) document.documentElement.setAttribute("data-theme", saved);
         document.getElementById("themeBtn").addEventListener("click", () => {
-          const cur = document.documentElement.getAttribute("data-theme") || "light";
+          const cur =
+            document.documentElement.getAttribute("data-theme") ||
+            (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
           const next = cur === "dark" ? "light" : "dark";
           document.documentElement.setAttribute("data-theme", next);
           localStorage.setItem("tolSuggestionTheme", next);
