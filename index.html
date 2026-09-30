@@ -941,7 +941,8 @@
         `;
       }
 
-      function openModal(record) {
+      function openModal(record, initialTab) {
+        initialTab = initialTab || "details";
         const winner = mksWinner(record);
         // Village status goes at the end of the location line (after
         // subdistrict/district), not as its own grid box.
@@ -982,11 +983,11 @@
           </div>
           ${hasL2Tab ? `
             <div class="modal-tabs">
-              <button class="modal-tab active" data-tab="details">รายละเอียด</button>
-              <button class="modal-tab" data-tab="l2">L2<span class="modal-tab-badge">${record.l2Points.length}</span></button>
+              <button class="modal-tab${initialTab === "details" ? " active" : ""}" data-tab="details">รายละเอียด</button>
+              <button class="modal-tab${initialTab === "l2" ? " active" : ""}" data-tab="l2">L2<span class="modal-tab-badge">${record.l2Points.length}</span></button>
             </div>
-            <div class="modal-pane active" data-pane="details">${detailsPane}</div>
-            <div class="modal-pane" data-pane="l2">${l2PaneHtml(record)}</div>
+            <div class="modal-pane${initialTab === "details" ? " active" : ""}" data-pane="details">${detailsPane}</div>
+            <div class="modal-pane${initialTab === "l2" ? " active" : ""}" data-pane="l2">${l2PaneHtml(record)}</div>
           ` : detailsPane}
         `;
         document.getElementById("modalOverlay").classList.add("open");
@@ -1136,10 +1137,15 @@
             const m = L.circleMarker([p.lat, p.lng], {
               radius: 4, weight: 1.5, color: "#fff", fillColor: "#7c3aed", fillOpacity: 0.9, className: "l2-pin",
             });
-            m.bindTooltip(
-              `${escapeHtml(r.name)}<br>${escapeHtml(p.arch || "—")} · ${pct(p.discPct)} discount`,
-              { direction: "top" },
-            );
+            // Same small popup-bubble pattern as a village/building pin --
+            // click to preview, then "ดูรายละเอียด" for the full breakdown
+            // (opens the owning village's modal straight to its L2 tab).
+            m.bindPopup(l2PopupHtml(r, p));
+            m.on("popupopen", (e) => {
+              const el = e.popup.getElement();
+              const btn = el.querySelector("[data-view-l2-details]");
+              if (btn) btn.addEventListener("click", () => openModal(r, "l2"));
+            });
             m.addTo(l2MarkerLayer);
           });
         });
@@ -1235,6 +1241,21 @@
           <div class="row"><span>${isVillage ? "ครัวเรือน" : "ยูนิต"}</span><span class="v">${fmt(isVillage ? r.houseAll : r.units)}</span></div>
           <div class="row"><span>พอร์ตว่าง</span><span class="v">${fmt(r.totalAvailable)}</span></div>
           <button data-view-details>ดูรายละเอียด</button>
+        </div>`;
+      }
+
+      // Same small-popup pattern as a village/building pin -- just enough to
+      // place this one L2 point, with the full discount/archetype/port/ARPA
+      // breakdown left behind the "ดูรายละเอียด" button (opens the owning
+      // village's modal straight to its L2 tab) rather than crowding every
+      // point's worth of detail onto the map itself.
+      function l2PopupHtml(village, point) {
+        return `<div class="map-pop">
+          <div class="nm">${escapeHtml(village.name || "—")}</div>
+          <div class="row"><span>${escapeHtml(locOf(village))}</span></div>
+          <div class="row"><span>ส่วนลด L2</span><span class="v">${pct(point.discPct)}</span></div>
+          <div class="row"><span>${escapeHtml(point.arch || "—")}</span></div>
+          <button data-view-l2-details>ดูรายละเอียด</button>
         </div>`;
       }
 
@@ -2122,8 +2143,8 @@
         { key: "churnMonthly", label: "Churn/เดือน", get: (r) => r.churnMonthly, fmt: fmt },
         { key: "marketSize", label: "Market Size", get: (r) => totalMarketOf(r), fmt: whole },
         { key: "ftthAvailable", label: "FTTH Available", get: (r) => r.totalAvailable, fmt: whole },
-        { key: "utilization", label: "%Utilization (Active FTTH/FTTH Port)", get: (r) => (r.totalPort ? r.active / r.totalPort : null), fmt: pct },
-        { key: "activePenetration", label: "%Penetration (Active Subs True/HH)", get: (r) => { const hh = hhOf(r); return hh ? r.active / hh : null; }, fmt: pct },
+        { key: "utilization", label: "%Utilization", get: (r) => (r.totalPort ? r.active / r.totalPort : null), fmt: pct },
+        { key: "activePenetration", label: "%Penetration", get: (r) => { const hh = hhOf(r); return hh ? r.active / hh : null; }, fmt: pct },
       ];
       const anaState = { xKey: "hh", yKey: "mksTrue", quadrant: null };
 
