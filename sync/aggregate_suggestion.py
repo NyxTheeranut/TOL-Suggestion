@@ -35,15 +35,16 @@ import openpyxl
 from pyxlsb import open_workbook
 
 HERE = Path(__file__).resolve().parent
-VILLAGE_XLSB = HERE / "data" / "BMA-West - Village Inventory_2026.xlsb"
-BUILDING_XLSX = HERE / "data" / "BMA-West TOL - Building Inventory_2026.xlsx"
+REPO_DIR = HERE.parent  # this script lives in sync/, data/ is a sibling of sync/
+VILLAGE_XLSB = REPO_DIR / "data" / "BMA-West - Village Inventory_2026.xlsb"
+BUILDING_XLSX = REPO_DIR / "data" / "BMA-West TOL - Building Inventory_2026.xlsx"
 
 # Shared with the Dashboard's other projects (outside this repo) -- L2
 # Discount Map's own update_l2_sheet.py reads these same two files. There's
 # no ID shared between that project's source data and this one's, so
 # village NAME is the only link -- same assumption that project's own script
 # already makes for its village-name display.
-DASHBOARD_DIR = HERE.parent
+DASHBOARD_DIR = REPO_DIR.parent
 
 CLOSED_STATUS = "ปิด"
 

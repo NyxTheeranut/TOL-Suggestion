@@ -23,18 +23,31 @@ Apps Script Web App  ──executes as the Sheet owner──▶  Google Sheet
 this page renders Search / Recommend / Calendar from that payload
 ```
 
-`aggregate_suggestion.py` curates the two raw BMA-West inventory exports
+`sync/aggregate_suggestion.py` curates the two raw BMA-West inventory exports
 (`data/BMA-West - Village Inventory_2026.xlsb`, `data/BMA-West TOL - Building
 Inventory_2026.xlsx` — **not committed to this repo**, see `.gitignore`) into
 compact per-property records with tags (`high_available`, `large`,
 `high_competitor`, `low_fault`) and a composite `autoScore`.
-`update_suggestion_sheet.py` pushes those into the Sheet's `Villages` /
+`sync/update_suggestion_sheet.py` pushes those into the Sheet's `Villages` /
 `Buildings` tabs; it never touches `CalendarTheme` / `CalendarPlan` — those
 belong to the live page itself (any signed-in viewer can set a month's theme
 or generate a day's picks, and everyone sees the same shared plan).
 
-Run `python3 aggregate_suggestion.py --sample` any time to eyeball the
+Run `python3 sync/aggregate_suggestion.py --sample` any time to eyeball the
 curated fields + tag counts against the raw workbooks before trusting a sync.
+
+## Repo layout
+
+```
+index.html        the whole site -- GitHub Pages serves this from repo root
+manifest.json      Android/iOS "Add to Home Screen" metadata
+icons/             app icons (source + generated apple-touch/192/512 sizes)
+assets/            boundaries.js -- district/subdistrict map polygons
+backend/           Sheets Sync - Apps Script Code.gs (paste into Apps Script)
+sync/              the local data pipeline (aggregate_suggestion.py,
+                   sheet_schema.py, update_suggestion_sheet.py)
+data/              raw source workbooks -- gitignored, never committed
+```
 
 ## One-time setup
 
@@ -57,11 +70,11 @@ curated fields + tag counts against the raw workbooks before trusting a sync.
 
 1. Create a new Google Sheet, dedicated to this app.
 2. **Extensions → Apps Script**, delete the starter code, paste in the full
-   contents of `Sheets Sync - Apps Script Code.gs` from this repo.
+   contents of `backend/Sheets Sync - Apps Script Code.gs` from this repo.
 3. **Project Settings → Script Properties** → add:
    - `OAUTH_CLIENT_ID` = the Client ID from step 1.
    - `SYNC_SECRET` = any random string (e.g. `openssl rand -hex 24`).
-     Gates `syncData`, used only by `update_suggestion_sheet.py`.
+     Gates `syncData`, used only by `sync/update_suggestion_sheet.py`.
 4. **Deploy → New deployment** — Type: **Web app**, Execute as: **Me**,
    Who has access: **Anyone** (real access control is the ID-token + Users
    tab check inside the script, not this setting).
@@ -73,7 +86,7 @@ curated fields + tag counts against the raw workbooks before trusting a sync.
    bottom of the `<script>` block) to the values from steps 1–2. Until these
    are set, the page auto-loads a small embedded mock dataset instead of
    requiring sign-in, so the UI can be reviewed locally first.
-2. In `update_suggestion_sheet.py`, set `SYNC_URL` to the same Web app URL.
+2. In `sync/update_suggestion_sheet.py`, set `SYNC_URL` to the same Web app URL.
 
 ### 4. Add your team to the Users tab
 
@@ -85,7 +98,7 @@ add rows) for your team: `email | note`. Delete the sample row.
 
 Create a file containing exactly the `SYNC_SECRET` value from step 2 (no
 extra whitespace) outside this repo, in the Dashboard folder's `Config/`
-directory — `update_suggestion_sheet.py` reads `Config/sync_secret.txt`
+directory — `sync/update_suggestion_sheet.py` reads `Config/sync_secret.txt`
 (shared with this Dashboard's other projects rather than a dedicated file;
 point it at your own `SYNC_SECRET` if you'd rather keep it separate).
 **Never commit this file** — it lives outside the repo specifically so it
@@ -94,7 +107,7 @@ can't be.
 Then run:
 
 ```
-python3 update_suggestion_sheet.py
+python3 sync/update_suggestion_sheet.py
 ```
 
 (or double-click `Update TOL Suggestion.command` in the Dashboard folder's

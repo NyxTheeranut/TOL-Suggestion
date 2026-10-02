@@ -24,7 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DASHBOARD_DIR = HERE.parent
+REPO_DIR = HERE.parent  # this script lives in sync/
+DASHBOARD_DIR = REPO_DIR.parent
 sys.path.insert(0, str(HERE))
 import aggregate_suggestion  # noqa: E402
 import sheet_schema  # noqa: E402
