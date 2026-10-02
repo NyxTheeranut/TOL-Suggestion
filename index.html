@@ -208,6 +208,13 @@
       }
       .tag-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
       .tag-chip .n { opacity: .65; font-weight: 500; margin-left: 4px; }
+      /* A control whose live count has hit 0 stays clickable (so it can be
+         un-picked or tried) but reads as "nothing here right now". */
+      .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
+      .cal-pool-summary { margin-top: 10px; font-size: 12.5px; color: var(--text-2); }
+      .cal-pool-summary b { font-size: 15px; color: var(--ink); }
+      .cal-pool-summary .sub { color: var(--text-3); }
+      .cal-pool-summary.none { color: var(--st-crit); }
       /* Only the 3 MKS-winner tags get their own color (same palette as
          their matching stat-pill) -- the rest keep the plain neutral chip
          look above. */
@@ -680,6 +687,7 @@
               <button class="btn" id="calExportImg">📷 ส่งออกรูปภาพ</button>
             </div>
             <div class="tag-chips" id="calTags"></div>
+            <div class="cal-pool-summary" id="calPoolSummary"></div>
             <div class="hint" style="margin-top:10px;">เลือกเขต/ตำบลได้หลายอันพร้อมกัน (แตะซ้ำเพื่อยกเลิก) — แผนเดือนนี้จะดึงจากทุกพื้นที่ที่เลือกไว้รวมกัน</div>
             <div class="district-panel" style="max-height:190px;margin-top:6px;">
               <div class="amphur-row" id="calAmphurRow"></div>
@@ -1748,12 +1756,46 @@
         return new Date(y, m - 1, 1).getDay(); // 0=Sun
       }
 
-      function renderCalTagChips() {
+      // Every number on the Calendar's filter controls (tag chips, district
+      // pills, subdistrict cards, the total line) is a live count of what the
+      // plan generator would actually be able to pick from RIGHT NOW --
+      // the same pool rankedPoolForCalendar() ranks -- so clicking a tag
+      // immediately shows how many villages/buildings that narrows down to.
+      // Each tag chip's own number answers "how many would match if this tag
+      // were selected too" (selected tags are AND-ed), so it's computed from
+      // the pool with every OTHER selected tag applied.
+      function calHasTag(r, key) { return (r.tags || []).includes(key); }
+      function renderCalTagChipButtons() {
+        const base = calAreaPool(new Set(["tags"]));
         document.getElementById("calTags").innerHTML = TAGS.map((t) => {
           const active = calState.tags.has(t.key);
-          return `<button class="tag-chip tag-${t.key}${active ? " active" : ""}" data-k="${t.key}">${t.label}</button>`;
+          const others = [...calState.tags].filter((k) => k !== t.key);
+          const n = base.filter((r) => others.every((k) => calHasTag(r, k)) && calHasTag(r, t.key)).length;
+          return `<button class="tag-chip tag-${t.key}${active ? " active" : ""}${n === 0 ? " empty" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
         }).join("");
       }
+      function renderCalPoolSummary() {
+        const el = document.getElementById("calPoolSummary");
+        const pool = calAreaPool();
+        const v = pool.filter((r) => kindOf(r) === "village").length;
+        const b = pool.length - v;
+        const parts = [];
+        if (calState.kind !== "building") parts.push(v + " หมู่บ้าน");
+        if (calState.kind !== "village") parts.push(b + " อาคาร");
+        el.classList.toggle("none", pool.length === 0);
+        el.innerHTML = pool.length
+          ? `ตรงเงื่อนไขตอนนี้ <b>${pool.length}</b> รายการ <span class="sub">(${parts.join(" · ")})</span>`
+          : "ไม่มีรายการที่ตรงเงื่อนไข — ลองยกเลิกบางแท็กหรือขยายพื้นที่";
+      }
+      // Re-renders every count-bearing control together, so any change
+      // (tag, kind, status, district, month) keeps them all in agreement.
+      function refreshCalFacets() {
+        renderCalTagChipButtons();
+        renderCalAmphurRow();
+        renderCalDistrictGrid();
+        renderCalPoolSummary();
+      }
+      function renderCalTagChips() { refreshCalFacets(); }
 
       // Same "ignore a facet for counting purposes" trick as searchPool --
       // used both to build the pool that actually gets ranked and to count
@@ -1763,6 +1805,7 @@
         return poolFor(calState.kind).filter((r) => {
           if (!ignore.has("amp") && calState.amps.size && !calState.amps.has(ampOf(r))) return false;
           if (!ignore.has("tam") && calState.tams.size && !calState.tams.has(tamOf(r))) return false;
+          if (!ignore.has("tags") && calState.tags.size && ![...calState.tags].every((k) => calHasTag(r, k))) return false;
           // Buildings have no "status" (ปิด/เปิด/...) field at all -- the
           // status filter only ever narrows villages, so picking a specific
           // status in "Villages + Buildings" mode doesn't wipe out every
@@ -1780,18 +1823,26 @@
       // so a month's plan can be generated across several districts and/or
       // subdistricts at once instead of being locked to exactly one.
       function renderCalAmphurRow() {
+        // Order/labels come from the pool WITHOUT the tag filter so rows
+        // don't jump around or vanish as tags are toggled -- only the
+        // numbers change (a district a tag leaves empty stays, dimmed at 0).
+        const universe = new Map();
+        calAreaPool(new Set(["amp", "tam", "tags"])).forEach((r) => {
+          const label = ampOf(r);
+          if (label) universe.set(label, (universe.get(label) || 0) + 1);
+        });
         const counts = new Map();
         calAreaPool(new Set(["amp", "tam"])).forEach((r) => {
           const label = ampOf(r);
           if (label) counts.set(label, (counts.get(label) || 0) + 1);
         });
-        [...calState.amps].forEach((a) => { if (!counts.has(a)) calState.amps.delete(a); });
-        const entries = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+        [...calState.amps].forEach((a) => { if (!universe.has(a)) calState.amps.delete(a); });
+        const entries = Array.from(universe.entries()).sort((a, b) => b[1] - a[1]).map(([label]) => [label, counts.get(label) || 0]);
         const el = document.getElementById("calAmphurRow");
         el.innerHTML = entries.map(([label, count]) => {
           const color = colorForDistrict(label);
           const active = calState.amps.has(label);
-          return `<div class="amphur-pill${active ? " active" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><span class="dot"></span>${escapeHtml(label)}<span class="pill-count">${count}</span></div>`;
+          return `<div class="amphur-pill${active ? " active" : ""}${count === 0 ? " empty" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><span class="dot"></span>${escapeHtml(label)}<span class="pill-count">${count}</span></div>`;
         }).join("");
         Array.from(el.children).forEach((pill) => {
           pill.addEventListener("click", () => {
@@ -1802,7 +1853,7 @@
               // district, so a stale tambon filter doesn't linger after its
               // parent district is deselected.
               const tamToAmp = new Map();
-              calAreaPool(new Set(["amp", "tam"])).forEach((r) => { const t = tamOf(r); if (t && !tamToAmp.has(t)) tamToAmp.set(t, ampOf(r)); });
+              calAreaPool(new Set(["amp", "tam", "tags"])).forEach((r) => { const t = tamOf(r); if (t && !tamToAmp.has(t)) tamToAmp.set(t, ampOf(r)); });
               [...calState.tams].forEach((t) => { if (tamToAmp.get(t) === label) calState.tams.delete(t); });
             } else {
               calState.amps.add(label);
@@ -1813,32 +1864,37 @@
       }
 
       function renderCalDistrictGrid() {
+        const universe = new Map();
         const counts = new Map();
         const ampByTam = new Map();
-        calAreaPool(new Set(["tam"])).forEach((r) => {
+        calAreaPool(new Set(["tam", "tags"])).forEach((r) => {
           const label = tamOf(r);
           if (!label) return;
-          counts.set(label, (counts.get(label) || 0) + 1);
+          universe.set(label, (universe.get(label) || 0) + 1);
           if (!ampByTam.has(label)) ampByTam.set(label, ampOf(r) || "");
         });
-        [...calState.tams].forEach((t) => { if (!counts.has(t)) calState.tams.delete(t); });
+        calAreaPool(new Set(["tam"])).forEach((r) => {
+          const label = tamOf(r);
+          if (label) counts.set(label, (counts.get(label) || 0) + 1);
+        });
+        [...calState.tams].forEach((t) => { if (!universe.has(t)) calState.tams.delete(t); });
         const clearBtn = document.getElementById("calDistrictClearBtn");
         if (clearBtn) clearBtn.style.display = (calState.amps.size || calState.tams.size) ? "block" : "none";
 
         const groups = new Map();
-        counts.forEach((count, label) => {
+        universe.forEach((total, label) => {
           const amp = ampByTam.get(label);
           if (!groups.has(amp)) groups.set(amp, []);
-          groups.get(amp).push([label, count]);
+          groups.get(amp).push([label, counts.get(label) || 0, total]);
         });
         const ordered = Array.from(groups.entries())
-          .map(([amp, items]) => [amp, items, items.reduce((s, [, c]) => s + c, 0)])
+          .map(([amp, items]) => [amp, items, items.reduce((s, [, , t]) => s + t, 0)])
           .sort((a, b) => b[2] - a[2]);
 
         const gridEl = document.getElementById("calDistrictGrid");
         gridEl.innerHTML = "";
         ordered.forEach(([amp, items]) => {
-          items.sort((a, b) => b[1] - a[1]);
+          items.sort((a, b) => b[2] - a[2]);
           const color = colorForDistrict(amp);
           const groupDiv = document.createElement("div");
           groupDiv.className = "district-group";
@@ -1850,7 +1906,7 @@
           grid.className = "district-grid";
           grid.innerHTML = items.map(([label, count]) => {
             const active = calState.tams.has(label);
-            return `<div class="district-card${active ? " active" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><div class="dname">${escapeHtml(label)}</div><div class="dcount">${count}</div></div>`;
+            return `<div class="district-card${active ? " active" : ""}${count === 0 ? " empty" : ""}" data-label="${escapeHtml(label)}" style="--pill-color:${color}"><div class="dname">${escapeHtml(label)}</div><div class="dcount">${count}</div></div>`;
           }).join("");
           Array.from(grid.children).forEach((card) => {
             card.addEventListener("click", () => {
@@ -1865,17 +1921,10 @@
         });
       }
 
-      function renderCalAreaFilter() {
-        renderCalAmphurRow();
-        renderCalDistrictGrid();
-      }
+      function renderCalAreaFilter() { refreshCalFacets(); }
 
       function rankedPoolForCalendar() {
-        const pool = calAreaPool();
-        const filtered = calState.tags.size
-          ? pool.filter((r) => [...calState.tags].every((t) => (r.tags || []).includes(t)))
-          : pool;
-        return filtered.slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
+        return calAreaPool().slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
       }
 
       function usedIdsInMonth(monthKey, exceptDay) {
