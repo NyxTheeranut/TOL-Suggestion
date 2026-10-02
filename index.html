@@ -384,6 +384,18 @@
       .demo-item.mks-true { background: var(--st-crit-soft); border-color: transparent; }
       .demo-item.mks-fibre3 { background: var(--st-good-soft); border-color: transparent; }
       .demo-item.mks-nt { background: var(--st-warn-soft); border-color: transparent; }
+      /* 3 cells (Utilization/Penetration/Net Add) side by side instead of
+         wrapping to a lone 3rd cell under the default 2-col .demo-pair. */
+      .demo-item.util-pen .demo-pair { grid-template-columns: repeat(3, 1fr); }
+      /* Net Add as its own small pill (not plain colored text like the MKS
+         win/lose cells) -- green/red/neutral fill so "ติดลบ vs บวก" reads at
+         a glance without needing the +/- sign alone to carry it. */
+      .pair-val.net-add-pos, .pair-val.net-add-neg, .pair-val.net-add-flat {
+        display: inline-block; font-size: 13px; padding: 2px 9px; border-radius: 999px;
+      }
+      .pair-val.net-add-pos { background: var(--st-good-soft); color: var(--st-good); }
+      .pair-val.net-add-neg { background: var(--st-crit-soft); color: var(--st-crit); }
+      .pair-val.net-add-flat { background: var(--panel-2); color: var(--text-2); }
       .demo-item-wide { grid-column: 1 / -1; }
       .demo-item-wide .demo-pair { grid-template-columns: 1fr 1fr; }
 
@@ -834,6 +846,21 @@
         if (!d) return "";
         return ` <span class="${d > 0 ? "delta-up" : "delta-down"}">(${d > 0 ? "+" : ""}${d})</span>`;
       }
+      // Net Add -- True's own active count this month vs last, as its own
+      // pill-styled cell (not just the small inline deltaSpan next to
+      // Active). null when either month is missing; a genuine 0 still shows
+      // as a flat/neutral pill rather than blank, since "no net change" is
+      // itself a real answer here (unlike deltaSpan's inline annotation,
+      // which stays silent on 0 to avoid cluttering the Active number).
+      function netAddOf(r) {
+        if (r.active == null || r.activePrevMonth == null) return null;
+        return Math.round(r.active) - Math.round(r.activePrevMonth);
+      }
+      function netAddFmt(v) { return v == null ? "—" : (v > 0 ? "+" : "") + v; }
+      function netAddCls(v) {
+        if (v == null) return "";
+        return v > 0 ? "net-add-pos" : v < 0 ? "net-add-neg" : "net-add-flat";
+      }
       // True's own MKS cell is colored green when True is actually ahead of
       // both named competitors here, red when a competitor leads instead --
       // dynamic per record, not a fixed color.
@@ -877,6 +904,20 @@
           { key: "trueMks", lbl: "MKS", colLabel: "MKS True", get: (r) => r.mksTrue, fmt: pct, cls: mksTrueCls },
           { key: "trueActive", lbl: "Active", colLabel: "Active True", get: (r) => r.active, fmt: whole, extra: (r) => deltaSpan(r.active, r.activePrevMonth) },
         ] },
+        // True's own utilization/penetration, not the combined-market version
+        // (that's what the old "Market Size / %Penetration" box here used to
+        // show -- totalMarketOf() backs out True+Fibre3+NT combined actives
+        // from True's own MKS%, so that %Penetration was everyone's active
+        // over households, not just True's). Kept right next to the True box
+        // since all three numbers here are True-only. Net Add reuses the
+        // same active-vs-last-month comparison as the Active cell's inline
+        // deltaSpan, just as its own full pill here instead of a small
+        // inline annotation.
+        { label: "%Utilization / True %Penetration", box: "util-pen", pair: [
+          { key: "utilization", lbl: "Utilization", colLabel: "%Utilization", get: (r) => (r.totalPort ? r.active / r.totalPort : null), fmt: pct },
+          { key: "truePenetration", lbl: "Penetration", colLabel: "True %Penetration", get: (r) => { const hh = hhOf(r); return hh ? r.active / hh : null; }, fmt: pct },
+          { key: "netAdd", lbl: "Net Add", colLabel: "Net Add True", get: netAddOf, fmt: netAddFmt, cls: netAddCls },
+        ] },
         { label: "Fibre3 (MKS / Active)", box: "mks-fibre3", pair: [
           { key: "fibre3Mks", lbl: "MKS", colLabel: "MKS Fibre3", get: (r) => r.mksFibre3, fmt: pct },
           { key: "fibre3Active", lbl: "Active", colLabel: "Active Fibre3", get: (r) => carrierActiveOf(r.mksFibre3, totalMarketOf(r)), fmt: whole },
@@ -885,10 +926,6 @@
         { label: "NT (MKS / Active)", box: "mks-nt", pair: [
           { key: "ntMks", lbl: "MKS", colLabel: "MKS NT", get: (r) => r.mksNt, fmt: pct },
           { key: "ntActive", lbl: "Active", colLabel: "Active NT", get: (r) => carrierActiveOf(r.mksNt, totalMarketOf(r)), fmt: whole },
-        ] },
-        { label: "Market Size / %Penetration", pair: [
-          { key: "marketSize", lbl: "Market Size", get: (r) => totalMarketOf(r), fmt: whole },
-          { key: "penetration", lbl: "%Penetration", get: (r) => { const m = totalMarketOf(r), hh = hhOf(r); return hh ? m / hh : null; }, fmt: pct },
         ] },
 
         // Full-width so it doesn't shove Churn/Truck Roll/Other Fault's
