@@ -211,6 +211,18 @@
       /* A control whose live count has hit 0 stays clickable (so it can be
          un-picked or tried) but reads as "nothing here right now". */
       .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
+      .export-menu-wrap { position: relative; }
+      .export-menu {
+        position: absolute; top: calc(100% + 4px); left: 0; z-index: 60; min-width: 160px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+        box-shadow: var(--shadow); padding: 4px; display: flex; flex-direction: column;
+      }
+      .export-menu[hidden] { display: none; }
+      .export-menu button {
+        border: none; background: none; text-align: left; padding: 9px 12px; border-radius: 7px;
+        font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap;
+      }
+      .export-menu button:hover { background: var(--panel-2); }
       .cal-pool-summary { margin-top: 10px; font-size: 12.5px; color: var(--text-2); }
       .cal-pool-summary b { font-size: 15px; color: var(--ink); }
       .cal-pool-summary .sub { color: var(--text-3); }
@@ -690,7 +702,13 @@
               <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
               <button class="btn primary" id="calGenMonth">สร้างทั้งเดือน</button>
               <button class="btn" id="calClearMonth">ล้างเดือน</button>
-              <button class="btn" id="calExportImg">📷 ส่งออกรูปภาพ</button>
+              <div class="export-menu-wrap">
+                <button class="btn" id="calExportBtn" aria-haspopup="true" aria-expanded="false">⬇ ส่งออก ▾</button>
+                <div class="export-menu" id="calExportMenu" hidden>
+                  <button id="calExportImg">📷 รูปภาพ (PNG)</button>
+                  <button id="calExportCsv">📄 ไฟล์ CSV</button>
+                </div>
+              </div>
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="cal-pool-summary" id="calPoolSummary"></div>
@@ -2121,7 +2139,52 @@
           setTimeout(() => URL.revokeObjectURL(url), 5000);
         }, "image/png");
       }
-      document.getElementById("calExportImg").addEventListener("click", exportCalendarImage);
+      // One row per planned pick (not per day), in date then slot order, so
+      // it opens in Excel as a flat, filterable/pivotable list. Lat/lng are
+      // included so a day's stops can be dropped straight into a map tool.
+      function exportCalendarCsv() {
+        const monthKey = calState.monthKey;
+        const plan = (monthKey && STATE.calendarPlan[monthKey]) || {};
+        const days = Object.keys(plan).map(Number).filter((d) => (plan[d] || []).length).sort((a, b) => a - b);
+        if (!days.length) { setCalStatus("เดือนนี้ยังไม่มีแผนให้ส่งออก", true); return; }
+        const slotOrder = { 1: 0, 2: 1, 3: 2, backup: 3 };
+        const weekdays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
+        const header = ["วันที่", "วัน", "ลำดับ", "ประเภท", "รหัส", "ชื่อ", "อำเภอ/เขต", "ตำบล/แขวง",
+          "ครัวเรือน/ยูนิต", "พอร์ตว่าง", "พอร์ตทั้งหมด", "MKS True", "Active True", "คะแนน", "ละติจูด", "ลองจิจูด"];
+        const lines = [header.map(csvField).join(",")];
+        days.forEach((d) => {
+          const date = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const dow = weekdays[new Date(y, m - 1, d).getDay()];
+          plan[d].slice().sort((a, b) => (slotOrder[a.slot] ?? 9) - (slotOrder[b.slot] ?? 9)).forEach((pk) => {
+            const r = byId(pk.kind, pk.refId);
+            const cells = r ? [
+              date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", r.id, r.name || "",
+              ampOf(r) || "", tamOf(r) || "", whole(hhOf(r)), whole(r.totalAvailable), whole(r.totalPort),
+              pct(r.mksTrue), whole(r.active), fmt(r.autoScore), r.lat ?? "", r.lng ?? "",
+            ] : [date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", pk.refId, "(ไม่พบข้อมูล)"];
+            lines.push(cells.map(csvField).join(","));
+          });
+        });
+        const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `tol-suggestion-calendar-${monthKey}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+
+      const calExportMenu = document.getElementById("calExportMenu");
+      const calExportBtn = document.getElementById("calExportBtn");
+      function setCalExportMenu(open) {
+        calExportMenu.hidden = !open;
+        calExportBtn.setAttribute("aria-expanded", String(open));
+      }
+      calExportBtn.addEventListener("click", (e) => { e.stopPropagation(); setCalExportMenu(calExportMenu.hidden); });
+      document.getElementById("calExportImg").addEventListener("click", () => { setCalExportMenu(false); exportCalendarImage(); });
+      document.getElementById("calExportCsv").addEventListener("click", () => { setCalExportMenu(false); exportCalendarCsv(); });
+      document.addEventListener("click", (e) => { if (!calExportMenu.hidden && !e.target.closest(".export-menu-wrap")) setCalExportMenu(false); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") setCalExportMenu(false); });
 
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
          time -- the grid's bulk "Generate whole month" still uses the same
