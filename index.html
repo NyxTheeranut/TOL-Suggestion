@@ -211,6 +211,9 @@
       /* A control whose live count has hit 0 stays clickable (so it can be
          un-picked or tried) but reads as "nothing here right now". */
       .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
+      .cal-pick.missing { opacity: .6; font-style: italic; }
+      #calLockBtn.locked { background: var(--st-warn-soft); border-color: var(--st-warn); color: var(--st-warn); }
+      .btn:disabled { opacity: .45; cursor: not-allowed; }
       .export-menu-wrap { position: relative; }
       .export-menu {
         position: absolute; top: calc(100% + 4px); left: 0; z-index: 60; min-width: 160px;
@@ -702,6 +705,7 @@
               <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
               <button class="btn primary" id="calGenMonth">สร้างทั้งเดือน</button>
               <button class="btn" id="calClearMonth">ล้างเดือน</button>
+              <button class="btn" id="calLockBtn" aria-pressed="false">🔓 ล็อกเดือนนี้</button>
               <div class="export-menu-wrap">
                 <button class="btn" id="calExportBtn" aria-haspopup="true" aria-expanded="false">⬇ ส่งออก ▾</button>
                 <div class="export-menu" id="calExportMenu" hidden>
@@ -712,6 +716,7 @@
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="cal-pool-summary" id="calPoolSummary"></div>
+            <div class="hint" id="calLockHint" style="margin-top:6px;"></div>
             <div class="hint" style="margin-top:10px;">เลือกเขต/ตำบลได้หลายอันพร้อมกัน (แตะซ้ำเพื่อยกเลิก) — แผนเดือนนี้จะดึงจากทุกพื้นที่ที่เลือกไว้รวมกัน</div>
             <div class="district-panel" style="max-height:190px;margin-top:6px;">
               <div class="amphur-row" id="calAmphurRow"></div>
@@ -1989,7 +1994,7 @@
         if (nearby.length < 3) nearby = withDist.slice(0, 3);
         const chosen = [anchor, ...nearby.slice(0, 3).map((x) => x.r)];
         const slots = ["1", "2", "3", "backup"];
-        return chosen.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id }));
+        return chosen.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id, name: r.name || "" }));
       }
 
       // Opens a driving route through a day's picks in Google Maps -- no
@@ -2006,6 +2011,7 @@
 
       async function generateMonth() {
         const monthKey = calState.monthKey;
+        if (isMonthLocked(monthKey)) { setCalStatus("เดือนนี้ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะสร้างทั้งเดือนใหม่ได้", true); return; }
         const n = daysInMonth(monthKey);
         if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
         const usedExtra = new Set();
@@ -2025,12 +2031,42 @@
         }
       }
 
+      // A pick stores the property's name as well as its id. If the property
+      // is missing from the current data (a partial sync, a renamed id), the
+      // saved name is shown dimmed instead of a bare "?" -- the plan is still
+      // readable, it just can't be opened until the data is back.
+      function pickLabel(p, r) {
+        return r ? { name: r.name, missing: false } : { name: p.name || "?", missing: true };
+      }
+
       function setCalStatus(msg, isError) {
         const el = document.getElementById("calSaveStatus");
         el.textContent = msg; el.style.color = isError ? "var(--st-crit)" : "var(--text-3)";
       }
 
+      function isMonthLocked(monthKey) {
+        const t = STATE.calendarTheme[monthKey];
+        return !!(t && t.locked);
+      }
+      // Reflects the locked state on the buttons + hint line. A locked month
+      // is exempt from the automatic 2-month clean-up, and "สร้างทั้งเดือน" /
+      // "ล้างเดือน" are switched off so it can't be wiped or overwritten by
+      // accident -- single days can still be edited by hand.
+      function renderCalLock() {
+        const locked = isMonthLocked(calState.monthKey);
+        const btn = document.getElementById("calLockBtn");
+        btn.classList.toggle("locked", locked);
+        btn.setAttribute("aria-pressed", String(locked));
+        btn.textContent = locked ? "🔒 ล็อกแล้ว (กดเพื่อปลดล็อก)" : "🔓 ล็อกเดือนนี้";
+        document.getElementById("calGenMonth").disabled = locked;
+        document.getElementById("calClearMonth").disabled = locked;
+        document.getElementById("calLockHint").textContent = locked
+          ? "🔒 เดือนนี้ถูกล็อก — จะไม่ถูกลบอัตโนมัติ และปุ่มสร้างทั้งเดือน/ล้างเดือนถูกปิดไว้ (แก้ไขรายวันได้ตามปกติ)"
+          : "แผนที่เก่ากว่า 2 เดือนจะถูกลบอัตโนมัติ — กด 🔓 เพื่อล็อกเดือนนี้ไว้ไม่ให้ถูกลบ";
+      }
+
       function renderCalendar() {
+        renderCalLock();
         const monthKey = calState.monthKey;
         if (!monthKey) return;
         const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -2046,10 +2082,12 @@
           if (picks && picks.length) {
             inner += picks.map((p) => {
               const r = byId(p.kind, p.refId);
-              const nm = r ? r.name : "?";
+              const lbl = pickLabel(p, r);
+              const nm = lbl.name;
               const winner = r ? mksWinner(r) : null;
-              const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "");
-              return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(nm)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
+              const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
+              const tip = lbl.missing ? nm + " (ไม่พบในข้อมูลล่าสุด)" : nm;
+              return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
             }).join("");
             inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ แก้ไข</button>`;
           } else {
@@ -2119,7 +2157,7 @@
           ctx.font = "10.5px Inter, sans-serif";
           picks.forEach((p, i) => {
             const r = byId(p.kind, p.refId);
-            const label = (p.slot === "backup" ? "★ " : "") + (r ? r.name : "?");
+            const label = (p.slot === "backup" ? "★ " : "") + pickLabel(p, r).name;
             ctx.fillStyle = p.slot === "backup" ? "#7b8695" : "#0b6b63";
             ctx.fillText(fitText(label, cellW - 20), x + 10, y + 38 + i * 15);
           });
@@ -2162,7 +2200,7 @@
               date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", r.id, r.name || "",
               ampOf(r) || "", tamOf(r) || "", whole(hhOf(r)), whole(r.totalAvailable), whole(r.totalPort),
               pct(r.mksTrue), whole(r.active), fmt(r.autoScore), r.lat ?? "", r.lng ?? "",
-            ] : [date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", pk.refId, "(ไม่พบข้อมูล)"];
+            ] : [date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", pk.refId, (pk.name ? pk.name + " " : "") + "(ไม่พบข้อมูล)"];
             lines.push(cells.map(csvField).join(","));
           });
         });
@@ -2218,7 +2256,7 @@
           const r = byId(p.kind, p.refId);
           return `<div class="result-row" style="display:flex;align-items:center;gap:8px;cursor:default;">
             <span class="stat-pill">${SLOT_LABELS[p.slot] || p.slot}</span>
-            <span style="flex:1;font-weight:600;font-size:12.5px;">${escapeHtml(r ? r.name : "?")}</span>
+            <span style="flex:1;font-weight:600;font-size:12.5px;${r ? "" : "opacity:.6;"}">${escapeHtml(pickLabel(p, r).name)}${r ? "" : ' <span style="font-weight:400;font-size:11px;">(ไม่พบในข้อมูลล่าสุด)</span>'}</span>
             <button class="modal-close" data-remove="${p.kind}:${p.refId}" title="ลบ" style="width:22px;height:22px;font-size:11px;">✕</button>
           </div>`;
         }).join("") : `<div class="empty-note">ยังไม่มีข้อมูล — กดสร้างอัตโนมัติ หรือค้นหาด้านล่างเพื่อเพิ่ม</div>`;
@@ -2258,7 +2296,7 @@
         const usedSlots = new Set(picks.map((p) => p.slot));
         const nextSlot = ["1", "2", "3", "backup"].find((s) => !usedSlots.has(s));
         if (!nextSlot) { setCalStatus("This day already has 4 picks — remove one first.", true); return; }
-        picks.push({ slot: nextSlot, kind: kindOf(r), refId: r.id });
+        picks.push({ slot: nextSlot, kind: kindOf(r), refId: r.id, name: r.name || "" });
         saveDayPicks(picks).then(() => renderDayEditResults(document.getElementById("dayEditSearch").value));
       });
       document.getElementById("dayEditSlots").addEventListener("click", (e) => {
@@ -2299,6 +2337,7 @@
         const chip = e.target.closest(".tag-chip"); if (!chip) return;
         if (calState.tags.has(chip.dataset.k)) calState.tags.delete(chip.dataset.k); else calState.tags.add(chip.dataset.k);
         renderCalTagChips();
+        STATE.calendarTheme[calState.monthKey] = { ...(STATE.calendarTheme[calState.monthKey] || {}), tags: [...calState.tags] };
         try {
           await api("saveCalendarTheme", { monthKey: calState.monthKey, tags: [...calState.tags] });
           setCalStatus("บันทึกธีมแล้ว", false);
@@ -2307,8 +2346,22 @@
         }
       });
       document.getElementById("calGenMonth").addEventListener("click", generateMonth);
+      document.getElementById("calLockBtn").addEventListener("click", async () => {
+        const monthKey = calState.monthKey;
+        const locked = !isMonthLocked(monthKey);
+        const prev = STATE.calendarTheme[monthKey] || { tags: [...calState.tags] };
+        STATE.calendarTheme[monthKey] = { ...prev, locked };
+        renderCalLock();
+        try {
+          await api("saveCalendarLock", { monthKey, locked });
+          setCalStatus(locked ? "ล็อกเดือนนี้แล้ว — จะไม่ถูกลบอัตโนมัติ" : "ปลดล็อกเดือนนี้แล้ว", false);
+        } catch (e) {
+          setCalStatus("บันทึกการล็อกไม่สำเร็จ (มีผลในเครื่องนี้เท่านั้น): " + e.message, true);
+        }
+      });
       document.getElementById("calClearMonth").addEventListener("click", async () => {
         const monthKey = calState.monthKey;
+        if (isMonthLocked(monthKey)) { setCalStatus("เดือนนี้ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะล้างได้", true); return; }
         const ok = await confirmDialog("ล้างทุกรายการและธีมของเดือนนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้", "ล้างเดือน", "ยกเลิก");
         if (!ok) return;
         delete STATE.calendarPlan[monthKey];
@@ -2498,13 +2551,16 @@
         STATE.buildings = payload.buildings || [];
         STATE.calendarTheme = {};
         (payload.calendarTheme || []).forEach((row) => {
-          STATE.calendarTheme[row.monthKey] = { tags: String(row.tagsCsv || "").split(",").filter(Boolean) };
+          STATE.calendarTheme[row.monthKey] = {
+            tags: String(row.tagsCsv || "").split(",").filter(Boolean),
+            locked: row.locked === true || row.locked === 1 || String(row.locked) === "1" || String(row.locked).toLowerCase() === "true",
+          };
         });
         STATE.calendarPlan = {};
         (payload.calendarPlan || []).forEach((row) => {
           if (!STATE.calendarPlan[row.monthKey]) STATE.calendarPlan[row.monthKey] = {};
           if (!STATE.calendarPlan[row.monthKey][row.day]) STATE.calendarPlan[row.monthKey][row.day] = [];
-          STATE.calendarPlan[row.monthKey][row.day].push({ slot: row.slot, kind: row.kind, refId: row.refId });
+          STATE.calendarPlan[row.monthKey][row.day].push({ slot: row.slot, kind: row.kind, refId: row.refId, name: row.name || "" });
         });
 
         // "true_win"/"fibre3_win"/"nt_win" -- a filterable tag for whichever
@@ -2557,6 +2613,31 @@
         renderCalAreaFilter();
         renderCalTagChips();
         renderCalendar();
+        if (!USE_MOCK) setTimeout(backfillPlanNames, 2500);
+      }
+
+      // Picks saved before names were stored have no name snapshot. Once the
+      // property is actually present in the data, fill it in and re-save that
+      // day, so the plan stays readable if the property ever goes missing.
+      // Quiet and best-effort: only the signed-in viewer's own days, one at
+      // a time, and it stops at the first failure rather than retrying.
+      async function backfillPlanNames() {
+        const jobs = [];
+        Object.keys(STATE.calendarPlan).forEach((monthKey) => {
+          const days = STATE.calendarPlan[monthKey];
+          Object.keys(days).forEach((day) => {
+            let changed = false;
+            days[day].forEach((p) => {
+              if (p.name) return;
+              const r = byId(p.kind, p.refId);
+              if (r && r.name) { p.name = r.name; changed = true; }
+            });
+            if (changed) jobs.push({ monthKey, day: +day, picks: days[day] });
+          });
+        });
+        for (const job of jobs) {
+          try { await api("saveCalendarDay", job); } catch (e) { return; }
+        }
       }
 
       /* ===== Google Sign-In =====

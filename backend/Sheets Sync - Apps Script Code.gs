@@ -38,7 +38,8 @@
  *   getSyncData / syncData          -> update_suggestion_sheet.py, on your
  *                                      own machine -- gated by SYNC_SECRET
  *                                      instead (not a person signing in).
- *   saveCalendarTheme / saveCalendarDay / clearCalendarMonth -> any allow-
+ *   saveCalendarTheme / saveCalendarDay / saveCalendarLock /
+ *   clearCalendarMonth              -> any allow-
  *                                      listed signed-in viewer (no separate admin role -- matches
  *                                      this dashboard's no-roles model).
  *
@@ -132,6 +133,13 @@ function doPost(e) {
       var email2 = verifyIdToken_(body.idToken);
       if (!email2 || !isAllowedUser_(email2)) return jsonResponse_({ ok: false, error: "not_signed_in" });
       saveCalendarDay_(body.monthKey, body.day, body.picks || [], email2);
+      return jsonResponse_({ ok: true });
+    }
+
+    if (body.action === "saveCalendarLock") {
+      var emailL = verifyIdToken_(body.idToken);
+      if (!emailL || !isAllowedUser_(emailL)) return jsonResponse_({ ok: false, error: "not_signed_in" });
+      saveCalendarLock_(body.monthKey, !!body.locked, emailL);
       return jsonResponse_({ ok: true });
     }
 
@@ -316,8 +324,14 @@ function writeTab_(name, header, rows, append) {
 // overwrite each other's picks. Not a shared team plan; a personal one per
 // Google account.
 
-var CALENDAR_THEME_HEADER = ["monthKey", "tagsCsv", "updatedBy", "updatedAt"];
-var CALENDAR_PLAN_HEADER = ["monthKey", "day", "slot", "kind", "refId", "email"];
+// "locked" (CalendarTheme) exempts that viewer's month from the automatic
+// clean-up below; "name" (CalendarPlan) is a snapshot of the village/
+// building's name at the time it was picked, so a plan still reads properly
+// if the property later disappears from Villages/Buildings (a bad or partial
+// sync used to turn every pick into "?"). Old rows from before either
+// column existed are padded with "" by normalizeRows_ on the next write.
+var CALENDAR_THEME_HEADER = ["monthKey", "tagsCsv", "updatedBy", "updatedAt", "locked"];
+var CALENDAR_PLAN_HEADER = ["monthKey", "day", "slot", "kind", "refId", "email", "name"];
 var CALENDAR_RETENTION_MONTHS = 2; // keep the current month plus this many months back
 
 function cutoffMonthKey_() {
@@ -355,8 +369,23 @@ function normalizeRows_(rows, width) {
 // state snapshot worth keeping in full. Runs on every calendar write
 // (small, cheap tabs) rather than as a separate scheduled job, so there's
 // nothing extra to set up or forget to run.
+function isLockedFlag_(v) { return v === true || v === 1 || String(v) === "1" || String(v).toLowerCase() === "true"; }
+
+// Set of "email|monthKey" for every month a viewer has locked.
+function lockedMonths_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CalendarTheme");
+  var set = {};
+  if (!sheet) return set;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (isLockedFlag_(data[i][4])) set[data[i][2] + "|" + data[i][0]] = true;
+  }
+  return set;
+}
+
 function pruneOldCalendarData_() {
   var cutoff = cutoffMonthKey_();
+  var locked = lockedMonths_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   [["CalendarPlan", CALENDAR_PLAN_HEADER], ["CalendarTheme", CALENDAR_THEME_HEADER]].forEach(function (pair) {
     var sheet = ss.getSheetByName(pair[0]);
@@ -364,7 +393,12 @@ function pruneOldCalendarData_() {
     var header = pair[1];
     var data = sheet.getDataRange().getValues();
     if (data.length < 2) return;
-    var kept = normalizeRows_(data.slice(1).filter(function (r) { return String(r[0]) >= cutoff; }), header.length);
+    // A locked month survives the cut-off. Who owns a row differs per tab:
+    // CalendarPlan.email is column 5, CalendarTheme.updatedBy is column 2.
+    var ownerCol = pair[0] === "CalendarPlan" ? 5 : 2;
+    var kept = normalizeRows_(data.slice(1).filter(function (r) {
+      return String(r[0]) >= cutoff || locked[r[ownerCol] + "|" + r[0]];
+    }), header.length);
     if (kept.length === data.length - 1) return; // nothing to prune -- skip the rewrite
     sheet.clearContents();
     sheet.getRange(1, 1, 1, header.length).setValues([header]);
@@ -391,12 +425,43 @@ function saveCalendarTheme_(monthKey, tags, email) {
     // gets their own theme row per month.
     if (String(existing[i][0]) === String(monthKey) && existing[i][2] === email) { rowIdx = i; break; }
   }
-  var newRow = [monthKey, tags.join(","), email, new Date().toISOString()];
+  // Re-saving the tags must not silently drop an existing lock.
+  var keepLocked = rowIdx === -1 ? "" : existing[rowIdx][4];
+  var newRow = [monthKey, tags.join(","), email, new Date().toISOString(), keepLocked];
   if (rowIdx === -1) existing.push(newRow); else existing[rowIdx] = newRow;
   sheet.clearContents();
   sheet.getRange(1, 1, 1, CALENDAR_THEME_HEADER.length).setValues([CALENDAR_THEME_HEADER]);
   if (existing.length) sheet.getRange(2, 1, existing.length, CALENDAR_THEME_HEADER.length).setValues(existing);
   sheet.setFrozenRows(1);
+}
+
+// Lock / unlock one month for the calling viewer. The flag lives on that
+// viewer's CalendarTheme row for the month (created, with no tags, if they
+// never picked a theme). Prune runs AFTER the write so locking a month that
+// is already past the cut-off keeps it instead of racing the clean-up.
+function saveCalendarLock_(monthKey, locked, email) {
+  if (!monthKey) throw new Error("monthKey required");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("CalendarTheme");
+  if (!sheet) {
+    sheet = ss.insertSheet("CalendarTheme");
+    sheet.appendRow(CALENDAR_THEME_HEADER);
+    sheet.setFrozenRows(1);
+  }
+  var width = CALENDAR_THEME_HEADER.length;
+  var existing = normalizeRows_(sheet.getDataRange().getValues().slice(1), width);
+  var rowIdx = -1;
+  for (var i = 0; i < existing.length; i++) {
+    if (String(existing[i][0]) === String(monthKey) && existing[i][2] === email) { rowIdx = i; break; }
+  }
+  var tagsCsv = rowIdx === -1 ? "" : existing[rowIdx][1];
+  var newRow = [monthKey, tagsCsv, email, new Date().toISOString(), locked ? 1 : 0];
+  if (rowIdx === -1) existing.push(newRow); else existing[rowIdx] = newRow;
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, width).setValues([CALENDAR_THEME_HEADER]);
+  sheet.getRange(2, 1, existing.length, width).setValues(existing);
+  sheet.setFrozenRows(1);
+  pruneOldCalendarData_();
 }
 
 function saveCalendarDay_(monthKey, day, picks, email) {
@@ -421,7 +486,7 @@ function saveCalendarDay_(monthKey, day, picks, email) {
     return !(String(row[0]) === String(monthKey) && Number(row[1]) === Number(day) && row[5] === email);
   });
   picks.forEach(function (p) {
-    kept.push([monthKey, day, p.slot, p.kind, p.refId, email]);
+    kept.push([monthKey, day, p.slot, p.kind, p.refId, email, p.name || ""]);
   });
   sheet.clearContents();
   sheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
@@ -435,6 +500,7 @@ function saveCalendarDay_(monthKey, day, picks, email) {
 // Never touches another viewer's plan for that same month.
 function clearCalendarMonth_(monthKey, email) {
   if (!monthKey) throw new Error("monthKey required");
+  if (lockedMonths_()[email + "|" + monthKey]) throw new Error("month_locked");
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   var planSheet = ss.getSheetByName("CalendarPlan");
