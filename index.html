@@ -2978,7 +2978,11 @@
         const MAX_ATTEMPTS = 3;
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), timeoutMs || 20000);
+          // 45s, not 20s: Apps Script web apps can take 10-20+ seconds to even
+          // start answering when Google is slow or the script is cold, and
+          // giving up early just makes it worse -- the abandoned request still
+          // runs on the server and the retry piles a second one on top.
+          const timer = setTimeout(() => controller.abort(), timeoutMs || 45000);
           try {
             const res = await fetch(DEFAULT_SYNC_URL, {
               method: "POST",
@@ -3082,13 +3086,18 @@
         showLoginStatus('<div class="login-spinner"></div>', false);
         const MAX_ATTEMPTS = 3;
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          // If Google is slow, say so instead of looking frozen -- and so
+          // nobody reloads or re-clicks, which only queues more requests.
+          const slowTimer = setTimeout(() => showLoginStatus('<div class="login-spinner"></div> เซิร์ฟเวอร์ Google ตอบช้า — กรุณารอสักครู่ (อาจใช้เวลาถึง 1 นาที) ไม่ต้องรีโหลด', false), 8000);
           try {
-            const data = await api("myData", {});
+            const data = await api("myData", {}, 90000);
+            clearTimeout(slowTimer);
             STATE.email = data.email || null;
             document.getElementById("loginGate").style.display = "none";
             if (!appInitialized) { initApp(reconstructPayload_(data.tabs)); appInitialized = true; }
             return;
           } catch (e) {
+            clearTimeout(slowTimer);
             console.warn("myData fetch failed (attempt " + attempt + "/" + MAX_ATTEMPTS + ")", e);
             if (attempt < MAX_ATTEMPTS) {
               showLoginStatus('<div class="login-spinner"></div> Retrying (' + (attempt + 1) + "/" + MAX_ATTEMPTS + ")…", false);
