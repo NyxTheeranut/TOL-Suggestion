@@ -242,6 +242,8 @@
         font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap;
       }
       .export-menu button:hover { background: var(--panel-2); }
+      .tag-chips.compact { gap: 5px; }
+      .tag-chips.compact .tag-chip { padding: 4px 10px; font-size: 11px; }
       .cal-pool-summary { margin-top: 10px; font-size: 12.5px; color: var(--text-2); }
       .cal-pool-summary b { font-size: 15px; color: var(--ink); }
       .cal-pool-summary .sub { color: var(--text-3); }
@@ -765,6 +767,9 @@
           <button class="btn" id="dayEditRouteBtn" style="flex: 1;">🗺 ดูเส้นทาง</button>
           <button class="btn" id="dayEditClearBtn" style="flex: 1;">ล้างวัน</button>
         </div>
+        <div class="hint" style="margin: 2px 0 6px;">กรองแท็กสำหรับวันนี้ — ใช้กับปุ่มสร้างอัตโนมัติและรายการค้นหาด้านล่าง (ไม่เปลี่ยนธีมของเดือน)</div>
+        <div class="tag-chips compact" id="dayEditTags"></div>
+        <div class="cal-pool-summary" id="dayEditTagSummary" style="margin: 6px 0 8px;"></div>
         <div id="dayEditSlots"></div>
         <div class="search-wrap" style="margin: 12px 0 8px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1854,12 +1859,13 @@
       // Same "ignore a facet for counting purposes" trick as searchPool --
       // used both to build the pool that actually gets ranked and to count
       // the calendar's own amphur-pill/district-grid options.
-      function calAreaPool(ignore) {
+      function calAreaPool(ignore, tagsOverride) {
         ignore = ignore || new Set();
+        const tagSet = tagsOverride || calState.tags;
         return poolFor(calState.kind).filter((r) => {
           if (!ignore.has("amp") && calState.amps.size && !calState.amps.has(ampOf(r))) return false;
           if (!ignore.has("tam") && calState.tams.size && !calState.tams.has(tamOf(r))) return false;
-          if (!ignore.has("tags") && calState.tags.size && ![...calState.tags].every((k) => calHasTag(r, k))) return false;
+          if (!ignore.has("tags") && tagSet.size && ![...tagSet].every((k) => calHasTag(r, k))) return false;
           // Buildings have no "status" (ปิด/เปิด/...) field at all -- the
           // status filter only ever narrows villages, so picking a specific
           // status in "Villages + Buildings" mode doesn't wipe out every
@@ -1977,8 +1983,8 @@
 
       function renderCalAreaFilter() { refreshCalFacets(); }
 
-      function rankedPoolForCalendar() {
-        return calAreaPool().slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
+      function rankedPoolForCalendar(tagsOverride) {
+        return calAreaPool(null, tagsOverride).slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
       }
 
       function usedIdsInMonth(monthKey, exceptDay) {
@@ -2008,10 +2014,10 @@
       // that zigzags across the whole cluster. Widens past the radius only
       // if there genuinely aren't 3 other candidates within it.
       const DAY_TRAVEL_RADIUS_KM = 6;
-      function pickForDay(monthKey, day, excludeExtra) {
+      function pickForDay(monthKey, day, excludeExtra, tagsOverride) {
         const used = usedIdsInMonth(monthKey, day);
         (excludeExtra || []).forEach((k) => used.add(k));
-        const candidates = rankedPoolForCalendar().filter((r) => !used.has(kindOf(r) + ":" + r.id));
+        const candidates = rankedPoolForCalendar(tagsOverride).filter((r) => !used.has(kindOf(r) + ":" + r.id));
         if (!candidates.length) return [];
         const anchor = candidates[0];
         const withDist = candidates.slice(1).map((r) => ({ r, d: haversineKm(anchor, r) })).sort((a, b) => a.d - b.d);
@@ -2389,7 +2395,7 @@
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
          time -- the grid's bulk "Generate whole month" still uses the same
          pickForDay() directly. ===== */
-      let dayEditState = null; // { monthKey, day }
+      let dayEditState = null; // { monthKey, day, tags: Set } -- tags = this day's own filter, seeded from the month theme
 
       function currentDayPicks() {
         if (!dayEditState) return [];
@@ -2427,8 +2433,9 @@
       function renderDayEditResults(text) {
         text = text.trim().toLowerCase();
         const used = new Set(currentDayPicks().map((p) => p.kind + ":" + p.refId));
+        const dayTags = dayEditState ? [...dayEditState.tags] : [];
         const pool = STATE.villages.concat(STATE.buildings)
-          .filter((r) => !r.closed && !used.has(kindOf(r) + ":" + r.id) && (!text || (r.name || "").toLowerCase().includes(text)))
+          .filter((r) => !r.closed && !used.has(kindOf(r) + ":" + r.id) && (!text || (r.name || "").toLowerCase().includes(text)) && dayTags.every((k) => calHasTag(r, k)))
           .sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0))
           .slice(0, 40);
         document.getElementById("dayEditResults").innerHTML = pool.length
@@ -2436,11 +2443,35 @@
           : `<div class="empty-note">ไม่พบข้อมูล</div>`;
       }
 
+      // What this day can actually draw from: the calendar's area/status/kind
+      // filters, minus anything already planned on another day this month --
+      // the same candidates pickForDay() ranks. Each chip's number is "how many
+      // would match if this tag were selected too" (selected tags are AND-ed).
+      function renderDayEditTags() {
+        if (!dayEditState) return;
+        const { monthKey, day, tags } = dayEditState;
+        const usedElsewhere = usedIdsInMonth(monthKey, day);
+        const base = calAreaPool(new Set(["tags"])).filter((r) => !usedElsewhere.has(kindOf(r) + ":" + r.id));
+        document.getElementById("dayEditTags").innerHTML = TAGS.map((t) => {
+          const active = tags.has(t.key);
+          const others = [...tags].filter((k) => k !== t.key);
+          const n = base.filter((r) => others.every((k) => calHasTag(r, k)) && calHasTag(r, t.key)).length;
+          return `<button class="tag-chip tag-${t.key}${active ? " active" : ""}${n === 0 ? " empty" : ""}" data-k="${t.key}">${t.label}<span class="n">${n}</span></button>`;
+        }).join("");
+        const matching = base.filter((r) => [...tags].every((k) => calHasTag(r, k))).length;
+        const el = document.getElementById("dayEditTagSummary");
+        el.classList.toggle("none", matching === 0);
+        el.innerHTML = matching
+          ? `ตรงเงื่อนไขสำหรับวันนี้ <b>${matching}</b> รายการ`
+          : "ไม่มีรายการที่ตรงแท็กที่เลือก — ลองยกเลิกบางแท็ก";
+      }
+
       function openDayEditor(monthKey, day) {
-        dayEditState = { monthKey, day };
+        dayEditState = { monthKey, day, tags: new Set(calState.tags) };
         document.getElementById("dayEditTitle").textContent =
           "แก้ไข " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0");
         renderDayEditSlots();
+        renderDayEditTags();
         document.getElementById("dayEditSearch").value = "";
         renderDayEditResults("");
         document.getElementById("dayEditOverlay").classList.add("open");
@@ -2450,6 +2481,13 @@
         dayEditState = null;
       }
 
+      document.getElementById("dayEditTags").addEventListener("click", (e) => {
+        const chip = e.target.closest(".tag-chip"); if (!chip || !dayEditState) return;
+        const k = chip.dataset.k;
+        if (dayEditState.tags.has(k)) dayEditState.tags.delete(k); else dayEditState.tags.add(k);
+        renderDayEditTags();
+        renderDayEditResults(document.getElementById("dayEditSearch").value);
+      });
       document.getElementById("dayEditSearch").addEventListener("input", (e) => renderDayEditResults(e.target.value));
       document.getElementById("dayEditResults").addEventListener("click", (e) => {
         const row = e.target.closest(".result-row"); if (!row) return;
@@ -2468,8 +2506,13 @@
         saveDayPicks(picks).then(() => renderDayEditResults(document.getElementById("dayEditSearch").value));
       });
       document.getElementById("dayEditAutoBtn").addEventListener("click", async () => {
-        const { monthKey, day } = dayEditState;
-        await saveDayPicks(pickForDay(monthKey, day));
+        const { monthKey, day, tags } = dayEditState;
+        const picks = pickForDay(monthKey, day, [], tags);
+        // Nothing matching the chosen tags must NOT replace the day with an
+        // empty plan -- leave whatever is there and say why.
+        if (!picks.length) { setCalStatus("ไม่มีรายการที่ตรงแท็กที่เลือกสำหรับวันนี้ — ยังไม่เปลี่ยนแผน", true); return; }
+        await saveDayPicks(picks);
+        renderDayEditTags();
         renderDayEditResults(document.getElementById("dayEditSearch").value);
       });
       document.getElementById("dayEditRouteBtn").addEventListener("click", () => {
