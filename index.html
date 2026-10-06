@@ -212,8 +212,24 @@
          un-picked or tried) but reads as "nothing here right now". */
       .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
       .cal-pick.missing { opacity: .6; font-style: italic; }
-      #calLockBtn.locked { background: var(--st-warn-soft); border-color: var(--st-warn); color: var(--st-warn); }
-      .btn:disabled { opacity: .45; cursor: not-allowed; }
+      .cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+      .cal-slots { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+      .cal-slot { position: relative; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .cal-slot.empty { border-style: dashed; background: var(--panel-2); }
+      .cal-slot.locked { border-color: var(--st-warn); background: var(--st-warn-soft); }
+      .cal-slot-main {
+        border: none; background: none; padding: 6px 11px; text-align: left; font: inherit; color: var(--ink);
+        display: flex; flex-direction: column; gap: 1px; min-width: 124px; border-radius: 10px;
+      }
+      .cal-slot.filled .cal-slot-main { border-radius: 10px 0 0 10px; }
+      .cal-slot-main:hover, .cal-slot-lock:hover { background: var(--panel-2); }
+      .cal-slot .s-name { font-size: 10.5px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .03em; }
+      .cal-slot .s-meta { font-size: 12.5px; font-weight: 700; }
+      .cal-slot.empty .s-meta { color: var(--text-3); font-weight: 600; }
+      .cal-slot .s-sub { font-size: 10.5px; color: var(--text-3); }
+      .cal-slot.locked .s-sub { color: var(--st-warn); font-weight: 600; }
+      .cal-slot-lock { border: none; border-left: 1px solid var(--line); background: none; padding: 0 10px; font-size: 15px; border-radius: 0 10px 10px 0; }
+      .cal-slot-menu { left: auto; right: 0; }
       .export-menu-wrap { position: relative; }
       .export-menu {
         position: absolute; top: calc(100% + 4px); left: 0; z-index: 60; min-width: 160px;
@@ -693,7 +709,10 @@
       <section class="app-section" id="sec-calendar">
         <div class="section-scroll">
           <div class="card">
-            <h2>ปฏิทินการขายรายเดือน</h2>
+            <div class="cal-head">
+              <h2>ปฏิทินการขายรายเดือน</h2>
+              <div class="cal-slots" id="calSlots" role="group" aria-label="ช่องบันทึกแผน"></div>
+            </div>
             <div class="hint">เลือกธีมของเดือนนี้ (ไม่บังคับ — เว้นว่างเพื่อดึงจากรายการจัดอันดับทั้งหมด) จากนั้นสร้างแผนรายวันหรือทั้งเดือนได้ทันที</div>
             <div class="cal-controls">
               <input type="month" id="calMonth">
@@ -705,7 +724,6 @@
               <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
               <button class="btn primary" id="calGenMonth">สร้างทั้งเดือน</button>
               <button class="btn" id="calClearMonth">ล้างเดือน</button>
-              <button class="btn" id="calLockBtn" aria-pressed="false">🔓 ล็อกเดือนนี้</button>
               <div class="export-menu-wrap">
                 <button class="btn" id="calExportBtn" aria-haspopup="true" aria-expanded="false">⬇ ส่งออก ▾</button>
                 <div class="export-menu" id="calExportMenu" hidden>
@@ -716,7 +734,7 @@
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="cal-pool-summary" id="calPoolSummary"></div>
-            <div class="hint" id="calLockHint" style="margin-top:6px;"></div>
+            <div class="hint" style="margin-top:6px;">บันทึกแผนไว้ได้ 3 ช่อง (มุมขวาบน) — ช่องที่ไม่ได้ล็อกและไม่ได้เปิดเกิน 30 วันจะถูกลบอัตโนมัติ · กด 🔒 เพื่อเก็บช่องนั้นไว้ถาวร</div>
             <div class="hint" style="margin-top:10px;">เลือกเขต/ตำบลได้หลายอันพร้อมกัน (แตะซ้ำเพื่อยกเลิก) — แผนเดือนนี้จะดึงจากทุกพื้นที่ที่เลือกไว้รวมกัน</div>
             <div class="district-panel" style="max-height:190px;margin-top:6px;">
               <div class="amphur-row" id="calAmphurRow"></div>
@@ -794,6 +812,7 @@
         villages: [], buildings: [],
         calendarTheme: {}, // monthKey -> {tags:[]}
         calendarPlan: {},  // monthKey -> { day -> [{slot,kind,refId}] }
+        calendarSlots: [null, null, null],  // saved plans: {monthKey, tags, plan, savedAt, lastOpenedAt, locked}
         idToken: null,
       };
 
@@ -2017,7 +2036,6 @@
 
       async function generateMonth() {
         const monthKey = calState.monthKey;
-        if (isMonthLocked(monthKey)) { setCalStatus("เดือนนี้ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะสร้างทั้งเดือนใหม่ได้", true); return; }
         const n = daysInMonth(monthKey);
         if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
         const usedExtra = new Set();
@@ -2050,29 +2068,8 @@
         el.textContent = msg; el.style.color = isError ? "var(--st-crit)" : "var(--text-3)";
       }
 
-      function isMonthLocked(monthKey) {
-        const t = STATE.calendarTheme[monthKey];
-        return !!(t && t.locked);
-      }
-      // Reflects the locked state on the buttons + hint line. A locked month
-      // is exempt from the automatic 2-month clean-up, and "สร้างทั้งเดือน" /
-      // "ล้างเดือน" are switched off so it can't be wiped or overwritten by
-      // accident -- single days can still be edited by hand.
-      function renderCalLock() {
-        const locked = isMonthLocked(calState.monthKey);
-        const btn = document.getElementById("calLockBtn");
-        btn.classList.toggle("locked", locked);
-        btn.setAttribute("aria-pressed", String(locked));
-        btn.textContent = locked ? "🔒 ล็อกแล้ว (กดเพื่อปลดล็อก)" : "🔓 ล็อกเดือนนี้";
-        document.getElementById("calGenMonth").disabled = locked;
-        document.getElementById("calClearMonth").disabled = locked;
-        document.getElementById("calLockHint").textContent = locked
-          ? "🔒 เดือนนี้ถูกล็อก — จะไม่ถูกลบอัตโนมัติ และปุ่มสร้างทั้งเดือน/ล้างเดือนถูกปิดไว้ (แก้ไขรายวันได้ตามปกติ)"
-          : "แผนที่เก่ากว่า 2 เดือนจะถูกลบอัตโนมัติ — กด 🔓 เพื่อล็อกเดือนนี้ไว้ไม่ให้ถูกลบ";
-      }
-
       function renderCalendar() {
-        renderCalLock();
+        renderCalSlots();
         const monthKey = calState.monthKey;
         if (!monthKey) return;
         const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -2230,6 +2227,165 @@
       document.addEventListener("click", (e) => { if (!calExportMenu.hidden && !e.target.closest(".export-menu-wrap")) setCalExportMenu(false); });
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") setCalExportMenu(false); });
 
+      /* ===== saved-plan slots (3 per person) =====
+         A slot is a snapshot of one month's plan + theme. Click an empty slot
+         to save the plan you're looking at; click a filled one to open it,
+         overwrite it with the current plan, or clear it. 🔒 keeps a slot
+         forever; an unlocked slot that hasn't been saved or opened for 30
+         days is deleted automatically (the server enforces it -- the page
+         just hides it as soon as it's expired). */
+      const SLOT_TTL_DAYS = 30;
+      const SLOT_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      let slotMenuOpen = null;
+
+      // Same rule as cutoffMonthKey_() in the Apps Script: the working plan
+      // keeps the current month plus two back; older months are pruned there.
+      function calCutoffMonthKey() {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 2);
+        return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0");
+      }
+      function slotDaysLeft(slot) {
+        const t = Date.parse(slot.lastOpenedAt);
+        if (isNaN(t)) return 0;
+        return Math.max(0, Math.ceil(SLOT_TTL_DAYS - (Date.now() - t) / 86400000));
+      }
+      function slotIsLive(slot) { return !!slot && (slot.locked || slotDaysLeft(slot) > 0); }
+      function monthLabelOf(monthKey) { return SLOT_MONTHS_SHORT[+monthKey.slice(4, 6) - 1] + " " + monthKey.slice(0, 4); }
+      function plannedDayCount(plan) { return Object.keys(plan || {}).filter((d) => (plan[d] || []).length).length; }
+
+      function renderCalSlots() {
+        document.getElementById("calSlots").innerHTML = [0, 1, 2].map((i) => {
+          const slot = STATE.calendarSlots[i];
+          if (!slotIsLive(slot)) {
+            STATE.calendarSlots[i] = null;
+            return `<div class="cal-slot empty" data-i="${i}">
+              <button class="cal-slot-main" data-act="main" title="บันทึกแผนเดือนที่แสดงอยู่ลงช่องนี้">
+                <span class="s-name">ช่อง ${i + 1}</span><span class="s-meta">ว่าง</span><span class="s-sub">กดเพื่อบันทึกแผนตอนนี้</span>
+              </button></div>`;
+          }
+          const sub = slot.locked ? "🔒 เก็บถาวร" : `หมดอายุใน ${slotDaysLeft(slot)} วัน`;
+          return `<div class="cal-slot filled${slot.locked ? " locked" : ""}" data-i="${i}">
+            <button class="cal-slot-main" data-act="main" aria-haspopup="true" aria-expanded="${slotMenuOpen === i}" title="บันทึกเมื่อ ${escapeHtml(String(slot.savedAt || "").slice(0, 10))}">
+              <span class="s-name">ช่อง ${i + 1}</span>
+              <span class="s-meta">${monthLabelOf(slot.monthKey)} · ${plannedDayCount(slot.plan)} วัน</span>
+              <span class="s-sub">${sub}</span>
+            </button>
+            <button class="cal-slot-lock" data-act="lock" aria-pressed="${slot.locked}" title="${slot.locked ? "ปลดล็อก (จะหมดอายุตามปกติ)" : "ล็อกช่องนี้ไม่ให้ถูกลบ"}">${slot.locked ? "🔒" : "🔓"}</button>
+            <div class="export-menu cal-slot-menu" ${slotMenuOpen === i ? "" : "hidden"}>
+              <button data-act="open">📂 เปิดแผนนี้</button>
+              <button data-act="overwrite">💾 บันทึกทับด้วยแผนตอนนี้</button>
+              <button data-act="clear">🗑 ล้างช่องนี้</button>
+            </div></div>`;
+        }).join("");
+      }
+
+      async function saveToSlot(i) {
+        const monthKey = calState.monthKey;
+        const plan = JSON.parse(JSON.stringify(STATE.calendarPlan[monthKey] || {}));
+        if (!plannedDayCount(plan)) { setCalStatus("เดือนนี้ยังไม่มีแผนให้บันทึก — สร้างแผนก่อน", true); return; }
+        const existing = STATE.calendarSlots[i];
+        if (existing && existing.locked) { setCalStatus(`ช่อง ${i + 1} ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะบันทึกทับได้`, true); return; }
+        if (existing) {
+          const ok = await confirmDialog(`บันทึกทับช่อง ${i + 1} (${monthLabelOf(existing.monthKey)}) ด้วยแผน ${monthLabelOf(monthKey)} ตอนนี้?`, "บันทึกทับ", "ยกเลิก");
+          if (!ok) return;
+        }
+        if (JSON.stringify(plan).length > 45000) { setCalStatus("แผนใหญ่เกินกว่าจะบันทึกลงช่องได้", true); return; }
+        const now = new Date().toISOString();
+        const tags = [...calState.tags];
+        const prev = STATE.calendarSlots[i];
+        STATE.calendarSlots[i] = { monthKey, tags, plan, savedAt: now, lastOpenedAt: now, locked: false };
+        slotMenuOpen = null; renderCalSlots();
+        try {
+          await api("saveCalendarSlot", { slot: i + 1, monthKey, tags, plan });
+          setCalStatus(`บันทึกแผน ${monthLabelOf(monthKey)} ลงช่อง ${i + 1} แล้ว`, false);
+        } catch (e) {
+          STATE.calendarSlots[i] = prev || null; renderCalSlots();
+          setCalStatus(`บันทึกลงช่อง ${i + 1} ไม่สำเร็จ: ` + e.message, true);
+        }
+      }
+
+      async function openSlot(i) {
+        const slot = STATE.calendarSlots[i];
+        if (!slot) return;
+        const mk = slot.monthKey;
+        const hasCurrent = plannedDayCount(STATE.calendarPlan[mk]) > 0;
+        if (hasCurrent) {
+          const ok = await confirmDialog(`เปิดแผนจากช่อง ${i + 1}? แผน ${monthLabelOf(mk)} ที่แสดงอยู่ตอนนี้จะถูกแทนที่`, "เปิดแผนนี้", "ยกเลิก");
+          if (!ok) return;
+        }
+        STATE.calendarPlan[mk] = JSON.parse(JSON.stringify(slot.plan));
+        STATE.calendarTheme[mk] = { tags: slot.tags.slice() };
+        calState.monthKey = mk;
+        calState.tags = new Set(slot.tags);
+        document.getElementById("calMonth").value = mk.slice(0, 4) + "-" + mk.slice(4, 6);
+        slot.lastOpenedAt = new Date().toISOString();
+        slotMenuOpen = null;
+        renderCalTagChips(); renderCalendar(); renderCalSlots();
+        // Months older than the working-plan window would be pruned the
+        // moment they were written back, so those are shown only here (the
+        // slot itself still holds them).
+        const old = mk < calCutoffMonthKey();
+        try {
+          if (!old) await api("saveCalendarMonth", { monthKey: mk, plan: slot.plan, tags: slot.tags });
+          await api("touchCalendarSlot", { slot: i + 1 });
+          setCalStatus(old ? `เปิดแผนจากช่อง ${i + 1} แล้ว (เดือนนี้เก่ากว่า 2 เดือน — แสดงชั่วคราว ยังเก็บอยู่ในช่อง)` : `เปิดแผนจากช่อง ${i + 1} แล้ว`, false);
+        } catch (e) {
+          setCalStatus("เปิดแล้วในเครื่องนี้ แต่บันทึกกลับไม่สำเร็จ: " + e.message, true);
+        }
+      }
+
+      async function toggleSlotLock(i) {
+        const slot = STATE.calendarSlots[i];
+        if (!slot) return;
+        slot.locked = !slot.locked;
+        slot.lastOpenedAt = new Date().toISOString();
+        renderCalSlots();
+        try {
+          await api("setCalendarSlotLock", { slot: i + 1, locked: slot.locked });
+          setCalStatus(slot.locked ? `ล็อกช่อง ${i + 1} แล้ว — เก็บถาวร` : `ปลดล็อกช่อง ${i + 1} แล้ว — จะหมดอายุใน ${SLOT_TTL_DAYS} วันถ้าไม่เปิด`, false);
+        } catch (e) {
+          slot.locked = !slot.locked; renderCalSlots();
+          setCalStatus("บันทึกการล็อกไม่สำเร็จ: " + e.message, true);
+        }
+      }
+
+      async function clearSlot(i) {
+        const slot = STATE.calendarSlots[i];
+        if (!slot) return;
+        if (slot.locked) { setCalStatus(`ช่อง ${i + 1} ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะล้างได้`, true); return; }
+        const ok = await confirmDialog(`ล้างช่อง ${i + 1} (${monthLabelOf(slot.monthKey)})? ย้อนกลับไม่ได้`, "ล้างช่อง", "ยกเลิก");
+        if (!ok) return;
+        STATE.calendarSlots[i] = null; slotMenuOpen = null; renderCalSlots();
+        try {
+          await api("clearCalendarSlot", { slot: i + 1 });
+          setCalStatus(`ล้างช่อง ${i + 1} แล้ว`, false);
+        } catch (e) {
+          STATE.calendarSlots[i] = slot; renderCalSlots();
+          setCalStatus("ล้างช่องไม่สำเร็จ: " + e.message, true);
+        }
+      }
+
+      document.getElementById("calSlots").addEventListener("click", (e) => {
+        e.stopPropagation();
+        const act = e.target.closest("[data-act]"); if (!act) return;
+        const i = +act.closest(".cal-slot").dataset.i;
+        const kind = act.dataset.act;
+        if (kind === "main") {
+          if (!STATE.calendarSlots[i]) saveToSlot(i);
+          else { slotMenuOpen = slotMenuOpen === i ? null : i; renderCalSlots(); }
+        } else if (kind === "lock") toggleSlotLock(i);
+        else {
+          // Any menu choice closes the menu first, so it never lingers open
+          // behind a confirm dialog or after a refused action.
+          slotMenuOpen = null; renderCalSlots();
+          if (kind === "open") openSlot(i);
+          else if (kind === "overwrite") saveToSlot(i);
+          else if (kind === "clear") clearSlot(i);
+        }
+      });
+      document.addEventListener("click", () => { if (slotMenuOpen !== null) { slotMenuOpen = null; renderCalSlots(); } });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && slotMenuOpen !== null) { slotMenuOpen = null; renderCalSlots(); } });
+
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
          time -- the grid's bulk "Generate whole month" still uses the same
          pickForDay() directly. ===== */
@@ -2352,22 +2508,8 @@
         }
       });
       document.getElementById("calGenMonth").addEventListener("click", generateMonth);
-      document.getElementById("calLockBtn").addEventListener("click", async () => {
-        const monthKey = calState.monthKey;
-        const locked = !isMonthLocked(monthKey);
-        const prev = STATE.calendarTheme[monthKey] || { tags: [...calState.tags] };
-        STATE.calendarTheme[monthKey] = { ...prev, locked };
-        renderCalLock();
-        try {
-          await api("saveCalendarLock", { monthKey, locked });
-          setCalStatus(locked ? "ล็อกเดือนนี้แล้ว — จะไม่ถูกลบอัตโนมัติ" : "ปลดล็อกเดือนนี้แล้ว", false);
-        } catch (e) {
-          setCalStatus("บันทึกการล็อกไม่สำเร็จ (มีผลในเครื่องนี้เท่านั้น): " + e.message, true);
-        }
-      });
       document.getElementById("calClearMonth").addEventListener("click", async () => {
         const monthKey = calState.monthKey;
-        if (isMonthLocked(monthKey)) { setCalStatus("เดือนนี้ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะล้างได้", true); return; }
         const ok = await confirmDialog("ล้างทุกรายการและธีมของเดือนนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้", "ล้างเดือน", "ยกเลิก");
         if (!ok) return;
         delete STATE.calendarPlan[monthKey];
@@ -2559,6 +2701,17 @@
         (payload.calendarTheme || []).forEach((row) => {
           STATE.calendarTheme[row.monthKey] = {
             tags: String(row.tagsCsv || "").split(",").filter(Boolean),
+          };
+        });
+        STATE.calendarSlots = [null, null, null];
+        (payload.calendarSlots || []).forEach((row) => {
+          const i = Number(row.slot) - 1;
+          if (!(i >= 0 && i < 3)) return;
+          let plan = {};
+          try { plan = JSON.parse(row.planJson || "{}"); } catch (e) { plan = {}; }
+          STATE.calendarSlots[i] = {
+            monthKey: String(row.monthKey), tags: String(row.tagsCsv || "").split(",").filter(Boolean), plan,
+            savedAt: row.savedAt, lastOpenedAt: row.lastOpenedAt,
             locked: row.locked === true || row.locked === 1 || String(row.locked) === "1" || String(row.locked).toLowerCase() === "true",
           };
         });
@@ -2774,6 +2927,7 @@
           buildings: rowObjects_(tabs.Buildings, BUILDING_FIELDS),
           calendarTheme: tabs.CalendarTheme ? rowObjects_(tabs.CalendarTheme) : [],
           calendarPlan: tabs.CalendarPlan ? rowObjects_(tabs.CalendarPlan) : [],
+          calendarSlots: tabs.CalendarSlots ? rowObjects_(tabs.CalendarSlots) : [],
         };
       }
 
