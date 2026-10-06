@@ -353,6 +353,22 @@ function cutoffMonthKey_() {
 // below runs its kept rows through this before writing, so the sheet
 // self-heals back to the current column shape on the next successful
 // write instead of staying corrupted.
+// CalendarPlan columns that hold ids/names must stay TEXT. Without this
+// Sheets turns a numeric-looking refId ("120507010004") into a number on
+// write, and the page then fails to match it to its village.
+function textifyPlanRows_(rows) {
+  return rows.map(function (r) {
+    r[3] = String(r[3]); r[4] = String(r[4]); r[6] = r[6] == null ? "" : String(r[6]);
+    return r;
+  });
+}
+function formatPlanTextColumns_(sheet) {
+  // kind, refId, email, name -- set before writing so strings stay strings.
+  [4, 5, 6, 7].forEach(function (col) {
+    sheet.getRange(1, col, sheet.getMaxRows(), 1).setNumberFormat("@");
+  });
+}
+
 function normalizeRows_(rows, width) {
   return rows
     .filter(function (r) { return r && r[0] !== "" && r[0] != null; })
@@ -401,6 +417,7 @@ function pruneOldCalendarData_() {
     }), header.length);
     if (kept.length === data.length - 1) return; // nothing to prune -- skip the rewrite
     sheet.clearContents();
+    if (pair[0] === "CalendarPlan") { formatPlanTextColumns_(sheet); textifyPlanRows_(kept); }
     sheet.getRange(1, 1, 1, header.length).setValues([header]);
     if (kept.length) sheet.getRange(2, 1, kept.length, header.length).setValues(kept);
     sheet.setFrozenRows(1);
@@ -489,6 +506,8 @@ function saveCalendarDay_(monthKey, day, picks, email) {
     kept.push([monthKey, day, p.slot, p.kind, p.refId, email, p.name || ""]);
   });
   sheet.clearContents();
+  formatPlanTextColumns_(sheet);
+  textifyPlanRows_(kept);
   sheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
   if (kept.length) sheet.getRange(2, 1, kept.length, width).setValues(kept);
   sheet.setFrozenRows(1);
@@ -511,6 +530,8 @@ function clearCalendarMonth_(monthKey, email) {
         return !(String(row[0]) === String(monthKey) && row[5] === email);
       });
       planSheet.clearContents();
+      formatPlanTextColumns_(planSheet);
+      textifyPlanRows_(pkept);
       planSheet.getRange(1, 1, 1, CALENDAR_PLAN_HEADER.length).setValues([CALENDAR_PLAN_HEADER]);
       if (pkept.length) planSheet.getRange(2, 1, pkept.length, CALENDAR_PLAN_HEADER.length).setValues(pkept);
       planSheet.setFrozenRows(1);

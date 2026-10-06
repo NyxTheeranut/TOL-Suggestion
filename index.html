@@ -809,8 +809,14 @@
         { key: "net_add_neg", label: "Net Add ติดลบ" },
       ];
 
+      // Compared as strings on purpose: a CalendarPlan refId read back from
+      // Google Sheets can arrive as a NUMBER (Sheets converts a numeric-looking
+      // id like "120507010004" unless the column is text-formatted), while
+      // Villages/Buildings ids are text. A strict === between the two made
+      // every saved pick render as "?" after a refresh.
       function byId(kind, id) {
-        return (kind === "village" ? STATE.villages : STATE.buildings).find((r) => r.id === id);
+        const key = String(id);
+        return (kind === "village" ? STATE.villages : STATE.buildings).find((r) => String(r.id) === key);
       }
       function poolFor(kind) {
         if (kind === "village") return STATE.villages;
@@ -2560,7 +2566,7 @@
         (payload.calendarPlan || []).forEach((row) => {
           if (!STATE.calendarPlan[row.monthKey]) STATE.calendarPlan[row.monthKey] = {};
           if (!STATE.calendarPlan[row.monthKey][row.day]) STATE.calendarPlan[row.monthKey][row.day] = [];
-          STATE.calendarPlan[row.monthKey][row.day].push({ slot: row.slot, kind: row.kind, refId: row.refId, name: row.name || "" });
+          STATE.calendarPlan[row.monthKey][row.day].push({ slot: String(row.slot), kind: row.kind, refId: String(row.refId), name: row.name || "" });
         });
 
         // "true_win"/"fibre3_win"/"nt_win" -- a filterable tag for whichever
