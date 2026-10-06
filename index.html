@@ -213,22 +213,21 @@
       .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
       .cal-pick.missing { opacity: .6; font-style: italic; }
       .cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
-      .cal-slots { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-      .cal-slot { position: relative; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .cal-slots { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+      .cal-slot { position: relative; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
       .cal-slot.empty { border-style: dashed; background: var(--panel-2); }
       .cal-slot.locked { border-color: var(--st-warn); background: var(--st-warn-soft); }
       .cal-slot-main {
-        border: none; background: none; padding: 6px 11px; text-align: left; font: inherit; color: var(--ink);
-        display: flex; flex-direction: column; gap: 1px; min-width: 124px; border-radius: 10px;
+        border: none; background: none; padding: 3px 9px; text-align: left; font: inherit; color: var(--ink);
+        display: flex; flex-direction: column; gap: 0; min-width: 0; border-radius: 8px; line-height: 1.3;
       }
-      .cal-slot.filled .cal-slot-main { border-radius: 10px 0 0 10px; }
+      .cal-slot.filled .cal-slot-main { border-radius: 8px 0 0 8px; }
       .cal-slot-main:hover, .cal-slot-lock:hover { background: var(--panel-2); }
-      .cal-slot .s-name { font-size: 10.5px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .03em; }
-      .cal-slot .s-meta { font-size: 12.5px; font-weight: 700; }
+      .cal-slot .s-name { font-size: 9.5px; font-weight: 700; color: var(--text-3); letter-spacing: .02em; }
+      .cal-slot .s-meta { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
       .cal-slot.empty .s-meta { color: var(--text-3); font-weight: 600; }
-      .cal-slot .s-sub { font-size: 10.5px; color: var(--text-3); }
-      .cal-slot.locked .s-sub { color: var(--st-warn); font-weight: 600; }
-      .cal-slot-lock { border: none; border-left: 1px solid var(--line); background: none; padding: 0 10px; font-size: 15px; border-radius: 0 10px 10px 0; }
+      .cal-slot .s-sub { font-size: 9.5px; color: var(--st-warn); font-weight: 600; }
+      .cal-slot-lock { border: none; border-left: 1px solid var(--line); background: none; padding: 0 7px; font-size: 12px; border-radius: 0 8px 8px 0; }
       .cal-slot-menu { left: auto; right: 0; }
       .export-menu-wrap { position: relative; }
       .export-menu {
@@ -2040,6 +2039,113 @@
         return url;
       }
 
+      /* ===== plan save queue =====
+         Edits show up instantly (they live in STATE first); this gets them to
+         the Sheet without making anyone wait or lose work:
+           - ONE request per month (saveCalendarMonth) instead of one per day.
+             "สร้างทั้งเดือน" used to fire ~30 sequential requests, each a full
+             Apps Script round trip.
+           - Quick successive edits are coalesced (debounced) into one request.
+           - The not-yet-saved plan is also kept in localStorage until the
+             server confirms it. If the tab is closed first, the browser is
+             asked to send it on the way out (keepalive), the user is warned
+             before leaving, and anything still unsent is restored and
+             re-sent the next time the page opens. */
+      const PENDING_KEY = "tolSuggestionPendingPlans";
+      const PENDING_MAX_AGE_MS = 7 * 86400000;
+      const pendingPlans = (() => { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "{}") || {}; } catch (e) { return {}; } })();
+      const saveTimers = {};
+      let savesInFlight = 0;
+      function persistPending() { try { localStorage.setItem(PENDING_KEY, JSON.stringify(pendingPlans)); } catch (e) { /* storage blocked -- in-memory queue still works */ } }
+      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingPlans).length > 0; }
+      function monthTagsFor(monthKey) {
+        const t = STATE.calendarTheme[monthKey];
+        if (t) return t.tags.slice();
+        return monthKey === calState.monthKey ? [...calState.tags] : [];
+      }
+
+      function queueMonthSave(monthKey, delayMs) {
+        if (!STATE.idToken) return; // not signed in (sample-data preview): nothing to sync
+        pendingPlans[monthKey] = {
+          plan: JSON.parse(JSON.stringify(STATE.calendarPlan[monthKey] || {})),
+          tags: monthTagsFor(monthKey), at: Date.now(), email: STATE.email || null, tries: 0,
+        };
+        persistPending();
+        setCalStatus("กำลังบันทึก…", false);
+        clearTimeout(saveTimers[monthKey]);
+        saveTimers[monthKey] = setTimeout(() => sendMonth(monthKey), delayMs == null ? 700 : delayMs);
+      }
+
+      // Older deployments of the Apps Script don't know saveCalendarMonth
+      // yet -- fall back to the original per-day saves rather than saving nothing.
+      async function saveMonthPerDay(monthKey, snap) {
+        for (const day of Object.keys(snap.plan)) {
+          await api("saveCalendarDay", { monthKey, day: Number(day), picks: snap.plan[day] });
+        }
+        try { await api("saveCalendarTheme", { monthKey, tags: snap.tags }); } catch (e) { /* theme is best-effort here */ }
+      }
+
+      async function sendMonth(monthKey) {
+        const snap = pendingPlans[monthKey];
+        if (!snap) return;
+        savesInFlight++;
+        try {
+          try { await api("saveCalendarMonth", { monthKey, plan: snap.plan, tags: snap.tags }); }
+          catch (e) { if (/unknown action/i.test(e.message || "")) await saveMonthPerDay(monthKey, snap); else throw e; }
+          // Only forget it if nothing newer was queued while this was in flight.
+          if (pendingPlans[monthKey] && pendingPlans[monthKey].at === snap.at) { delete pendingPlans[monthKey]; persistPending(); }
+          if (!Object.keys(pendingPlans).length) setCalStatus("บันทึกแล้ว ✓", false);
+        } catch (e) {
+          snap.tries = (snap.tries || 0) + 1; persistPending();
+          setCalStatus("ยังบันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ — เก็บไว้ในเครื่องแล้ว และจะลองใหม่ให้อัตโนมัติ: " + e.message, true);
+          if (snap.tries < 3) setTimeout(() => { if (pendingPlans[monthKey] && pendingPlans[monthKey].at === snap.at) sendMonth(monthKey); }, 30000);
+        } finally {
+          savesInFlight--;
+        }
+      }
+
+      // Last-chance send as the page goes away. keepalive lets the request
+      // outlive the tab; a month plan is far below its 64 KB body limit.
+      function flushPendingKeepalive() {
+        if (!STATE.idToken) return;
+        Object.keys(pendingPlans).forEach((monthKey) => {
+          const snap = pendingPlans[monthKey];
+          try {
+            fetch(DEFAULT_SYNC_URL, {
+              method: "POST", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ action: "saveCalendarMonth", idToken: STATE.idToken, monthKey, plan: snap.plan, tags: snap.tags }),
+            }).catch(() => {});
+          } catch (e) { /* oversized body or no keepalive support -- the localStorage copy still restores it next visit */ }
+        });
+      }
+      window.addEventListener("beforeunload", (e) => {
+        if (!hasUnsavedPlans()) return;
+        flushPendingKeepalive();
+        e.preventDefault(); e.returnValue = ""; // the browser shows its own "leave site?" prompt
+      });
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && hasUnsavedPlans()) flushPendingKeepalive(); });
+
+      // Next visit: anything the server never confirmed is put back on screen
+      // and sent again (same person only; very old leftovers are dropped).
+      function restorePendingPlans() {
+        let restored = 0;
+        Object.keys(pendingPlans).forEach((monthKey) => {
+          const snap = pendingPlans[monthKey];
+          if (Date.now() - snap.at > PENDING_MAX_AGE_MS) { delete pendingPlans[monthKey]; return; }
+          if (snap.email && STATE.email && snap.email !== STATE.email) return;
+          STATE.calendarPlan[monthKey] = snap.plan;
+          STATE.calendarTheme[monthKey] = { tags: snap.tags.slice() };
+          if (monthKey === calState.monthKey) calState.tags = new Set(snap.tags);
+          snap.tries = 0; restored++;
+          sendMonth(monthKey);
+        });
+        persistPending();
+        if (restored) {
+          renderCalTagChips(); renderCalendar();
+          setCalStatus(`กู้คืนแผนที่ยังไม่ได้บันทึกไว้ ${restored} เดือน และกำลังบันทึกให้…`, false);
+        }
+      }
+
       async function generateMonth() {
         const monthKey = calState.monthKey;
         const n = daysInMonth(monthKey);
@@ -2051,14 +2157,7 @@
           STATE.calendarPlan[monthKey][day] = picks;
         }
         renderCalendar();
-        try {
-          for (let day = 1; day <= n; day++) {
-            await api("saveCalendarDay", { monthKey, day, picks: STATE.calendarPlan[monthKey][day] });
-          }
-          setCalStatus("บันทึกแผนทั้งเดือนแล้ว", false);
-        } catch (e) {
-          setCalStatus("บันทึกแผนทั้งเดือนไม่สำเร็จ (บันทึกไว้ในเครื่องเท่านั้น): " + e.message, true);
-        }
+        queueMonthSave(monthKey, 0);
       }
 
       // A pick stores the property's name as well as its id. If the property
@@ -2265,16 +2364,20 @@
           if (!slotIsLive(slot)) {
             STATE.calendarSlots[i] = null;
             return `<div class="cal-slot empty" data-i="${i}">
-              <button class="cal-slot-main" data-act="main" title="บันทึกแผนเดือนที่แสดงอยู่ลงช่องนี้">
-                <span class="s-name">ช่อง ${i + 1}</span><span class="s-meta">ว่าง</span><span class="s-sub">กดเพื่อบันทึกแผนตอนนี้</span>
+              <button class="cal-slot-main" data-act="main" title="บันทึกแผนเดือนที่แสดงอยู่ลงช่อง ${i + 1}">
+                <span class="s-name">ช่อง ${i + 1}</span><span class="s-meta">+ บันทึก</span>
               </button></div>`;
           }
-          const sub = slot.locked ? "🔒 เก็บถาวร" : `หมดอายุใน ${slotDaysLeft(slot)} วัน`;
+          // The countdown only takes up room when it matters; the full text
+          // is always in the tooltip.
+          const left = slotDaysLeft(slot);
+          const sub = slot.locked ? "" : (left <= 7 ? `เหลือ ${left} วัน` : "");
+          const tip = (slot.locked ? "เก็บถาวร" : `หมดอายุใน ${left} วัน`) + " · บันทึกเมื่อ " + String(slot.savedAt || "").slice(0, 10);
           return `<div class="cal-slot filled${slot.locked ? " locked" : ""}" data-i="${i}">
-            <button class="cal-slot-main" data-act="main" aria-haspopup="true" aria-expanded="${slotMenuOpen === i}" title="บันทึกเมื่อ ${escapeHtml(String(slot.savedAt || "").slice(0, 10))}">
+            <button class="cal-slot-main" data-act="main" aria-haspopup="true" aria-expanded="${slotMenuOpen === i}" title="${escapeHtml(tip)}">
               <span class="s-name">ช่อง ${i + 1}</span>
               <span class="s-meta">${monthLabelOf(slot.monthKey)} · ${plannedDayCount(slot.plan)} วัน</span>
-              <span class="s-sub">${sub}</span>
+              ${sub ? `<span class="s-sub">${sub}</span>` : ""}
             </button>
             <button class="cal-slot-lock" data-act="lock" aria-pressed="${slot.locked}" title="${slot.locked ? "ปลดล็อก (จะหมดอายุตามปกติ)" : "ล็อกช่องนี้ไม่ให้ถูกลบ"}">${slot.locked ? "🔒" : "🔓"}</button>
             <div class="export-menu cal-slot-menu" ${slotMenuOpen === i ? "" : "hidden"}>
@@ -2332,7 +2435,7 @@
         // slot itself still holds them).
         const old = mk < calCutoffMonthKey();
         try {
-          if (!old) await api("saveCalendarMonth", { monthKey: mk, plan: slot.plan, tags: slot.tags });
+          if (!old) queueMonthSave(mk, 0);
           await api("touchCalendarSlot", { slot: i + 1 });
           setCalStatus(old ? `เปิดแผนจากช่อง ${i + 1} แล้ว (เดือนนี้เก่ากว่า 2 เดือน — แสดงชั่วคราว ยังเก็บอยู่ในช่อง)` : `เปิดแผนจากช่อง ${i + 1} แล้ว`, false);
         } catch (e) {
@@ -2409,11 +2512,7 @@
         STATE.calendarPlan[monthKey][day] = picks;
         renderCalendar();
         renderDayEditSlots();
-        try {
-          await api("saveCalendarDay", { monthKey, day, picks });
-        } catch (e) {
-          setCalStatus("บันทึกวันนี้ไม่สำเร็จ (บันทึกไว้ในเครื่องเท่านั้น): " + e.message, true);
-        }
+        queueMonthSave(monthKey);
       }
 
       const SLOT_LABELS = { 1: "หลัก 1", 2: "หลัก 2", 3: "หลัก 3", backup: "สำรอง" };
@@ -2555,6 +2654,8 @@
         const monthKey = calState.monthKey;
         const ok = await confirmDialog("ล้างทุกรายการและธีมของเดือนนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้", "ล้างเดือน", "ยกเลิก");
         if (!ok) return;
+        clearTimeout(saveTimers[monthKey]);
+        delete pendingPlans[monthKey]; persistPending();
         delete STATE.calendarPlan[monthKey];
         delete STATE.calendarTheme[monthKey];
         calState.tags = new Set();
@@ -2815,7 +2916,7 @@
         renderCalAreaFilter();
         renderCalTagChips();
         renderCalendar();
-        if (!USE_MOCK) setTimeout(backfillPlanNames, 2500);
+        if (!USE_MOCK) { restorePendingPlans(); setTimeout(backfillPlanNames, 2500); }
       }
 
       // Picks saved before names were stored have no name snapshot. Once the
@@ -2983,6 +3084,7 @@
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           try {
             const data = await api("myData", {});
+            STATE.email = data.email || null;
             document.getElementById("loginGate").style.display = "none";
             if (!appInitialized) { initApp(reconstructPayload_(data.tabs)); appInitialized = true; }
             return;
