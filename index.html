@@ -213,34 +213,15 @@
       .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
       .cal-pick.missing { opacity: .6; font-style: italic; }
       .cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
-      .cal-slots { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
-      .cal-slot { position: relative; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
-      .cal-slot.empty { border-style: dashed; background: var(--panel-2); }
-      .cal-slot.locked { border-color: var(--st-warn); background: var(--st-warn-soft); }
-      .cal-slot-main {
-        border: none; background: none; padding: 3px 9px; text-align: left; font: inherit; color: var(--ink);
-        display: flex; flex-direction: column; gap: 0; min-width: 0; border-radius: 8px; line-height: 1.3;
-      }
-      .cal-slot.filled .cal-slot-main { border-radius: 8px 0 0 8px; }
-      .cal-slot-main:hover, .cal-slot-lock:hover { background: var(--panel-2); }
-      .cal-slot .s-name { font-size: 9.5px; font-weight: 700; color: var(--text-3); letter-spacing: .02em; }
-      .cal-slot .s-meta { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
-      .cal-slot.empty .s-meta { color: var(--text-3); font-weight: 600; }
-      .cal-slot .s-sub { font-size: 9.5px; color: var(--st-warn); font-weight: 600; }
-      .cal-slot-lock { border: none; border-left: 1px solid var(--line); background: none; padding: 0 7px; font-size: 12px; border-radius: 0 8px 8px 0; }
-      .cal-slot-menu { left: auto; right: 0; }
-      .export-menu-wrap { position: relative; }
-      .export-menu {
-        position: absolute; top: calc(100% + 4px); left: 0; z-index: 60; min-width: 160px;
-        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-        box-shadow: var(--shadow); padding: 4px; display: flex; flex-direction: column;
-      }
-      .export-menu[hidden] { display: none; }
-      .export-menu button {
-        border: none; background: none; text-align: left; padding: 9px 12px; border-radius: 7px;
-        font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap;
-      }
-      .export-menu button:hover { background: var(--panel-2); }
+      .cal-days { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .cal-daycard { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--panel-2); display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+      .cal-daycard.today { border-color: var(--accent); background: var(--panel); }
+      .cal-dayhead { display: flex; align-items: baseline; gap: 8px; }
+      .cal-dayhead .dn { font-size: 15px; font-weight: 700; }
+      .cal-dayhead .dd { font-size: 12px; color: var(--text-3); }
+      .cal-daycard .cal-pick { font-size: 12.5px; padding: 6px 9px; white-space: normal; }
+      .cal-pick .cp-loc { display: block; font-size: 10.5px; font-weight: 400; opacity: .8; margin-top: 1px; }
+      .cal-daycard .cal-gen-btn { font-size: 12px; padding: 7px; margin-top: 4px; }
       .tag-chips.compact { gap: 5px; }
       .tag-chips.compact .tag-chip { padding: 4px 10px; font-size: 11px; }
       .cal-pool-summary { margin-top: 10px; font-size: 12.5px; color: var(--text-2); }
@@ -430,6 +411,15 @@
       .demo-item.mks-fibre3 { background: var(--st-good-soft); border-color: transparent; }
       .demo-item.mks-nt { background: var(--st-warn-soft); border-color: transparent; }
       .demo-item-wide { grid-column: 1 / -1; }
+      /* Network technology: a plain grey label, deliberately not a .badge/tag
+         (it isn't a filter) -- sits right after the location line. */
+      .net-pill { display: inline-block; font-size: 10.5px; font-weight: 600; line-height: 1.5; padding: 0 7px; margin-left: 5px; border-radius: 999px; background: var(--panel-2); color: var(--text-2); border: 1px solid var(--line); vertical-align: 1px; letter-spacing: .02em; }
+      /* Port-type picker (FTTH / FTTC / FTTB / All Port) for places with more
+         than one access technology. */
+      .port-opts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+      .port-opt { border: 1px solid var(--line); background: var(--panel); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; cursor: pointer; }
+      .port-opt:hover { color: var(--ink); border-color: var(--text-3); }
+      .port-opt.active { background: var(--ink); color: var(--panel); border-color: var(--ink); }
       .demo-item-wide .demo-pair { grid-template-columns: 1fr 1fr; }
 
       /* ── calendar ───────────────────────────────────────────────────────── */
@@ -447,11 +437,6 @@
          floor so tracks always fit, letting overflow/ellipsis inside each
          cell do its job instead. (The mobile breakpoint below already had
          this; the desktop default didn't.) */
-      .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
-      .cal-dow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 4px; }
-      .cal-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 118px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; }
-      .cal-day.empty-cell { background: transparent; border-color: transparent; }
-      .cal-day .d-num { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
       /* min-width: 0 is load-bearing here -- .cal-day is a flex column, and
          a flex item's default min-width is its unwrapped content size, which
          overrides overflow/ellipsis entirely and pushes a long name straight
@@ -570,11 +555,9 @@
         .rec-table .nm, .rec-table .loc { width: 110px; }
       }
       @media (max-width: 480px) {
-        .cal-grid { grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
-        .cal-day { min-height: 80px; padding: 4px; font-size: 10px; }
+        .cal-days { grid-template-columns: 1fr; }
         .cal-pick { font-size: 8.5px; padding: 2px 3px; }
         .cal-gen-btn { font-size: 8.5px; padding: 3px 1px; white-space: normal; line-height: 1.2; }
-        .cal-dow { font-size: 9px; }
       }
     </style>
   </head>
@@ -711,27 +694,18 @@
         <div class="section-scroll">
           <div class="card">
             <div class="cal-head">
-              <h2>ปฏิทินการขายรายเดือน</h2>
-              <div class="cal-slots" id="calSlots" role="group" aria-label="ช่องบันทึกแผน"></div>
+              <h2>แผนเข้าพื้นที่ วันนี้ · พรุ่งนี้</h2>
             </div>
-            <div class="hint">เลือกธีมของเดือนนี้ (ไม่บังคับ — เว้นว่างเพื่อดึงจากรายการจัดอันดับทั้งหมด) จากนั้นสร้างแผนรายวันหรือทั้งเดือนได้ทันที</div>
+            <div class="hint">แสดงแค่ 2 วัน — พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · สถานที่ที่วางแผนแล้วจะถูกจองให้คุณ 10 วัน ไม่ถูกแจกให้เซลล์คนอื่น</div>
             <div class="cal-controls">
-              <input type="month" id="calMonth">
               <div class="kind-toggle" id="calKind">
                 <button data-v="both" class="active">หมู่บ้าน + อาคาร</button>
                 <button data-v="village">หมู่บ้าน</button>
                 <button data-v="building">อาคาร</button>
               </div>
               <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
-              <button class="btn primary" id="calGenMonth">สร้างทั้งเดือน</button>
-              <button class="btn" id="calClearMonth">ล้างเดือน</button>
-              <div class="export-menu-wrap">
-                <button class="btn" id="calExportBtn" aria-haspopup="true" aria-expanded="false">⬇ ส่งออก ▾</button>
-                <div class="export-menu" id="calExportMenu" hidden>
-                  <button id="calExportImg">📷 รูปภาพ (PNG)</button>
-                  <button id="calExportCsv">📄 ไฟล์ CSV</button>
-                </div>
-              </div>
+              <button class="btn primary" id="calGenDays">สร้างแผน 2 วัน</button>
+              <button class="btn" id="calClearDays">ล้างแผน</button>
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="cal-pool-summary" id="calPoolSummary"></div>
@@ -743,7 +717,7 @@
             <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
           </div>
           <div class="card">
-            <div class="cal-grid" id="calGrid"></div>
+            <div class="cal-days" id="calGrid"></div>
           </div>
         </div>
       </section>
@@ -814,7 +788,7 @@
         villages: [], buildings: [],
         calendarTheme: {}, // monthKey -> {tags:[]}
         calendarPlan: {},  // monthKey -> { day -> [{slot,kind,refId}] }
-        calendarSlots: [null, null, null],  // saved plans: {monthKey, tags, plan, savedAt, lastOpenedAt, locked}
+        claimed: new Set(),                // places other reps currently hold ("kind:id")
         idToken: null,
       };
 
@@ -926,6 +900,37 @@
       }
       function hhOf(r) { return kindOf(r) === "village" ? r.houseAll : r.units; }
 
+      // Access technologies. totalPort/totalAvailable are FTTH-only (that's what
+      // scoring, utilization and the Recommend table use); the other sets exist
+      // only for the detail card's port picker.
+      const PORT_SETS = {
+        FTTH: { label: "FTTH", avail: (r) => r.totalAvailable, total: (r) => r.totalPort },
+        FTTC: { label: "FTTC", avail: (r) => r.fttcAvailable, total: (r) => r.fttcPort },
+        FTTB: { label: "FTTB", avail: (r) => r.fttbAvailable, total: (r) => r.fttbPort },
+        ALL: { label: "All Port", avail: (r) => r.allAvailable, total: (r) => r.allPort },
+      };
+      function netTechsOf(r) { return r.network ? String(r.network).split(",").filter(Boolean) : []; }
+      // Technologies that actually have ports installed, in picker order.
+      function portTechsOf(r) { return ["FTTH", "FTTC", "FTTB"].filter((k) => (PORT_SETS[k].total(r) || 0) > 0); }
+      // FTTH is always the default when the place has it; otherwise everything combined.
+      function defaultPortSet(r) { return (PORT_SETS.FTTH.total(r) || 0) > 0 || !portTechsOf(r).length ? "FTTH" : "ALL"; }
+      function portCellsHtml(r, key) {
+        const set = PORT_SETS[key];
+        return [["ว่าง", set.avail(r)], ["ทั้งหมด", set.total(r)]].map(([lbl, v]) => `
+          <div class="demo-pair-cell">
+            <div class="pair-lbl">${lbl}</div>
+            <div class="pair-val">${escapeHtml(whole(v))}</div>
+          </div>`).join("");
+      }
+      function portBoxBody(r) {
+        const techs = portTechsOf(r), def = defaultPortSet(r);
+        const picker = techs.length > 1
+          ? `<div class="port-opts" role="group" aria-label="ประเภทพอร์ต">${techs.concat("ALL").map((k) => `<button type="button" class="port-opt${k === def ? " active" : ""}" data-set="${k}" aria-pressed="${k === def}">${PORT_SETS[k].label}</button>`).join("")}</div>`
+          : "";
+        const only = techs.length === 1 && techs[0] !== "FTTH" ? `<div class="sub">${PORT_SETS[techs[0]].label}</div>` : "";
+        return `${picker}<div class="demo-pair" data-port-vals>${portCellsHtml(r, def)}</div>${only}`;
+      }
+
       // Backs out an implied total addressable (OOKLA-sampled) market from
       // True's own known active count and share -- same market-sizing math
       // aggregate_suggestion.py uses for competitorSubs, just kept per-carrier
@@ -948,7 +953,7 @@
       const DEMO_ITEMS = [
         { label: "ครัวเรือน/ยูนิต", single: { key: "hh", get: hhOf, fmt: whole } },
 
-        { label: "พอร์ต (ว่าง / ทั้งหมด)", pair: [
+        { label: "พอร์ต (ว่าง / ทั้งหมด)", portPicker: true, pair: [
           { key: "portsAvail", lbl: "ว่าง", colLabel: "พอร์ตว่าง", get: (r) => r.totalAvailable, fmt: whole },
           { key: "portsTotal", lbl: "ทั้งหมด", colLabel: "พอร์ตทั้งหมด", get: (r) => r.totalPort, fmt: whole },
         ] },
@@ -1087,8 +1092,10 @@
         `;
       }
 
+      let modalRecord = null;
       function openModal(record, initialTab) {
         initialTab = initialTab || "details";
+        modalRecord = record;
         const winner = mksWinner(record);
         // Village status goes at the end of the location line (after
         // subdistrict/district), not as its own grid box.
@@ -1099,7 +1106,7 @@
             ${DEMO_ITEMS.map((item) => `
               <div class="demo-item ${item.box || ""} ${item.wide ? "demo-item-wide" : ""}">
                 <div class="lbl">${item.label}</div>
-                ${item.single
+                ${item.portPicker ? portBoxBody(record) : item.single
                   ? `<div class="val">${metricCellHtml(item.single, record).html}</div>`
                   : `<div class="demo-pair">
                       ${item.pair.map((p) => {
@@ -1119,7 +1126,7 @@
           <div class="modal-head">
             <div>
               <h3>${escapeHtml(record.name || "—")} <span class="modal-id">#${escapeHtml(record.id)}</span></h3>
-              <div class="loc">${escapeHtml(locLine)}</div>
+              <div class="loc">${escapeHtml(locLine)}${netTechsOf(record).map((t) => `<span class="net-pill">${t}</span>`).join("")}</div>
             </div>
             <button class="modal-close" id="modalCloseBtn">✕</button>
           </div>
@@ -1147,6 +1154,13 @@
           const card = document.getElementById("modalCard");
           card.querySelectorAll(".modal-tab").forEach((t) => t.classList.toggle("active", t === tab));
           card.querySelectorAll(".modal-pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === tab.dataset.tab));
+          return;
+        }
+        const opt = e.target.closest(".port-opt");
+        if (opt && modalRecord) {
+          const box = opt.closest(".demo-item");
+          box.querySelectorAll(".port-opt").forEach((b) => { const on = b === opt; b.classList.toggle("active", on); b.setAttribute("aria-pressed", String(on)); });
+          box.querySelector("[data-port-vals]").innerHTML = portCellsHtml(modalRecord, opt.dataset.set);
           return;
         }
         const item = e.target.closest(".l2-item");
@@ -1802,15 +1816,48 @@
         calState.status = sel.value;
       }
 
-      function monthKeyOf(dateVal) { return dateVal.replace("-", ""); } // "2026-10" -> "202610"
-      function daysInMonth(monthKey) {
-        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
-        return new Date(y, m, 0).getDate();
+      /* ===== two-day window =====
+         The calendar only ever covers TODAY and TOMORROW (Bangkok time) --
+         never a whole month -- so nobody holds more than two days of the
+         company's village list at once. When a day passes it simply drops
+         off and tomorrow becomes today. The server enforces the same window
+         (it refuses other days and only sends these two). */
+      const CAL_TZ = "Asia/Bangkok";
+      const CAL_CLAIM_DAYS = 10;
+      const CAL_DAILY_CAP = 20; // mirrors CALENDAR_CLAIM_DAILY_CAP in the Apps Script
+      const calDateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: CAL_TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+      const THAI_DOW_FULL = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+      const THAI_MON_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      function calWindow() {
+        return [0, 1].map((i) => {
+          const [y, m, d] = calDateFmt.format(new Date(Date.now() + i * 86400000)).split("-").map(Number);
+          return { offset: i, monthKey: y + String(m).padStart(2, "0"), day: d, mon: m, dow: new Date(y, m - 1, d).getDay() };
+        });
       }
-      function firstWeekday(monthKey) {
-        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
-        return new Date(y, m - 1, 1).getDay(); // 0=Sun
+      function dayKeyOf(monthKey, day) { return monthKey + String(day).padStart(2, "0"); }
+      function windowKey() { return calWindow().map((w) => dayKeyOf(w.monthKey, w.day)).join(","); }
+      let renderedWindow = null;
+      // Places other reps currently hold -- [kind, id] pairs from the server,
+      // no names. Skipped by auto-picking and the manual search.
+      function setClaimed(list) { STATE.claimed = new Set((list || []).map((pair) => pair[0] + ":" + pair[1])); }
+      function isClaimedByOther(r) { return !!(STATE.claimed && STATE.claimed.has(kindOf(r) + ":" + r.id)); }
+      // A day has passed (or the tab sat open overnight): forget anything outside
+      // today/tomorrow and redraw, so tomorrow becomes today by itself.
+      function rollWindowIfNeeded() {
+        if (!STATE.villages || renderedWindow === null || windowKey() === renderedWindow) return;
+        const keep = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
+        Object.keys(STATE.calendarPlan).forEach((mk) => {
+          Object.keys(STATE.calendarPlan[mk]).forEach((d) => { if (!keep.has(dayKeyOf(mk, d))) delete STATE.calendarPlan[mk][d]; });
+          if (!Object.keys(STATE.calendarPlan[mk]).length) delete STATE.calendarPlan[mk];
+        });
+        Object.keys(pendingDays).forEach((k) => { if (!keep.has(k)) delete pendingDays[k]; });
+        persistPending();
+        const mk = calWindow()[0].monthKey;
+        if (mk !== calState.monthKey) { calState.monthKey = mk; const t = STATE.calendarTheme[mk]; calState.tags = new Set(t ? t.tags : []); }
+        renderCalTagChips(); renderCalendar();
       }
+      setInterval(rollWindowIfNeeded, 60000);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") rollWindowIfNeeded(); });
 
       // Every number on the Calendar's filter controls (tag chips, district
       // pills, subdistrict cards, the total line) is a live count of what the
@@ -1984,12 +2031,15 @@
         return calAreaPool(null, tagsOverride).slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
       }
 
-      function usedIdsInMonth(monthKey, exceptDay) {
+      // Everything already planned on the OTHER day(s) of the window.
+      function usedIdsInWindow(monthKey, exceptDay) {
         const used = new Set();
-        const plan = STATE.calendarPlan[monthKey] || {};
-        Object.keys(plan).forEach((day) => {
-          if (+day === exceptDay) return;
-          plan[day].forEach((p) => used.add(p.kind + ":" + p.refId));
+        Object.keys(STATE.calendarPlan).forEach((mk) => {
+          const plan = STATE.calendarPlan[mk];
+          Object.keys(plan).forEach((day) => {
+            if (mk === monthKey && +day === +exceptDay) return;
+            plan[day].forEach((p) => used.add(p.kind + ":" + p.refId));
+          });
         });
         return used;
       }
@@ -2011,10 +2061,15 @@
       // that zigzags across the whole cluster. Widens past the radius only
       // if there genuinely aren't 3 other candidates within it.
       const DAY_TRAVEL_RADIUS_KM = 6;
-      function pickForDay(monthKey, day, excludeExtra, tagsOverride) {
-        const used = usedIdsInMonth(monthKey, day);
+      // Ranked candidates for one day: the calendar's filters, minus anything on
+      // the other day and anything another rep currently holds.
+      function candidatesForDay(monthKey, day, excludeExtra, tagsOverride) {
+        const used = usedIdsInWindow(monthKey, day);
         (excludeExtra || []).forEach((k) => used.add(k));
-        const candidates = rankedPoolForCalendar(tagsOverride).filter((r) => !used.has(kindOf(r) + ":" + r.id));
+        return rankedPoolForCalendar(tagsOverride).filter((r) => !used.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r));
+      }
+      function pickForDay(monthKey, day, excludeExtra, tagsOverride) {
+        const candidates = candidatesForDay(monthKey, day, excludeExtra, tagsOverride);
         if (!candidates.length) return [];
         const anchor = candidates[0];
         const withDist = candidates.slice(1).map((r) => ({ r, d: haversineKm(anchor, r) })).sort((a, b) => a.d - b.d);
@@ -2023,6 +2078,23 @@
         const chosen = [anchor, ...nearby.slice(0, 3).map((x) => x.r)];
         const slots = ["1", "2", "3", "backup"];
         return chosen.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id, name: r.name || "" }));
+      }
+      // Refills the empty slots of a day (after a pick was lost to another
+      // rep), keeping what's left and choosing nearest to the first stop.
+      function topUpDay(monthKey, day, tagsOverride) {
+        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
+        const picks = (STATE.calendarPlan[monthKey][day] || []).slice();
+        if (!picks.length) { const fresh = pickForDay(monthKey, day, [], tagsOverride); if (fresh.length) STATE.calendarPlan[monthKey][day] = fresh; return fresh.length > 0; }
+        const have = new Set(picks.map((p) => p.kind + ":" + p.refId));
+        const need = 4 - picks.length;
+        if (need <= 0) return false;
+        const first = byId(picks[0].kind, picks[0].refId);
+        let pool = candidatesForDay(monthKey, day, [...have], tagsOverride);
+        if (first) pool = pool.map((r) => ({ r, d: haversineKm(first, r) })).sort((a, b) => a.d - b.d).map((x) => x.r);
+        const freeSlots = ["1", "2", "3", "backup"].filter((sl) => !picks.some((p) => p.slot === sl));
+        pool.slice(0, need).forEach((r, i) => picks.push({ slot: freeSlots[i], kind: kindOf(r), refId: r.id, name: r.name || "" }));
+        STATE.calendarPlan[monthKey][day] = picks;
+        return true;
       }
 
       // Opens a driving route through a day's picks in Google Maps -- no
@@ -2040,81 +2112,100 @@
       /* ===== plan save queue =====
          Edits show up instantly (they live in STATE first); this gets them to
          the Sheet without making anyone wait or lose work:
-           - ONE request per month (saveCalendarMonth) instead of one per day.
-             "สร้างทั้งเดือน" used to fire ~30 sequential requests, each a full
-             Apps Script round trip.
-           - Quick successive edits are coalesced (debounced) into one request.
-           - The not-yet-saved plan is also kept in localStorage until the
-             server confirms it. If the tab is closed first, the browser is
-             asked to send it on the way out (keepalive), the user is warned
-             before leaving, and anything still unsent is restored and
-             re-sent the next time the page opens. */
-      const PENDING_KEY = "tolSuggestionPendingPlans";
-      const PENDING_MAX_AGE_MS = 7 * 86400000;
-      const pendingPlans = (() => { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "{}") || {}; } catch (e) { return {}; } })();
-      const saveTimers = {};
-      let savesInFlight = 0;
-      function persistPending() { try { localStorage.setItem(PENDING_KEY, JSON.stringify(pendingPlans)); } catch (e) { /* storage blocked -- in-memory queue still works */ } }
-      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingPlans).length > 0; }
-      function monthTagsFor(monthKey) {
-        const t = STATE.calendarTheme[monthKey];
-        if (t) return t.tags.slice();
-        return monthKey === calState.monthKey ? [...calState.tags] : [];
-      }
+           - ONE request (saveCalendarDays) carries every changed day, and
+             quick successive edits are coalesced (debounced) into it.
+           - The server also CLAIMS each place for this rep. If another rep got
+             there first, that pick comes back as a conflict and is replaced.
+           - The not-yet-saved plan is kept in localStorage until the server
+             confirms it. If the tab is closed first, the browser is asked to
+             send it on the way out (keepalive), the user is warned before
+             leaving, and anything still unsent is restored and re-sent the
+             next time the page opens. */
+      const PENDING_KEY = "tolSuggestionPendingDays";
+      const PENDING_MAX_AGE_MS = 2 * 86400000;
+      const pendingDays = (() => { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "{}") || {}; } catch (e) { return {}; } })();
+      let saveTimer = null, savesInFlight = 0, conflictRounds = 0;
+      function persistPending() { try { localStorage.setItem(PENDING_KEY, JSON.stringify(pendingDays)); } catch (e) { /* storage blocked -- in-memory queue still works */ } }
+      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingDays).length > 0; }
 
-      function queueMonthSave(monthKey, delayMs) {
+      function queueDaySave(monthKey, day, delayMs) {
         if (!STATE.idToken) return; // not signed in (sample-data preview): nothing to sync
-        pendingPlans[monthKey] = {
-          plan: JSON.parse(JSON.stringify(STATE.calendarPlan[monthKey] || {})),
-          tags: monthTagsFor(monthKey), at: Date.now(), email: STATE.email || null, tries: 0,
+        pendingDays[dayKeyOf(monthKey, day)] = {
+          monthKey, day: Number(day), picks: JSON.parse(JSON.stringify((STATE.calendarPlan[monthKey] || {})[day] || [])),
+          at: Date.now(), email: STATE.email || null, tries: 0,
         };
         persistPending();
         setCalStatus("กำลังบันทึก…", false);
-        clearTimeout(saveTimers[monthKey]);
-        saveTimers[monthKey] = setTimeout(() => sendMonth(monthKey), delayMs == null ? 700 : delayMs);
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(sendDays, delayMs == null ? 700 : delayMs);
       }
 
-      // Older deployments of the Apps Script don't know saveCalendarMonth
-      // yet -- fall back to the original per-day saves rather than saving nothing.
-      async function saveMonthPerDay(monthKey, snap) {
-        for (const day of Object.keys(snap.plan)) {
-          await api("saveCalendarDay", { monthKey, day: Number(day), picks: snap.plan[day] });
-        }
-        try { await api("saveCalendarTheme", { monthKey, tags: snap.tags }); } catch (e) { /* theme is best-effort here */ }
-      }
-
-      async function sendMonth(monthKey) {
-        const snap = pendingPlans[monthKey];
-        if (!snap) return;
+      async function sendDays() {
+        const snaps = Object.keys(pendingDays).map((k) => ({ k, s: pendingDays[k] }));
+        if (!snaps.length) return;
         savesInFlight++;
         try {
-          try { await api("saveCalendarMonth", { monthKey, plan: snap.plan, tags: snap.tags }); }
-          catch (e) { if (/unknown action/i.test(e.message || "")) await saveMonthPerDay(monthKey, snap); else throw e; }
-          // Only forget it if nothing newer was queued while this was in flight.
-          if (pendingPlans[monthKey] && pendingPlans[monthKey].at === snap.at) { delete pendingPlans[monthKey]; persistPending(); }
-          if (!Object.keys(pendingPlans).length) setCalStatus("บันทึกแล้ว ✓", false);
+          const res = await api("saveCalendarDays", { days: snaps.map(({ s }) => ({ monthKey: s.monthKey, day: s.day, picks: s.picks })) });
+          // Only forget a day if nothing newer was queued for it while this was in flight.
+          snaps.forEach(({ k, s }) => { if (pendingDays[k] && pendingDays[k].at === s.at) delete pendingDays[k]; });
+          persistPending();
+          if (res.claimedByOthers) setClaimed(res.claimedByOthers);
+          if (res.outsideWindow) setCalStatus("วันที่ในเครื่องนี้ไม่ตรงกับเซิร์ฟเวอร์ — กรุณาตรวจเวลาของเครื่อง", true);
+          else if ((res.conflicts || []).length) afterConflicts(res, snaps.map(({ s }) => dayKeyOf(s.monthKey, s.day)));
+          else {
+            // The save that follows a conflict must not wipe the explanation of it.
+            const hadConflict = conflictRounds > 0; conflictRounds = 0;
+            if (!hadConflict && !Object.keys(pendingDays).length) setCalStatus("บันทึกแล้ว ✓", false);
+          }
         } catch (e) {
-          snap.tries = (snap.tries || 0) + 1; persistPending();
+          snaps.forEach(({ s }) => { s.tries = (s.tries || 0) + 1; });
+          persistPending();
           setCalStatus("ยังบันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ — เก็บไว้ในเครื่องแล้ว และจะลองใหม่ให้อัตโนมัติ: " + e.message, true);
-          if (snap.tries < 3) setTimeout(() => { if (pendingPlans[monthKey] && pendingPlans[monthKey].at === snap.at) sendMonth(monthKey); }, 30000);
+          if (snaps.every(({ s }) => s.tries < 3)) setTimeout(() => { if (Object.keys(pendingDays).length) sendDays(); }, 30000);
         } finally {
           savesInFlight--;
         }
       }
 
+      // Some picks were taken by another rep (or today's cap was hit): drop
+      // them, and refill any day that was a full plan so it stays complete.
+      function afterConflicts(res, sentKeys) {
+        const lost = new Set(res.conflicts.map((c) => c.kind + ":" + c.refId));
+        const changed = [];
+        let removed = 0;
+        calWindow().forEach((w) => {
+          const picks = (STATE.calendarPlan[w.monthKey] || {})[w.day];
+          if (!picks || !sentKeys.includes(dayKeyOf(w.monthKey, w.day))) return;
+          const left = picks.filter((p) => !lost.has(p.kind + ":" + p.refId));
+          if (left.length === picks.length) return;
+          removed += picks.length - left.length;
+          const wasFull = picks.length >= 4;
+          STATE.calendarPlan[w.monthKey][w.day] = left;
+          if (!res.capReached && wasFull && conflictRounds < 3) topUpDay(w.monthKey, w.day, calState.tags);
+          changed.push(w);
+        });
+        conflictRounds++;
+        renderCalendar();
+        if (dayEditState) { renderDayEditSlots(); renderDayEditTags(); renderDayEditResults(document.getElementById("dayEditSearch").value); }
+        changed.forEach((w) => queueDaySave(w.monthKey, w.day, 0));
+        const short = changed.some((w) => ((STATE.calendarPlan[w.monthKey] || {})[w.day] || []).length < 4);
+        setCalStatus(res.capReached
+          ? `ครบโควตารับสถานที่ใหม่ของวันนี้แล้ว (${CAL_DAILY_CAP} แห่ง) — ลองใหม่พรุ่งนี้`
+          : `มี ${removed} แห่งที่เซลล์คนอื่นรับไปแล้ว — ` + (short ? "และไม่มีสถานที่อื่นให้เลือกแทนแล้ว" : "เลือกแห่งอื่นแทนให้แล้ว"), !!res.capReached || short);
+      }
+
       // Last-chance send as the page goes away. keepalive lets the request
-      // outlive the tab; a month plan is far below its 64 KB body limit.
+      // outlive the tab; two days of picks is far below its 64 KB body limit.
       function flushPendingKeepalive() {
         if (!STATE.idToken) return;
-        Object.keys(pendingPlans).forEach((monthKey) => {
-          const snap = pendingPlans[monthKey];
-          try {
-            fetch(DEFAULT_SYNC_URL, {
-              method: "POST", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({ action: "saveCalendarMonth", idToken: STATE.idToken, monthKey, plan: snap.plan, tags: snap.tags }),
-            }).catch(() => {});
-          } catch (e) { /* oversized body or no keepalive support -- the localStorage copy still restores it next visit */ }
-        });
+        const days = Object.keys(pendingDays).map((k) => ({ monthKey: pendingDays[k].monthKey, day: pendingDays[k].day, picks: pendingDays[k].picks }));
+        if (!days.length) return;
+        try {
+          fetch(DEFAULT_SYNC_URL, {
+            method: "POST", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: "saveCalendarDays", idToken: STATE.idToken, days }),
+          }).catch(() => {});
+        } catch (e) { /* no keepalive support -- the localStorage copy still restores it next visit */ }
       }
       window.addEventListener("beforeunload", (e) => {
         if (!hasUnsavedPlans()) return;
@@ -2123,39 +2214,44 @@
       });
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && hasUnsavedPlans()) flushPendingKeepalive(); });
 
-      // Next visit: anything the server never confirmed is put back on screen
-      // and sent again (same person only; very old leftovers are dropped).
+      // Next visit: anything the server never confirmed (and that is still
+      // today/tomorrow) is put back on screen and sent again -- same person only.
       function restorePendingPlans() {
+        const inWindow = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         let restored = 0;
-        Object.keys(pendingPlans).forEach((monthKey) => {
-          const snap = pendingPlans[monthKey];
-          if (Date.now() - snap.at > PENDING_MAX_AGE_MS) { delete pendingPlans[monthKey]; return; }
+        Object.keys(pendingDays).forEach((k) => {
+          const snap = pendingDays[k];
+          if (Date.now() - snap.at > PENDING_MAX_AGE_MS || !inWindow.has(k)) { delete pendingDays[k]; return; }
           if (snap.email && STATE.email && snap.email !== STATE.email) return;
-          STATE.calendarPlan[monthKey] = snap.plan;
-          STATE.calendarTheme[monthKey] = { tags: snap.tags.slice() };
-          if (monthKey === calState.monthKey) calState.tags = new Set(snap.tags);
+          if (!STATE.calendarPlan[snap.monthKey]) STATE.calendarPlan[snap.monthKey] = {};
+          STATE.calendarPlan[snap.monthKey][snap.day] = snap.picks;
           snap.tries = 0; restored++;
-          sendMonth(monthKey);
         });
         persistPending();
-        if (restored) {
-          renderCalTagChips(); renderCalendar();
-          setCalStatus(`กู้คืนแผนที่ยังไม่ได้บันทึกไว้ ${restored} เดือน และกำลังบันทึกให้…`, false);
-        }
+        if (restored) { renderCalendar(); setCalStatus(`กู้คืนแผนที่ยังไม่ได้บันทึกไว้ ${restored} วัน และกำลังบันทึกให้…`, false); sendDays(); }
       }
 
-      async function generateMonth() {
-        const monthKey = calState.monthKey;
-        const n = daysInMonth(monthKey);
-        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
-        const usedExtra = new Set();
-        for (let day = 1; day <= n; day++) {
-          const picks = pickForDay(monthKey, day, usedExtra);
-          picks.forEach((p) => usedExtra.add(p.kind + ":" + p.refId));
-          STATE.calendarPlan[monthKey][day] = picks;
-        }
+      // Plans that were made before places could be claimed hold no claim yet,
+      // so another rep could be given the same place. Re-sending them once on
+      // load claims them (or replaces any that were already taken).
+      function reclaimWindowPlans() {
+        calWindow().forEach((w) => {
+          const picks = (STATE.calendarPlan[w.monthKey] || {})[w.day];
+          if (picks && picks.length && !pendingDays[dayKeyOf(w.monthKey, w.day)]) queueDaySave(w.monthKey, w.day, 1500);
+        });
+      }
+
+      function generateDays() {
+        let any = false;
+        calWindow().forEach((w) => {
+          if (!STATE.calendarPlan[w.monthKey]) STATE.calendarPlan[w.monthKey] = {};
+          const picks = pickForDay(w.monthKey, w.day, []);
+          // Nothing matching must NOT wipe a plan that's already there.
+          if (picks.length) { STATE.calendarPlan[w.monthKey][w.day] = picks; any = true; }
+        });
+        if (!any) { setCalStatus("ไม่มีรายการที่ตรงเงื่อนไข (หรือถูกเซลล์คนอื่นรับไปหมดแล้ว) — ยังไม่เปลี่ยนแผน", true); return; }
         renderCalendar();
-        queueMonthSave(monthKey, 0);
+        calWindow().forEach((w) => queueDaySave(w.monthKey, w.day, 0));
       }
 
       // A pick stores the property's name as well as its id. If the property
@@ -2172,331 +2268,36 @@
       }
 
       function renderCalendar() {
-        renderCalSlots();
-        const monthKey = calState.monthKey;
-        if (!monthKey) return;
-        const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-        const n = daysInMonth(monthKey);
-        const lead = firstWeekday(monthKey);
-        const plan = STATE.calendarPlan[monthKey] || {};
-
-        let html = dow.map((d) => `<div class="cal-dow">${d}</div>`).join("");
-        for (let i = 0; i < lead; i++) html += `<div class="cal-day empty-cell"></div>`;
-        for (let day = 1; day <= n; day++) {
-          const picks = plan[day];
-          let inner = `<div class="d-num">${day}</div>`;
-          if (picks && picks.length) {
-            inner += picks.map((p) => {
-              const r = byId(p.kind, p.refId);
-              const lbl = pickLabel(p, r);
-              const nm = lbl.name;
-              const winner = r ? mksWinner(r) : null;
-              const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
-              const tip = lbl.missing ? nm + " (ไม่พบในข้อมูลล่าสุด)" : nm;
-              return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
-            }).join("");
-            inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ แก้ไข</button>`;
-          } else {
-            inner += `<button class="cal-gen-btn" data-edit-day="${day}">+ วางแผน</button>`;
-          }
-          html += `<div class="cal-day">${inner}</div>`;
-        }
-        document.getElementById("calGrid").innerHTML = html;
+        const win = calWindow();
+        renderedWindow = win.map((w) => dayKeyOf(w.monthKey, w.day)).join(",");
+        document.getElementById("calGrid").innerHTML = win.map((w) => {
+          const picks = ((STATE.calendarPlan[w.monthKey] || {})[w.day] || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+          const list = picks.length ? picks.map((p) => {
+            const r = byId(p.kind, p.refId);
+            const lbl = pickLabel(p, r);
+            const winner = r ? mksWinner(r) : null;
+            const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
+            const tip = lbl.missing ? lbl.name + " (ไม่พบในข้อมูลล่าสุด)" : lbl.name;
+            return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(lbl.name)}${r ? `<span class="cp-loc">${escapeHtml(locOf(r))}</span>` : ""}</div>`;
+          }).join("") : `<div class="empty-note">ยังไม่มีแผน</div>`;
+          return `<div class="cal-daycard${w.offset === 0 ? " today" : ""}">
+            <div class="cal-dayhead"><span class="dn">${w.offset === 0 ? "วันนี้" : "พรุ่งนี้"}</span><span class="dd">${THAI_DOW_FULL[w.dow]} ${w.day} ${THAI_MON_SHORT[w.mon - 1]}</span></div>
+            ${list}
+            <button class="cal-gen-btn" data-month="${w.monthKey}" data-edit-day="${w.day}">${picks.length ? "✎ แก้ไข" : "+ วางแผน"}</button>
+          </div>`;
+        }).join("");
       }
 
       document.getElementById("calGrid").addEventListener("click", (e) => {
         const pick = e.target.closest(".cal-pick");
         if (pick) { const r = byId(pick.dataset.kind, pick.dataset.id); if (r) openModal(r); return; }
         const editBtn = e.target.closest("[data-edit-day]");
-        if (editBtn) openDayEditor(calState.monthKey, +editBtn.dataset.editDay);
+        if (editBtn) openDayEditor(editBtn.dataset.month, +editBtn.dataset.editDay);
       });
-
-      // Renders the whole month's plan as a shareable PNG -- a purpose-drawn
-      // card, not a screenshot, so it looks clean regardless of the app's
-      // current theme/zoom/scroll position. Uses the native share sheet on
-      // a phone (so it opens straight into LINE/etc.) and falls back to a
-      // plain download on desktop or wherever navigator.share isn't there.
-      const MONTH_NAMES_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-      function exportCalendarImage() {
-        const monthKey = calState.monthKey;
-        if (!monthKey) return;
-        const days = daysInMonth(monthKey);
-        const lead = firstWeekday(monthKey);
-        const plan = STATE.calendarPlan[monthKey] || {};
-        const monthLabel = MONTH_NAMES_FULL[+monthKey.slice(4, 6) - 1] + " " + monthKey.slice(0, 4);
-        const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-
-        const cellW = 168, cellH = 108, padTop = 92, padSide = 22, padBottom = 26;
-        const rows = Math.ceil((lead + days) / 7);
-        const W = 7 * cellW + padSide * 2, H = padTop + rows * cellH + padBottom;
-        const scale = 2; // sharper output on a retina screen
-        const canvas = document.createElement("canvas");
-        canvas.width = W * scale; canvas.height = H * scale;
-        const ctx = canvas.getContext("2d");
-        ctx.scale(scale, scale);
-
-        ctx.fillStyle = "#eef1f5"; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = "#121a2b"; ctx.font = "700 20px Inter, sans-serif";
-        ctx.fillText("TOL Suggestion — " + monthLabel, padSide, 32);
-        ctx.fillStyle = "#7b8695"; ctx.font = "12px Inter, sans-serif";
-        ctx.fillText("ปฏิทินการขายรายเดือน", padSide, 52);
-
-        ctx.font = "700 11px Inter, sans-serif"; ctx.fillStyle = "#7b8695";
-        dow.forEach((d, i) => ctx.fillText(d.toUpperCase(), padSide + i * cellW + 8, padTop - 10));
-
-        function fitText(text, maxW) {
-          if (ctx.measureText(text).width <= maxW) return text;
-          let t = text;
-          while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
-          return t + "…";
-        }
-
-        for (let day = 1; day <= days; day++) {
-          const idx = lead + day - 1;
-          const col = idx % 7, row = Math.floor(idx / 7);
-          const x = padSide + col * cellW, y = padTop + row * cellH;
-          ctx.fillStyle = "#ffffff"; ctx.fillRect(x + 2, y + 2, cellW - 4, cellH - 4);
-          ctx.strokeStyle = "#e3e8ef"; ctx.lineWidth = 1; ctx.strokeRect(x + 2.5, y + 2.5, cellW - 5, cellH - 5);
-          ctx.fillStyle = "#55606f"; ctx.font = "700 12px Inter, sans-serif";
-          ctx.fillText(String(day), x + 10, y + 20);
-          const picks = (plan[day] || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
-          ctx.font = "10.5px Inter, sans-serif";
-          picks.forEach((p, i) => {
-            const r = byId(p.kind, p.refId);
-            const label = (p.slot === "backup" ? "★ " : "") + pickLabel(p, r).name;
-            ctx.fillStyle = p.slot === "backup" ? "#7b8695" : "#0b6b63";
-            ctx.fillText(fitText(label, cellW - 20), x + 10, y + 38 + i * 15);
-          });
-        }
-
-        canvas.toBlob(async (blob) => {
-          const filename = `tol-suggestion-calendar-${monthKey}.png`;
-          const file = new File([blob], filename, { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try { await navigator.share({ files: [file], title: monthLabel }); return; }
-            catch (e) { /* cancelled or unsupported -- fall through to download */ }
-          }
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url; a.download = filename;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-        }, "image/png");
-      }
-      // One row per planned pick (not per day), in date then slot order, so
-      // it opens in Excel as a flat, filterable/pivotable list. Lat/lng are
-      // included so a day's stops can be dropped straight into a map tool.
-      function exportCalendarCsv() {
-        const monthKey = calState.monthKey;
-        const plan = (monthKey && STATE.calendarPlan[monthKey]) || {};
-        const days = Object.keys(plan).map(Number).filter((d) => (plan[d] || []).length).sort((a, b) => a - b);
-        if (!days.length) { setCalStatus("เดือนนี้ยังไม่มีแผนให้ส่งออก", true); return; }
-        const slotOrder = { 1: 0, 2: 1, 3: 2, backup: 3 };
-        const weekdays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
-        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
-        const header = ["วันที่", "วัน", "ลำดับ", "ประเภท", "รหัส", "ชื่อ", "อำเภอ/เขต", "ตำบล/แขวง",
-          "ครัวเรือน/ยูนิต", "พอร์ตว่าง", "พอร์ตทั้งหมด", "MKS True", "Active True", "คะแนน", "ละติจูด", "ลองจิจูด"];
-        const lines = [header.map(csvField).join(",")];
-        days.forEach((d) => {
-          const date = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-          const dow = weekdays[new Date(y, m - 1, d).getDay()];
-          plan[d].slice().sort((a, b) => (slotOrder[a.slot] ?? 9) - (slotOrder[b.slot] ?? 9)).forEach((pk) => {
-            const r = byId(pk.kind, pk.refId);
-            const cells = r ? [
-              date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", r.id, r.name || "",
-              ampOf(r) || "", tamOf(r) || "", whole(hhOf(r)), whole(r.totalAvailable), whole(r.totalPort),
-              pct(r.mksTrue), whole(r.active), fmt(r.autoScore), r.lat ?? "", r.lng ?? "",
-            ] : [date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", pk.refId, (pk.name ? pk.name + " " : "") + "(ไม่พบข้อมูล)"];
-            lines.push(cells.map(csvField).join(","));
-          });
-        });
-        const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = `tol-suggestion-calendar-${monthKey}.csv`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
-
-      const calExportMenu = document.getElementById("calExportMenu");
-      const calExportBtn = document.getElementById("calExportBtn");
-      function setCalExportMenu(open) {
-        calExportMenu.hidden = !open;
-        calExportBtn.setAttribute("aria-expanded", String(open));
-      }
-      calExportBtn.addEventListener("click", (e) => { e.stopPropagation(); setCalExportMenu(calExportMenu.hidden); });
-      document.getElementById("calExportImg").addEventListener("click", () => { setCalExportMenu(false); exportCalendarImage(); });
-      document.getElementById("calExportCsv").addEventListener("click", () => { setCalExportMenu(false); exportCalendarCsv(); });
-      document.addEventListener("click", (e) => { if (!calExportMenu.hidden && !e.target.closest(".export-menu-wrap")) setCalExportMenu(false); });
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape") setCalExportMenu(false); });
-
-      /* ===== saved-plan slots (3 per person) =====
-         A slot is a snapshot of one month's plan + theme. Click an empty slot
-         to save the plan you're looking at; click a filled one to open it,
-         overwrite it with the current plan, or clear it. 🔒 keeps a slot
-         forever; an unlocked slot that hasn't been saved or opened for 30
-         days is deleted automatically (the server enforces it -- the page
-         just hides it as soon as it's expired). */
-      const SLOT_TTL_DAYS = 30;
-      const SLOT_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-      let slotMenuOpen = null;
-
-      // Same rule as cutoffMonthKey_() in the Apps Script: the working plan
-      // keeps the current month plus two back; older months are pruned there.
-      function calCutoffMonthKey() {
-        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 2);
-        return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0");
-      }
-      function slotDaysLeft(slot) {
-        const t = Date.parse(slot.lastOpenedAt);
-        if (isNaN(t)) return 0;
-        return Math.max(0, Math.ceil(SLOT_TTL_DAYS - (Date.now() - t) / 86400000));
-      }
-      function slotIsLive(slot) { return !!slot && (slot.locked || slotDaysLeft(slot) > 0); }
-      function monthLabelOf(monthKey) { return SLOT_MONTHS_SHORT[+monthKey.slice(4, 6) - 1] + " " + monthKey.slice(0, 4); }
-      function plannedDayCount(plan) { return Object.keys(plan || {}).filter((d) => (plan[d] || []).length).length; }
-
-      function renderCalSlots() {
-        document.getElementById("calSlots").innerHTML = [0, 1, 2].map((i) => {
-          const slot = STATE.calendarSlots[i];
-          if (!slotIsLive(slot)) {
-            STATE.calendarSlots[i] = null;
-            return `<div class="cal-slot empty" data-i="${i}">
-              <button class="cal-slot-main" data-act="main" title="บันทึกแผนเดือนที่แสดงอยู่ลงช่อง ${i + 1}">
-                <span class="s-name">ช่อง ${i + 1}</span><span class="s-meta">+ บันทึก</span>
-              </button></div>`;
-          }
-          // The countdown only takes up room when it matters; the full text
-          // is always in the tooltip.
-          const left = slotDaysLeft(slot);
-          const sub = slot.locked ? "" : (left <= 7 ? `เหลือ ${left} วัน` : "");
-          const tip = (slot.locked ? "เก็บถาวร" : `หมดอายุใน ${left} วัน`) + " · บันทึกเมื่อ " + String(slot.savedAt || "").slice(0, 10);
-          return `<div class="cal-slot filled${slot.locked ? " locked" : ""}" data-i="${i}">
-            <button class="cal-slot-main" data-act="main" aria-haspopup="true" aria-expanded="${slotMenuOpen === i}" title="${escapeHtml(tip)}">
-              <span class="s-name">ช่อง ${i + 1}</span>
-              <span class="s-meta">${monthLabelOf(slot.monthKey)} · ${plannedDayCount(slot.plan)} วัน</span>
-              ${sub ? `<span class="s-sub">${sub}</span>` : ""}
-            </button>
-            <button class="cal-slot-lock" data-act="lock" aria-pressed="${slot.locked}" title="${slot.locked ? "ปลดล็อก (จะหมดอายุตามปกติ)" : "ล็อกช่องนี้ไม่ให้ถูกลบ"}">${slot.locked ? "🔒" : "🔓"}</button>
-            <div class="export-menu cal-slot-menu" ${slotMenuOpen === i ? "" : "hidden"}>
-              <button data-act="open">📂 เปิดแผนนี้</button>
-              <button data-act="overwrite">💾 บันทึกทับด้วยแผนตอนนี้</button>
-              <button data-act="clear">🗑 ล้างช่องนี้</button>
-            </div></div>`;
-        }).join("");
-      }
-
-      async function saveToSlot(i) {
-        const monthKey = calState.monthKey;
-        const plan = JSON.parse(JSON.stringify(STATE.calendarPlan[monthKey] || {}));
-        if (!plannedDayCount(plan)) { setCalStatus("เดือนนี้ยังไม่มีแผนให้บันทึก — สร้างแผนก่อน", true); return; }
-        const existing = STATE.calendarSlots[i];
-        if (existing && existing.locked) { setCalStatus(`ช่อง ${i + 1} ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะบันทึกทับได้`, true); return; }
-        if (existing) {
-          const ok = await confirmDialog(`บันทึกทับช่อง ${i + 1} (${monthLabelOf(existing.monthKey)}) ด้วยแผน ${monthLabelOf(monthKey)} ตอนนี้?`, "บันทึกทับ", "ยกเลิก");
-          if (!ok) return;
-        }
-        if (JSON.stringify(plan).length > 45000) { setCalStatus("แผนใหญ่เกินกว่าจะบันทึกลงช่องได้", true); return; }
-        const now = new Date().toISOString();
-        const tags = [...calState.tags];
-        const prev = STATE.calendarSlots[i];
-        STATE.calendarSlots[i] = { monthKey, tags, plan, savedAt: now, lastOpenedAt: now, locked: false };
-        slotMenuOpen = null; renderCalSlots();
-        try {
-          await api("saveCalendarSlot", { slot: i + 1, monthKey, tags, plan });
-          setCalStatus(`บันทึกแผน ${monthLabelOf(monthKey)} ลงช่อง ${i + 1} แล้ว`, false);
-        } catch (e) {
-          STATE.calendarSlots[i] = prev || null; renderCalSlots();
-          setCalStatus(`บันทึกลงช่อง ${i + 1} ไม่สำเร็จ: ` + e.message, true);
-        }
-      }
-
-      async function openSlot(i) {
-        const slot = STATE.calendarSlots[i];
-        if (!slot) return;
-        const mk = slot.monthKey;
-        const hasCurrent = plannedDayCount(STATE.calendarPlan[mk]) > 0;
-        if (hasCurrent) {
-          const ok = await confirmDialog(`เปิดแผนจากช่อง ${i + 1}? แผน ${monthLabelOf(mk)} ที่แสดงอยู่ตอนนี้จะถูกแทนที่`, "เปิดแผนนี้", "ยกเลิก");
-          if (!ok) return;
-        }
-        STATE.calendarPlan[mk] = JSON.parse(JSON.stringify(slot.plan));
-        STATE.calendarTheme[mk] = { tags: slot.tags.slice() };
-        calState.monthKey = mk;
-        calState.tags = new Set(slot.tags);
-        document.getElementById("calMonth").value = mk.slice(0, 4) + "-" + mk.slice(4, 6);
-        slot.lastOpenedAt = new Date().toISOString();
-        slotMenuOpen = null;
-        renderCalTagChips(); renderCalendar(); renderCalSlots();
-        // Months older than the working-plan window would be pruned the
-        // moment they were written back, so those are shown only here (the
-        // slot itself still holds them).
-        const old = mk < calCutoffMonthKey();
-        try {
-          if (!old) queueMonthSave(mk, 0);
-          await api("touchCalendarSlot", { slot: i + 1 });
-          setCalStatus(old ? `เปิดแผนจากช่อง ${i + 1} แล้ว (เดือนนี้เก่ากว่า 2 เดือน — แสดงชั่วคราว ยังเก็บอยู่ในช่อง)` : `เปิดแผนจากช่อง ${i + 1} แล้ว`, false);
-        } catch (e) {
-          setCalStatus("เปิดแล้วในเครื่องนี้ แต่บันทึกกลับไม่สำเร็จ: " + e.message, true);
-        }
-      }
-
-      async function toggleSlotLock(i) {
-        const slot = STATE.calendarSlots[i];
-        if (!slot) return;
-        slot.locked = !slot.locked;
-        slot.lastOpenedAt = new Date().toISOString();
-        renderCalSlots();
-        try {
-          await api("setCalendarSlotLock", { slot: i + 1, locked: slot.locked });
-          setCalStatus(slot.locked ? `ล็อกช่อง ${i + 1} แล้ว — เก็บถาวร` : `ปลดล็อกช่อง ${i + 1} แล้ว — จะหมดอายุใน ${SLOT_TTL_DAYS} วันถ้าไม่เปิด`, false);
-        } catch (e) {
-          slot.locked = !slot.locked; renderCalSlots();
-          setCalStatus("บันทึกการล็อกไม่สำเร็จ: " + e.message, true);
-        }
-      }
-
-      async function clearSlot(i) {
-        const slot = STATE.calendarSlots[i];
-        if (!slot) return;
-        if (slot.locked) { setCalStatus(`ช่อง ${i + 1} ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะล้างได้`, true); return; }
-        const ok = await confirmDialog(`ล้างช่อง ${i + 1} (${monthLabelOf(slot.monthKey)})? ย้อนกลับไม่ได้`, "ล้างช่อง", "ยกเลิก");
-        if (!ok) return;
-        STATE.calendarSlots[i] = null; slotMenuOpen = null; renderCalSlots();
-        try {
-          await api("clearCalendarSlot", { slot: i + 1 });
-          setCalStatus(`ล้างช่อง ${i + 1} แล้ว`, false);
-        } catch (e) {
-          STATE.calendarSlots[i] = slot; renderCalSlots();
-          setCalStatus("ล้างช่องไม่สำเร็จ: " + e.message, true);
-        }
-      }
-
-      document.getElementById("calSlots").addEventListener("click", (e) => {
-        e.stopPropagation();
-        const act = e.target.closest("[data-act]"); if (!act) return;
-        const i = +act.closest(".cal-slot").dataset.i;
-        const kind = act.dataset.act;
-        if (kind === "main") {
-          if (!STATE.calendarSlots[i]) saveToSlot(i);
-          else { slotMenuOpen = slotMenuOpen === i ? null : i; renderCalSlots(); }
-        } else if (kind === "lock") toggleSlotLock(i);
-        else {
-          // Any menu choice closes the menu first, so it never lingers open
-          // behind a confirm dialog or after a refused action.
-          slotMenuOpen = null; renderCalSlots();
-          if (kind === "open") openSlot(i);
-          else if (kind === "overwrite") saveToSlot(i);
-          else if (kind === "clear") clearSlot(i);
-        }
-      });
-      document.addEventListener("click", () => { if (slotMenuOpen !== null) { slotMenuOpen = null; renderCalSlots(); } });
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && slotMenuOpen !== null) { slotMenuOpen = null; renderCalSlots(); } });
 
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
-         time -- the grid's bulk "Generate whole month" still uses the same
-         pickForDay() directly. ===== */
-      let dayEditState = null; // { monthKey, day, tags: Set } -- tags = this day's own filter, seeded from the month theme
+         time -- "สร้างแผน 2 วัน" uses the same pickForDay() for both days. ===== */
+      let dayEditState = null; // { monthKey, day, tags: Set } -- tags = this day's own filter, seeded from the calendar's theme
 
       function currentDayPicks() {
         if (!dayEditState) return [];
@@ -2510,7 +2311,7 @@
         STATE.calendarPlan[monthKey][day] = picks;
         renderCalendar();
         renderDayEditSlots();
-        queueMonthSave(monthKey);
+        queueDaySave(monthKey, day);
       }
 
       const SLOT_LABELS = { 1: "หลัก 1", 2: "หลัก 2", 3: "หลัก 3", backup: "สำรอง" };
@@ -2532,7 +2333,7 @@
         const used = new Set(currentDayPicks().map((p) => p.kind + ":" + p.refId));
         const dayTags = dayEditState ? [...dayEditState.tags] : [];
         const pool = STATE.villages.concat(STATE.buildings)
-          .filter((r) => !r.closed && !used.has(kindOf(r) + ":" + r.id) && (!text || (r.name || "").toLowerCase().includes(text)) && dayTags.every((k) => calHasTag(r, k)))
+          .filter((r) => !r.closed && !used.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r) && (!text || (r.name || "").toLowerCase().includes(text)) && dayTags.every((k) => calHasTag(r, k)))
           .sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0))
           .slice(0, 40);
         document.getElementById("dayEditResults").innerHTML = pool.length
@@ -2547,8 +2348,8 @@
       function renderDayEditTags() {
         if (!dayEditState) return;
         const { monthKey, day, tags } = dayEditState;
-        const usedElsewhere = usedIdsInMonth(monthKey, day);
-        const base = calAreaPool(new Set(["tags"])).filter((r) => !usedElsewhere.has(kindOf(r) + ":" + r.id));
+        const usedElsewhere = usedIdsInWindow(monthKey, day);
+        const base = calAreaPool(new Set(["tags"])).filter((r) => !usedElsewhere.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r));
         document.getElementById("dayEditTags").innerHTML = TAGS.map((t) => {
           const active = tags.has(t.key);
           const others = [...tags].filter((k) => k !== t.key);
@@ -2565,8 +2366,9 @@
 
       function openDayEditor(monthKey, day) {
         dayEditState = { monthKey, day, tags: new Set(calState.tags) };
+        const w = calWindow().find((x) => x.monthKey === monthKey && x.day === +day);
         document.getElementById("dayEditTitle").textContent =
-          "แก้ไข " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0");
+          "แก้ไข" + (w ? (w.offset === 0 ? "วันนี้" : "พรุ่งนี้") + " · " + THAI_DOW_FULL[w.dow] + " " + w.day + " " + THAI_MON_SHORT[w.mon - 1] : " " + day);
         renderDayEditSlots();
         renderDayEditTags();
         document.getElementById("dayEditSearch").value = "";
@@ -2647,38 +2449,19 @@
           setCalStatus("บันทึกธีมไม่สำเร็จ (เก็บไว้ในเครื่องเท่านั้น): " + e2.message, true);
         }
       });
-      document.getElementById("calGenMonth").addEventListener("click", generateMonth);
-      document.getElementById("calClearMonth").addEventListener("click", async () => {
-        const monthKey = calState.monthKey;
-        const ok = await confirmDialog("ล้างทุกรายการและธีมของเดือนนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้", "ล้างเดือน", "ยกเลิก");
+      document.getElementById("calGenDays").addEventListener("click", generateDays);
+      document.getElementById("calClearDays").addEventListener("click", async () => {
+        const ok = await confirmDialog("ล้างแผนวันนี้และพรุ่งนี้ทั้งหมด? สถานที่ที่จองไว้จะถูกปล่อยคืนให้เซลล์คนอื่นทันที", "ล้างแผน", "ยกเลิก");
         if (!ok) return;
-        clearTimeout(saveTimers[monthKey]);
-        delete pendingPlans[monthKey]; persistPending();
-        delete STATE.calendarPlan[monthKey];
-        delete STATE.calendarTheme[monthKey];
-        calState.tags = new Set();
-        renderCalTagChips();
-        renderCalendar();
-        try {
-          await api("clearCalendarMonth", { monthKey });
-          setCalStatus("ล้างข้อมูลเดือนนี้แล้ว", false);
-        } catch (e) {
-          setCalStatus("ล้างในเครื่องแล้ว แต่ล้างแผนที่แชร์ไม่สำเร็จ: " + e.message, true);
-        }
-      });
-      document.getElementById("calMonth").addEventListener("change", (e) => {
-        calState.monthKey = monthKeyOf(e.target.value);
-        const theme = STATE.calendarTheme[calState.monthKey];
-        calState.tags = new Set(theme ? theme.tags : []);
-        renderCalTagChips();
+        calWindow().forEach((w) => {
+          if (STATE.calendarPlan[w.monthKey]) STATE.calendarPlan[w.monthKey][w.day] = [];
+          queueDaySave(w.monthKey, w.day, 0);
+        });
         renderCalendar();
       });
 
       function initCalendarDefaultMonth() {
-        const now = new Date();
-        const val = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
-        document.getElementById("calMonth").value = val;
-        calState.monthKey = monthKeyOf(val);
+        calState.monthKey = calWindow()[0].monthKey;
         const theme = STATE.calendarTheme[calState.monthKey];
         calState.tags = new Set(theme ? theme.tags : []);
       }
@@ -2845,20 +2628,10 @@
             tags: String(row.tagsCsv || "").split(",").filter(Boolean),
           };
         });
-        STATE.calendarSlots = [null, null, null];
-        (payload.calendarSlots || []).forEach((row) => {
-          const i = Number(row.slot) - 1;
-          if (!(i >= 0 && i < 3)) return;
-          let plan = {};
-          try { plan = JSON.parse(row.planJson || "{}"); } catch (e) { plan = {}; }
-          STATE.calendarSlots[i] = {
-            monthKey: String(row.monthKey), tags: String(row.tagsCsv || "").split(",").filter(Boolean), plan,
-            savedAt: row.savedAt, lastOpenedAt: row.lastOpenedAt,
-            locked: row.locked === true || row.locked === 1 || String(row.locked) === "1" || String(row.locked).toLowerCase() === "true",
-          };
-        });
         STATE.calendarPlan = {};
+        const inWindow = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         (payload.calendarPlan || []).forEach((row) => {
+          if (!inWindow.has(dayKeyOf(row.monthKey, row.day))) return; // only today + tomorrow, even if an older server sends more
           if (!STATE.calendarPlan[row.monthKey]) STATE.calendarPlan[row.monthKey] = {};
           if (!STATE.calendarPlan[row.monthKey][row.day]) STATE.calendarPlan[row.monthKey][row.day] = [];
           STATE.calendarPlan[row.monthKey][row.day].push({ slot: String(row.slot), kind: row.kind, refId: String(row.refId), name: row.name || "" });
@@ -2914,31 +2687,7 @@
         renderCalAreaFilter();
         renderCalTagChips();
         renderCalendar();
-        if (!USE_MOCK) { restorePendingPlans(); setTimeout(backfillPlanNames, 2500); }
-      }
-
-      // Picks saved before names were stored have no name snapshot. Once the
-      // property is actually present in the data, fill it in and re-save that
-      // day, so the plan stays readable if the property ever goes missing.
-      // Quiet and best-effort: only the signed-in viewer's own days, one at
-      // a time, and it stops at the first failure rather than retrying.
-      async function backfillPlanNames() {
-        const jobs = [];
-        Object.keys(STATE.calendarPlan).forEach((monthKey) => {
-          const days = STATE.calendarPlan[monthKey];
-          Object.keys(days).forEach((day) => {
-            let changed = false;
-            days[day].forEach((p) => {
-              if (p.name) return;
-              const r = byId(p.kind, p.refId);
-              if (r && r.name) { p.name = r.name; changed = true; }
-            });
-            if (changed) jobs.push({ monthKey, day: +day, picks: days[day] });
-          });
-        });
-        for (const job of jobs) {
-          try { await api("saveCalendarDay", job); } catch (e) { return; }
-        }
+        if (!USE_MOCK) { restorePendingPlans(); reclaimWindowPlans(); }
       }
 
       /* ===== Google Sign-In =====
@@ -2966,7 +2715,7 @@
       // Retries transient failures (an aborted/timed-out fetch, a dropped
       // connection, or the HTML-instead-of-JSON hiccup above) up to 3
       // attempts with backoff -- same cadence as the sign-in retry below.
-      // Generating a whole month fires off ~30 sequential saveCalendarDay
+      // Saving a plan used to fire several sequential calendar
       // calls, so a single transient hiccup on any one of them used to
       // abort the entire month ("signal is aborted without reason") instead
       // of just retrying that one call. A real application error (data.ok
@@ -3023,7 +2772,8 @@
       // run server-side and sign-in was timing out because of it).
       const VILLAGE_FIELDS = [
         "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
-        "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
+        "status", "closed", "houseAll", "network", "totalPort", "totalAvailable",
+        "fttbPort", "fttbAvailable", "fttcPort", "fttcAvailable", "allPort", "allAvailable", "active",
         "activePrevMonth",
         "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
         "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
@@ -3038,7 +2788,8 @@
       const BUILDING_FIELDS = [
         "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
         "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
-        "occupancy", "totalPort", "totalAvailable", "active", "activePrevMonth",
+        "occupancy", "network", "totalPort", "totalAvailable",
+        "fttbPort", "fttbAvailable", "fttcPort", "fttcAvailable", "allPort", "allAvailable", "active", "activePrevMonth",
         "activePct",
         "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
         "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
@@ -3073,7 +2824,6 @@
           buildings: rowObjects_(tabs.Buildings, BUILDING_FIELDS),
           calendarTheme: tabs.CalendarTheme ? rowObjects_(tabs.CalendarTheme) : [],
           calendarPlan: tabs.CalendarPlan ? rowObjects_(tabs.CalendarPlan) : [],
-          calendarSlots: tabs.CalendarSlots ? rowObjects_(tabs.CalendarSlots) : [],
         };
       }
 
@@ -3091,6 +2841,7 @@
             const data = await api("myData", {}, 90000);
             clearTimeout(slowTimer);
             STATE.email = data.email || null;
+            setClaimed(data.claimedByOthers);
             document.getElementById("loginGate").style.display = "none";
             if (!appInitialized) { initApp(reconstructPayload_(data.tabs)); appInitialized = true; }
             return;
@@ -3127,16 +2878,16 @@
       /* ===== mock data (local preview only) ===== */
       const MOCK_PAYLOAD = {
         villages: [
-          { id: "v1", name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePrevMonth: 135, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 88.2 },
-          { id: "v2", name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, mksFibre3: 0.5, mksNt: 0.29, competitorMks: 0.79, competitorSubs: 75.2, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 0, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
+          { id: "v1", network: "FTTH,FTTC", fttcPort: 96, fttcAvailable: 40, fttbPort: 0, fttbAvailable: 0, allPort: 546, allAvailable: 230, name: "หมู่บ้านสุขใจ ราชพฤกษ์", district: "เมืองนนทบุรี", subdistrict: "บางกร่าง", lat: 13.856, lng: 100.449, status: "เปิด", closed: false, houseAll: 420, totalPort: 380, totalAvailable: 190, active: 140, activePrevMonth: 135, activePct: 0.37, competitor: 95, mksTrue: 0.42, mksFibre3: 0.31, mksNt: 0.09, competitorMks: 0.40, competitorSubs: 133.3, faultAvg: 0.5, faultGrade: "L", faultTruckRoll: 3, faultTruckRollPct: 0.6, faultOther: 2, faultOtherPct: 0.4, churn3m: 3, churnRate: 0.02, churnGrade: "low", churnVolMonthly: 1, churnInvolMonthly: 1, churnMonthly: 2, churnMonthlyRate: 0.014, gradeSale: "H", scoreSale: 1.8, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 88.2 },
+          { id: "v2", network: "FTTH,FTTB,FTTC", fttcPort: 60, fttcAvailable: 22, fttbPort: 120, fttbAvailable: 35, allPort: 700, allAvailable: 190, name: "หมู่บ้านศุภาลัยพรีโม่", district: "เมืองนนทบุรี", subdistrict: "บางศรีเมือง", lat: 13.832, lng: 100.482, status: "ปิดทำกิจกรรมได้", closed: false, houseAll: 110, totalPort: 90, totalAvailable: 60, active: 20, activePct: 0.22, competitor: 18, mksTrue: 0.21, mksFibre3: 0.5, mksNt: 0.29, competitorMks: 0.79, competitorSubs: 75.2, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 0, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "L", scoreSale: 0.9, mainGroup: "G2", tags: ["low_fault"], autoScore: 41.5 },
           { id: "v3", name: "หมู่บ้านพฤกษาวิลล์", district: "ปากเกร็ด", subdistrict: "บางพูด", lat: 13.912, lng: 100.499, status: "เปิด", closed: false, houseAll: 260, totalPort: 240, totalAvailable: 150, active: 60, activePct: 0.25, competitor: 70, mksTrue: 0.33, mksFibre3: 0.4, mksNt: 0.27, competitorMks: 0.67, competitorSubs: 121.8, faultAvg: 1.2, faultGrade: "M", faultTruckRoll: 8, faultTruckRollPct: 0.73, faultOther: 3, faultOtherPct: 0.27, churn3m: 6, churnRate: 0.04, churnGrade: "mid", churnMonthly: 4, churnMonthlyRate: 0.067, gradeSale: "H", scoreSale: 1.4, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 79.4 },
           { id: "v4", name: "หมู่บ้านไลฟ์บางกอกบูเลอวาร์ด", district: "เมืองนนทบุรี", subdistrict: "ตลาดขวัญ", lat: 13.829, lng: 100.503, status: "ปิด", closed: true, houseAll: 71, totalPort: 124, totalAvailable: 111, active: 13, activePct: 0.1, competitor: 20, mksTrue: 0.47, mksFibre3: 0.35, mksNt: 0.18, competitorMks: 0.53, competitorSubs: 14.7, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnRate: 0, churnGrade: "low", churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 1.2, mainGroup: "G2", tags: ["low_fault"], autoScore: 30.5 },
           { id: "v5", name: "หมู่บ้านบางบัวทองพาร์ค", district: "บางบัวทอง", subdistrict: "บางบัวทอง", lat: 13.924, lng: 100.417, status: "เปิด", closed: false, houseAll: 550, totalPort: 500, totalAvailable: 300, active: 180, activePct: 0.36, competitor: 130, mksTrue: 0.39, mksFibre3: 0.36, mksNt: 0.25, competitorMks: 0.61, competitorSubs: 281.5, faultAvg: 2.1, faultGrade: "H", faultTruckRoll: 15, faultTruckRollPct: 0.68, faultOther: 7, faultOtherPct: 0.32, churn3m: 12, churnRate: 0.06, churnGrade: "high", churnMonthly: 9, churnMonthlyRate: 0.05, gradeSale: "H", scoreSale: 1.6, mainGroup: "G1", tags: ["high_available", "large"], autoScore: 82.0 },
           { id: "v6", name: "หมู่บ้านสายไหมการ์เดนท์", district: "ปากเกร็ด", subdistrict: "คลองพระอุดม", lat: 13.94, lng: 100.46, status: "เปิด", closed: false, houseAll: 95, totalPort: 80, totalAvailable: 55, active: 15, activePct: 0.19, competitor: 12, mksTrue: 0.18, mksFibre3: 0.52, mksNt: 0.3, competitorMks: 0.82, competitorSubs: 68.3, faultAvg: 0.3, faultGrade: "L", faultTruckRoll: 1, faultTruckRollPct: 0.5, faultOther: 1, faultOtherPct: 0.5, churn3m: 1, churnRate: 0.01, churnGrade: "low", churnMonthly: 1, churnMonthlyRate: 0.067, gradeSale: "L", scoreSale: 0.8, mainGroup: "G3", tags: ["low_fault"], autoScore: 45.1 },
         ],
         buildings: [
-          { id: "b1", name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, mksFibre3: 0.6, mksNt: 0.26, competitorMks: 0.86, competitorSubs: 18.4, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 1, faultOtherPct: 1, churn3m: 0, churnPct: 0, churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "low_fault"], autoScore: 76.3 },
-          { id: "b2", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, mksFibre3: 0.44, mksNt: 0.2, competitorMks: 0.64, competitorSubs: 106.7, faultAvg: 0.4, faultGrade: "L", faultTruckRoll: 2, faultTruckRollPct: 0.4, faultOther: 3, faultOtherPct: 0.6, churn3m: 2, churnPct: 0.01, churnMonthly: 1, churnMonthlyRate: 0.017, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large"], autoScore: 85.9 },
+          { id: "b1", network: "FTTB", fttbPort: 200, fttbAvailable: 64, allPort: 200, allAvailable: 64, name: "EUAARTHORN BANG BUATHONG1 อ.1", prov: "นนทบุรี", amp: "บางบัวทอง", tam: "บางบัวทอง", lat: 13.924, lng: 100.4169, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "แฟลต/อพาร์ทเมนท์", mduModel: "TYPE 0", developer: "National Housing", floors: 5, units: 44, occupancy: 0.82, totalPort: 40, totalAvailable: 37, active: 3, activePct: 0.075, arpu: 532, competitor: 6, mksTrue: 0.14, mksFibre3: 0.6, mksNt: 0.26, competitorMks: 0.86, competitorSubs: 18.4, faultAvg: 0, faultGrade: "L", faultTruckRoll: 0, faultTruckRollPct: 0, faultOther: 1, faultOtherPct: 1, churn3m: 0, churnPct: 0, churnMonthly: 0, churnMonthlyRate: 0, gradeSale: "H", scoreSale: 1.9, groupBuilding: "EUAARTHORN 1", tags: ["high_available", "low_fault"], autoScore: 76.3 },
+          { id: "b2", network: "FTTH", name: "LUMPINI CONDOTOWN B2", prov: "กรุงเทพมหานคร", amp: "บางบอน", tam: "คลองบางพราน", lat: 13.6825, lng: 100.4366, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 8, units: 210, occupancy: 0.7, totalPort: 200, totalAvailable: 130, active: 60, activePct: 0.3, arpu: 610, competitor: 40, mksTrue: 0.36, mksFibre3: 0.44, mksNt: 0.2, competitorMks: 0.64, competitorSubs: 106.7, faultAvg: 0.4, faultGrade: "L", faultTruckRoll: 2, faultTruckRollPct: 0.4, faultOther: 3, faultOtherPct: 0.6, churn3m: 2, churnPct: 0.01, churnMonthly: 1, churnMonthlyRate: 0.017, gradeSale: "H", scoreSale: 1.7, groupBuilding: "LUMPINI CONDOTOWN", tags: ["high_available", "large"], autoScore: 85.9 },
           { id: "b3", name: "RIVERINE PLACE BUILDING 4", prov: "นนทบุรี", amp: "เมืองนนทบุรี", tam: "สวนใหญ่", lat: 13.85, lng: 100.49, closed: false, groupType: "ที่อยู่อาศัย", subGroupType: "คอนโดมิเนียม", mduModel: "TYPE 0", developer: null, floors: 4, units: 8, occupancy: 0.5, totalPort: 8, totalAvailable: 4, active: 0, activePct: 0, arpu: null, competitor: 2, mksTrue: 0, mksFibre3: 0, mksNt: 0, competitorMks: null, competitorSubs: null, faultAvg: 0, faultGrade: "L", faultTruckRoll: null, faultTruckRollPct: null, faultOther: null, faultOtherPct: null, churn3m: 0, churnPct: 0, churnMonthly: null, churnMonthlyRate: null, gradeSale: "L", scoreSale: 0.6, groupBuilding: "RIVERINE PLACE", tags: ["low_fault"], autoScore: 22.1 },
         ],
         calendarTheme: [],

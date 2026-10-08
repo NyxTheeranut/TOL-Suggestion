@@ -24,8 +24,12 @@
  *   CalendarTheme  1 row per month -- monthKey | tagsCsv | updatedBy | updatedAt.
  *   CalendarPlan   1 row per (month, day, slot) pick -- monthKey | day | slot
  *                  ("1"/"2"/"3"/"backup") | kind ("village"/"building") | refId.
- *                  A day's regenerate replaces just that day's rows, never
- *                  the whole tab -- see saveCalendarDay_ below.
+ *                  Only today + tomorrow (Asia/Bangkok) can be saved or are
+ *                  sent to the page -- see saveCalendarDays_ below.
+ *   CalendarClaims 1 row per place a viewer has planned -- kind | refId |
+ *                  email | claimedAt | expiresAt | releasedAt. While active
+ *                  (10 days from claimedAt, until released) nobody else can
+ *                  plan that place.
  * "Users" -- who's allowed to view the dashboard: an email allow-list, no
  *   roles. Created automatically (with a sample row) the first time anyone
  *   signs in, same as every other project in this Dashboard.
@@ -38,9 +42,7 @@
  *   getSyncData / syncData          -> update_suggestion_sheet.py, on your
  *                                      own machine -- gated by SYNC_SECRET
  *                                      instead (not a person signing in).
- *   saveCalendarTheme / saveCalendarDay / clearCalendarMonth /
- *   saveCalendarMonth / saveCalendarSlot / touchCalendarSlot /
- *   setCalendarSlotLock / clearCalendarSlot -> any allow-
+ *   saveCalendarTheme / saveCalendarDays -> any allow-
  *                                      listed signed-in viewer (no separate admin role -- matches
  *                                      this dashboard's no-roles model).
  *
@@ -55,7 +57,8 @@ var TAB_NAMES = ["Meta", "Villages", "Buildings", "CalendarTheme", "CalendarPlan
 
 var VILLAGE_FIELDS = [
   "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
-  "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
+  "status", "closed", "houseAll", "network", "totalPort", "totalAvailable",
+  "fttbPort", "fttbAvailable", "fttcPort", "fttcAvailable", "allPort", "allAvailable", "active",
   "activePrevMonth",
   "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
   "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
@@ -71,7 +74,8 @@ var VILLAGE_FIELDS = [
 var BUILDING_FIELDS = [
   "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
   "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
-  "occupancy", "totalPort", "totalAvailable", "active", "activePrevMonth",
+  "occupancy", "network", "totalPort", "totalAvailable",
+  "fttbPort", "fttbAvailable", "fttcPort", "fttcAvailable", "allPort", "allAvailable", "active", "activePrevMonth",
   "activePct",
   "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
   "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
@@ -86,7 +90,7 @@ var BUILDING_FIELDS = [
 // numeric-looking string as a real number (mangling a long ID) or a
 // human-readable string as a date. See writeTab_ below.
 var TEXT_COLUMNS = [
-  "id", "name", "district", "subdistrict", "scab", "hopHoz", "status",
+  "id", "name", "district", "subdistrict", "scab", "hopHoz", "status", "network",
   "faultGrade", "churnGrade", "gradeSale", "gradeCare", "finalGrade",
   "villageGrade", "actionGroup", "mainGroup", "tags",
   "prov", "amp", "tam", "groupType", "subGroupType", "mduModel",
@@ -130,31 +134,15 @@ function doPost(e) {
       return jsonResponse_({ ok: true });
     }
 
-    if (body.action === "saveCalendarDay") {
+    // The calendar only ever covers today and tomorrow (Asia/Bangkok), and
+    // every place a viewer plans is "claimed" for CALENDAR_CLAIM_DAYS so no
+    // other viewer is handed it -- see saveCalendarDays_. The old whole-month
+    // / saved-slot actions are gone on purpose: they would let one viewer
+    // hold a month of the company's village list at a time.
+    if (body.action === "saveCalendarDays") {
       var email2 = verifyIdToken_(body.idToken);
       if (!email2 || !isAllowedUser_(email2)) return jsonResponse_({ ok: false, error: "not_signed_in" });
-      saveCalendarDay_(body.monthKey, body.day, body.picks || [], email2);
-      return jsonResponse_({ ok: true });
-    }
-
-    if (body.action === "saveCalendarMonth" || body.action === "saveCalendarSlot" ||
-        body.action === "touchCalendarSlot" || body.action === "setCalendarSlotLock" ||
-        body.action === "clearCalendarSlot") {
-      var emailS = verifyIdToken_(body.idToken);
-      if (!emailS || !isAllowedUser_(emailS)) return jsonResponse_({ ok: false, error: "not_signed_in" });
-      if (body.action === "saveCalendarMonth") saveCalendarMonth_(body.monthKey, body.plan || {}, body.tags || [], emailS);
-      else if (body.action === "saveCalendarSlot") saveCalendarSlot_(body.slot, body.monthKey, body.tags || [], body.plan || {}, emailS);
-      else if (body.action === "touchCalendarSlot") touchCalendarSlot_(body.slot, emailS);
-      else if (body.action === "setCalendarSlotLock") setCalendarSlotLock_(body.slot, !!body.locked, emailS);
-      else clearCalendarSlot_(body.slot, emailS);
-      return jsonResponse_({ ok: true });
-    }
-
-    if (body.action === "clearCalendarMonth") {
-      var email3 = verifyIdToken_(body.idToken);
-      if (!email3 || !isAllowedUser_(email3)) return jsonResponse_({ ok: false, error: "not_signed_in" });
-      clearCalendarMonth_(body.monthKey, email3);
-      return jsonResponse_({ ok: true });
+      return jsonResponse_(saveCalendarDays_(body.days || [], email2));
     }
 
     return jsonResponse_({ ok: false, error: "unknown action" });
@@ -226,9 +214,8 @@ function myData_(idToken) {
   // Each signed-in viewer only ever sees their OWN calendar plan/theme --
   // see the header comment above CALENDAR_PLAN_HEADER for why this exists
   // (two people planning the same month were overwriting each other).
-  tabs.CalendarPlan = filterOwnRows_(tabs.CalendarPlan, "email", email);
+  tabs.CalendarPlan = windowPlanRows_(filterOwnRows_(tabs.CalendarPlan, "email", email)); // only today + tomorrow leave the server
   tabs.CalendarTheme = filterOwnRows_(tabs.CalendarTheme, "updatedBy", email);
-  tabs.CalendarSlots = ownSlotsTab_(email); // saved plans; expired unlocked ones are already left out
   // Sends the raw tabs, NOT reconstructPayload_(tabs) -- rebuilding the full
   // nested shape (~1,500 property rows into tagged/typed objects) is real
   // CPU work, and doing it here means every sign-in pays for it inside
@@ -238,7 +225,7 @@ function myData_(idToken) {
   // ported verbatim into index.html) in its own fast JS engine instead --
   // same "ship raw, reconstruct client-side" split TOL Tracker's myBbData_
   // already uses, and for the same reason.
-  return { ok: true, email: email, tabs: tabs };
+  return { ok: true, email: email, tabs: tabs, claimedByOthers: claimedByOthers_(email) };
 }
 
 // Passes a tab through unfiltered if it doesn't have the given column yet
@@ -408,7 +395,6 @@ function pruneOldCalendarData_() {
     if (kept.length) sheet.getRange(2, 1, kept.length, header.length).setValues(kept);
     sheet.setFrozenRows(1);
   });
-  pruneExpiredSlots_();
 }
 
 function saveCalendarTheme_(monthKey, tags, email) {
@@ -437,218 +423,165 @@ function saveCalendarTheme_(monthKey, tags, email) {
   sheet.setFrozenRows(1);
 }
 
-// ---------- CalendarSlots: three saved plans per viewer ----------
-// A slot is a snapshot of one month's plan (every day's picks + the month's
-// theme tags) the viewer chose to keep, so it can be re-opened later even
-// after the working plan has aged out of the retention window above. Each
-// viewer has CALENDAR_SLOT_COUNT slots; a slot that is NOT locked and hasn't
-// been saved or opened for CALENDAR_SLOT_TTL_DAYS is deleted automatically;
-// a locked slot is kept until its owner unlocks or clears it.
-var CALENDAR_SLOT_HEADER = ["email", "slot", "monthKey", "savedAt", "lastOpenedAt", "locked", "tagsCsv", "planJson"];
-var CALENDAR_SLOT_COUNT = 3;
-var CALENDAR_SLOT_TTL_DAYS = 30;
-var CALENDAR_SLOT_MAX_JSON = 45000; // Sheets caps a cell at 50,000 characters
+// ---------- Calendar window + place claims ----------
+//
+// Two rules keep the company's village list from leaking out of the calendar
+// and keep reps from being sent to the same place:
+//   1. The calendar only covers TODAY and TOMORROW (Asia/Bangkok). Earlier
+//      days drop off on their own, and myData_ only returns those two days,
+//      so a rep never holds more than two days of picks at a time.
+//   2. Planning a place CLAIMS it for CALENDAR_CLAIM_DAYS, counted from the
+//      moment it was first planned. While a claim is active nobody else can
+//      plan that place (the page leaves it out of auto-picking, and this
+//      function refuses it if two reps race for it). Removing or replacing a
+//      pick releases the claim straight away; otherwise it simply expires.
+// CALENDAR_CLAIM_DAILY_CAP stops someone from regenerating over and over to
+// read through the whole pool (every new place a rep is handed counts).
 
-function isLockedFlag_(v) { return v === true || v === 1 || String(v) === "1" || String(v).toLowerCase() === "true"; }
+var CALENDAR_CLAIM_HEADER = ["kind", "refId", "email", "claimedAt", "expiresAt", "releasedAt"];
+var CALENDAR_CLAIM_DAYS = 10;
+var CALENDAR_CLAIM_DAILY_CAP = 20;
+var CALENDAR_WINDOW_DAYS = 2;
+var CALENDAR_TZ = "Asia/Bangkok";
 
-function slotExpired_(row) {
-  if (isLockedFlag_(row[5])) return false;
-  var t = Date.parse(row[4]);
-  return isNaN(t) || (Date.now() - t) > CALENDAR_SLOT_TTL_DAYS * 86400000;
+function windowDays_() {
+  var out = [], now = Date.now();
+  for (var i = 0; i < CALENDAR_WINDOW_DAYS; i++) {
+    var ymd = Utilities.formatDate(new Date(now + i * 86400000), CALENDAR_TZ, "yyyyMMdd");
+    out.push({ key: ymd, monthKey: ymd.slice(0, 6), day: Number(ymd.slice(6, 8)) });
+  }
+  return out;
 }
 
-function readSlotRows_() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CalendarSlots");
+function windowAllowed_() {
+  var allowed = {};
+  windowDays_().forEach(function (w) { allowed[w.monthKey + ":" + w.day] = true; });
+  return allowed;
+}
+
+// Keeps only plan rows that fall on today or tomorrow.
+function windowPlanRows_(tab) {
+  if (!tab.header || !tab.header.length) return tab;
+  var allowed = windowAllowed_();
+  return { header: tab.header, rows: tab.rows.filter(function (row) { return allowed[String(row[0]) + ":" + Number(row[1])]; }) };
+}
+
+function claimsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("CalendarClaims");
+  if (!sheet) {
+    sheet = ss.insertSheet("CalendarClaims");
+    sheet.getRange(1, 1, sheet.getMaxRows(), CALENDAR_CLAIM_HEADER.length).setNumberFormat("@"); // ids and timestamps stay text
+    sheet.getRange(1, 1, 1, CALENDAR_CLAIM_HEADER.length).setValues([CALENDAR_CLAIM_HEADER]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function readClaims_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CalendarClaims");
   if (!sheet) return [];
-  return normalizeRows_(sheet.getDataRange().getValues().slice(1), CALENDAR_SLOT_HEADER.length);
-}
-
-// Every column is text: a month key / slot number / JSON blob must come back
-// exactly as written, never coerced into a number or date by Sheets.
-function writeSlotRows_(rows) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("CalendarSlots") || ss.insertSheet("CalendarSlots");
-  var width = CALENDAR_SLOT_HEADER.length;
-  sheet.clearContents();
-  sheet.getRange(1, 1, sheet.getMaxRows(), width).setNumberFormat("@");
-  sheet.getRange(1, 1, 1, width).setValues([CALENDAR_SLOT_HEADER]);
-  if (rows.length) {
-    var text = rows.map(function (r) { return r.map(function (c) { return c == null ? "" : String(c); }); });
-    sheet.getRange(2, 1, text.length, width).setValues(text);
-  }
-  sheet.setFrozenRows(1);
-}
-
-function pruneExpiredSlots_() {
-  var rows = readSlotRows_();
-  var kept = rows.filter(function (r) { return !slotExpired_(r); });
-  if (kept.length !== rows.length) writeSlotRows_(kept);
-}
-
-function findSlotIdx_(rows, slot, email) {
-  for (var i = 0; i < rows.length; i++) {
-    if (rows[i][0] === email && String(rows[i][1]) === String(slot)) return i;
-  }
-  return -1;
-}
-
-function checkSlotNumber_(slot) {
-  slot = Number(slot);
-  if (!(slot >= 1 && slot <= CALENDAR_SLOT_COUNT) || slot !== Math.floor(slot)) throw new Error("bad_slot");
-  return slot;
-}
-
-// The viewer's own, not-yet-expired slots, shaped like any other tab.
-function ownSlotsTab_(email) {
-  return {
-    header: CALENDAR_SLOT_HEADER,
-    rows: readSlotRows_().filter(function (r) { return r[0] === email && !slotExpired_(r); }),
-  };
-}
-
-function saveCalendarSlot_(slot, monthKey, tags, plan, email) {
-  slot = checkSlotNumber_(slot);
-  if (!monthKey) throw new Error("monthKey required");
-  var planJson = JSON.stringify(plan || {});
-  if (planJson.length > CALENDAR_SLOT_MAX_JSON) throw new Error("plan_too_large");
-  pruneExpiredSlots_();
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i !== -1 && isLockedFlag_(rows[i][5])) throw new Error("slot_locked");
-  var now = new Date().toISOString();
-  var row = [email, String(slot), String(monthKey), now, now, "0", (tags || []).join(","), planJson];
-  if (i === -1) rows.push(row); else rows[i] = row;
-  writeSlotRows_(rows);
-}
-
-// Opening a slot counts as "used": restarts its 30-day clock.
-function touchCalendarSlot_(slot, email) {
-  slot = checkSlotNumber_(slot);
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i === -1) throw new Error("slot_empty");
-  rows[i][4] = new Date().toISOString();
-  writeSlotRows_(rows);
-}
-
-function setCalendarSlotLock_(slot, locked, email) {
-  slot = checkSlotNumber_(slot);
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i === -1) throw new Error("slot_empty");
-  rows[i][5] = locked ? "1" : "0";
-  rows[i][4] = new Date().toISOString();
-  writeSlotRows_(rows);
-}
-
-function clearCalendarSlot_(slot, email) {
-  slot = checkSlotNumber_(slot);
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i === -1) return;
-  if (isLockedFlag_(rows[i][5])) throw new Error("slot_locked");
-  rows.splice(i, 1);
-  writeSlotRows_(rows);
-}
-
-// Replaces the caller's ENTIRE plan for one month in one write (used when a
-// slot is opened) -- far cheaper than ~30 saveCalendarDay calls. `plan` is
-// {day: [{slot, kind, refId, name}, ...]}.
-function saveCalendarMonth_(monthKey, plan, tags, email) {
-  if (!monthKey) throw new Error("monthKey required");
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("CalendarPlan");
-  if (!sheet) {
-    sheet = ss.insertSheet("CalendarPlan");
-    sheet.appendRow(CALENDAR_PLAN_HEADER);
-    sheet.setFrozenRows(1);
-  }
-  var width = CALENDAR_PLAN_HEADER.length;
-  var kept = normalizeRows_(sheet.getDataRange().getValues().slice(1), width).filter(function (row) {
-    return !(String(row[0]) === String(monthKey) && row[5] === email);
+  return normalizeRows_(sheet.getDataRange().getValues().slice(1), CALENDAR_CLAIM_HEADER.length).map(function (r) {
+    return r.map(function (v) { return v == null ? "" : String(v); });
   });
-  Object.keys(plan || {}).forEach(function (day) {
-    (plan[day] || []).forEach(function (p) {
-      kept.push([monthKey, Number(day), p.slot, p.kind, p.refId, email, p.name || ""]);
-    });
-  });
-  sheet.clearContents();
-  formatPlanTextColumns_(sheet);
-  textifyPlanRows_(kept);
-  sheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
-  if (kept.length) sheet.getRange(2, 1, kept.length, width).setValues(kept);
-  sheet.setFrozenRows(1);
-  saveCalendarTheme_(monthKey, tags || [], email); // also runs the retention prune
 }
 
-function saveCalendarDay_(monthKey, day, picks, email) {
-  // picks: [{slot, kind, refId}, ...] -- replaces every existing row THIS
-  // viewer owns for this (monthKey, day) with exactly these, in one
-  // rewrite of the tab (CalendarPlan stays small -- a season's worth of
-  // days, times however many people are planning, is still only a few
-  // hundred rows -- so reading it whole here is cheap). Another viewer's
-  // rows for the same day are left completely alone.
-  if (!monthKey || !day) throw new Error("monthKey and day required");
-  pruneOldCalendarData_();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("CalendarPlan");
-  if (!sheet) {
-    sheet = ss.insertSheet("CalendarPlan");
-    sheet.appendRow(CALENDAR_PLAN_HEADER);
-    sheet.setFrozenRows(1);
-  }
-  var width = CALENDAR_PLAN_HEADER.length;
-  var data = sheet.getDataRange().getValues();
-  var kept = normalizeRows_(data.slice(1), width).filter(function (row) {
-    return !(String(row[0]) === String(monthKey) && Number(row[1]) === Number(day) && row[5] === email);
-  });
-  picks.forEach(function (p) {
-    kept.push([monthKey, day, p.slot, p.kind, p.refId, email, p.name || ""]);
-  });
-  sheet.clearContents();
-  formatPlanTextColumns_(sheet);
-  textifyPlanRows_(kept);
-  sheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
-  if (kept.length) sheet.getRange(2, 1, kept.length, width).setValues(kept);
-  sheet.setFrozenRows(1);
+function claimIsActive_(row, nowMs) {
+  return !row[5] && new Date(row[4]).getTime() > nowMs;
 }
 
-// Manual "Clear month" from the page -- wipes exactly the calling viewer's
-// own CalendarPlan rows and CalendarTheme row for one month, on demand
-// rather than waiting for it to age out of the retention window above.
-// Never touches another viewer's plan for that same month.
-function clearCalendarMonth_(monthKey, email) {
-  if (!monthKey) throw new Error("monthKey required");
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+// Active claims held by SOMEONE ELSE, as [kind, refId] pairs only -- enough
+// for the page to skip those places, with no names or emails.
+function claimedByOthers_(email) {
+  var nowMs = Date.now();
+  return readClaims_().filter(function (r) { return claimIsActive_(r, nowMs) && r[2] !== email; })
+    .map(function (r) { return [r[0], r[1]]; });
+}
 
-  var planSheet = ss.getSheetByName("CalendarPlan");
-  if (planSheet) {
-    var pdata = planSheet.getDataRange().getValues();
-    if (pdata.length >= 2) {
-      var pkept = normalizeRows_(pdata.slice(1), CALENDAR_PLAN_HEADER.length).filter(function (row) {
-        return !(String(row[0]) === String(monthKey) && row[5] === email);
-      });
-      planSheet.clearContents();
-      formatPlanTextColumns_(planSheet);
-      textifyPlanRows_(pkept);
-      planSheet.getRange(1, 1, 1, CALENDAR_PLAN_HEADER.length).setValues([CALENDAR_PLAN_HEADER]);
-      if (pkept.length) planSheet.getRange(2, 1, pkept.length, CALENDAR_PLAN_HEADER.length).setValues(pkept);
+// days: [{monthKey, day, picks: [{slot, kind, refId, name}]}] -- replaces the
+// caller's picks for each given day (an empty picks list clears the day).
+// Returns {ok, conflicts: [{kind, refId}], capReached, claimedByOthers}.
+// Conflicts are picks that someone else holds (or that would exceed today's
+// cap); they are NOT saved, and the page picks replacements.
+function saveCalendarDays_(days, email) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var allowed = windowAllowed_();
+    var nowMs = Date.now(), nowIso = new Date(nowMs).toISOString();
+    var todayKey = windowDays_()[0].key;
+    var claims = readClaims_();
+    var byKey = {};
+    claims.forEach(function (r) { if (claimIsActive_(r, nowMs)) byKey[r[0] + ":" + r[1]] = r; });
+    var newToday = claims.filter(function (r) {
+      return r[2] === email && Utilities.formatDate(new Date(r[3]), CALENDAR_TZ, "yyyyMMdd") === todayKey;
+    }).length;
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var planSheet = ss.getSheetByName("CalendarPlan");
+    if (!planSheet) {
+      planSheet = ss.insertSheet("CalendarPlan");
+      planSheet.appendRow(CALENDAR_PLAN_HEADER);
       planSheet.setFrozenRows(1);
     }
-  }
+    var width = CALENDAR_PLAN_HEADER.length;
+    var kept = normalizeRows_(planSheet.getDataRange().getValues().slice(1), width);
 
-  var themeSheet = ss.getSheetByName("CalendarTheme");
-  if (themeSheet) {
-    var tdata = themeSheet.getDataRange().getValues();
-    if (tdata.length >= 2) {
-      var tkept = normalizeRows_(tdata.slice(1), CALENDAR_THEME_HEADER.length).filter(function (row) {
-        return !(String(row[0]) === String(monthKey) && row[2] === email);
+    var conflicts = [], capReached = false, previous = {}, outside = 0;
+    days.forEach(function (d) {
+      var mk = String(d.monthKey), dn = Number(d.day);
+      if (!allowed[mk + ":" + dn]) { outside++; return; }
+      kept = kept.filter(function (row) {
+        var mine = String(row[0]) === mk && Number(row[1]) === dn && row[5] === email;
+        if (mine) previous[String(row[3]) + ":" + String(row[4])] = true;
+        return !mine;
       });
-      themeSheet.clearContents();
-      themeSheet.getRange(1, 1, 1, CALENDAR_THEME_HEADER.length).setValues([CALENDAR_THEME_HEADER]);
-      if (tkept.length) themeSheet.getRange(2, 1, tkept.length, CALENDAR_THEME_HEADER.length).setValues(tkept);
-      themeSheet.setFrozenRows(1);
-    }
+      (d.picks || []).slice(0, 4).forEach(function (p) {
+        var key = String(p.kind) + ":" + String(p.refId);
+        var held = byKey[key];
+        if (held && held[2] !== email) { conflicts.push({ kind: String(p.kind), refId: String(p.refId) }); return; }
+        if (!held) {
+          if (newToday >= CALENDAR_CLAIM_DAILY_CAP) { capReached = true; conflicts.push({ kind: String(p.kind), refId: String(p.refId) }); return; }
+          var row = [String(p.kind), String(p.refId), email, nowIso, new Date(nowMs + CALENDAR_CLAIM_DAYS * 86400000).toISOString(), ""];
+          claims.push(row); byKey[key] = row; newToday++;
+        }
+        kept.push([mk, dn, p.slot, p.kind, p.refId, email, p.name || ""]);
+      });
+    });
+
+    // Release: places this caller had planned on these days but no longer
+    // plans anywhere in the window go straight back to the pool.
+    var stillPlanned = {};
+    kept.forEach(function (row) {
+      if (row[5] === email && allowed[String(row[0]) + ":" + Number(row[1])]) stillPlanned[String(row[3]) + ":" + String(row[4])] = true;
+    });
+    Object.keys(previous).forEach(function (key) {
+      var c = byKey[key];
+      if (!stillPlanned[key] && c && c[2] === email) { c[5] = nowIso; delete byKey[key]; }
+    });
+
+    planSheet.clearContents();
+    formatPlanTextColumns_(planSheet);
+    textifyPlanRows_(kept);
+    planSheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
+    if (kept.length) planSheet.getRange(2, 1, kept.length, width).setValues(kept);
+    planSheet.setFrozenRows(1);
+
+    // Claim rows only need to live a little past their expiry (the daily cap
+    // reads today's rows, released ones included).
+    var cutoff = nowMs - (CALENDAR_CLAIM_DAYS + 2) * 86400000;
+    claims = claims.filter(function (r) { return new Date(r[3]).getTime() >= cutoff; });
+    var cs = claimsSheet_();
+    cs.clearContents();
+    cs.getRange(1, 1, cs.getMaxRows(), CALENDAR_CLAIM_HEADER.length).setNumberFormat("@");
+    cs.getRange(1, 1, 1, CALENDAR_CLAIM_HEADER.length).setValues([CALENDAR_CLAIM_HEADER]);
+    if (claims.length) cs.getRange(2, 1, claims.length, CALENDAR_CLAIM_HEADER.length).setValues(claims);
+    cs.setFrozenRows(1);
+
+    pruneOldCalendarData_();
+    return { ok: true, conflicts: conflicts, capReached: capReached, outsideWindow: outside, claimedByOthers: claimedByOthers_(email) };
+  } finally {
+    lock.releaseLock();
   }
 }
 

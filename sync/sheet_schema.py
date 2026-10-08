@@ -18,7 +18,8 @@ TAB_NAMES = ["Meta", "Villages", "Buildings", "CalendarTheme", "CalendarPlan"]
 
 VILLAGE_FIELDS = [
     "id", "name", "district", "subdistrict", "scab", "hopHoz", "lat", "lng",
-    "status", "closed", "houseAll", "totalPort", "totalAvailable", "active",
+    "status", "closed", "houseAll", "network", "totalPort", "totalAvailable",
+    "fttbPort", "fttbAvailable", "fttcPort", "fttcAvailable", "allPort", "allAvailable", "active",
     "activePrevMonth",
     "activePct", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
     "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
@@ -34,7 +35,8 @@ VILLAGE_FIELDS = [
 BUILDING_FIELDS = [
     "id", "name", "prov", "amp", "tam", "scab", "lat", "lng", "closed",
     "groupType", "subGroupType", "mduModel", "developer", "floors", "units",
-    "occupancy", "totalPort", "totalAvailable", "active", "activePrevMonth",
+    "occupancy", "network", "totalPort", "totalAvailable",
+    "fttbPort", "fttbAvailable", "fttcPort", "fttcAvailable", "allPort", "allAvailable", "active", "activePrevMonth",
     "activePct",
     "arpu", "competitor", "mksTrue", "mksFibre3", "mksNt", "competitorMks",
     "competitorSubs", "trueAvgDl", "trueMaxDl", "fibre3AvgDl", "fibre3MaxDl",
@@ -50,7 +52,7 @@ BUILDING_FIELDS = [
 # (Sheets otherwise auto-detects a numeric-looking string as a real number,
 # stripping precision from a long ID, or a plain string as a date).
 TEXT_FIELDS = {
-    "id", "name", "district", "subdistrict", "scab", "hopHoz", "status",
+    "id", "name", "district", "subdistrict", "scab", "hopHoz", "status", "network",
     "faultGrade", "churnGrade", "gradeSale", "gradeCare", "finalGrade",
     "villageGrade", "actionGroup", "mainGroup", "tags",
     "prov", "amp", "tam", "groupType", "subGroupType", "mduModel",

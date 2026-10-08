@@ -1,7 +1,7 @@
 # TOL Suggestion
 
 Village &amp; building sales planner for BMA-West — search/demographic lookup,
-a tag-based recommendation list, and a shared monthly sales calendar — read
+a tag-based recommendation list, and a two-day (today + tomorrow) visit calendar in which every planned place is reserved for the rep — read
 live from a Google Sheet, same architecture as `TOL Tracker` / `L2 Discount
 Map` / `Route Planner` elsewhere in this Dashboard.
 
@@ -18,8 +18,8 @@ Browser (this page, hosted on GitHub Pages)
 Apps Script Web App  ──executes as the Sheet owner──▶  Google Sheet
    │   verifies the ID token against Google directly        "Users" tab (who's allowed in)
    │   checks the signed-in email is in the "Users" tab      "Villages" / "Buildings" tabs
-   │   returns Villages/Buildings/CalendarTheme/CalendarPlan  "CalendarTheme" / "CalendarPlan" tabs
-   ▼                                                          (the shared monthly plan)
+   │   returns Villages/Buildings/CalendarTheme/CalendarPlan  "CalendarTheme" / "CalendarPlan" /
+   ▼   (today + tomorrow only) + who else holds which place   "CalendarClaims" tabs
 this page renders Search / Recommend / Calendar from that payload
 ```
 
@@ -30,8 +30,8 @@ compact per-property records with tags (`high_available`, `large`,
 `high_competitor`, `low_fault`) and a composite `autoScore`.
 `sync/update_suggestion_sheet.py` pushes those into the Sheet's `Villages` /
 `Buildings` tabs; it never touches `CalendarTheme` / `CalendarPlan` — those
-belong to the live page itself (any signed-in viewer can set a month's theme
-or generate a day's picks, and everyone sees the same shared plan).
+belong to the live page itself (any signed-in viewer plans today's and
+tomorrow's picks; each place planned is reserved for that viewer for 10 days).
 
 Run `python3 sync/aggregate_suggestion.py --sample` any time to eyeball the
 curated fields + tag counts against the raw workbooks before trusting a sync.
@@ -135,13 +135,17 @@ useful for reviewing the UI without any of that setup.
   the business's own existing sales grading, computed tags, and `autoScore`.
 - `Users` — `email | note` allow-list.
 - `CalendarTheme` — one row per (month, viewer): that viewer's selected
-  theme tags for that month (`updatedBy` is the key, not just `monthKey` —
-  each signed-in account has its own theme per month).
-- `CalendarPlan` — one row per (month, day, slot, viewer) pick — generated
-  client-side from whichever tags are active, saved back via
-  `saveCalendarDay`. The `email` column means two people planning the same
-  month never see or overwrite each other's picks; `myData` only ever
-  returns the signed-in viewer's own rows from both tabs.
+  theme tags (`updatedBy` is the key, not just `monthKey`).
+- `CalendarPlan` — one row per (month, day, slot, viewer) pick, saved via
+  `saveCalendarDays`. Only **today and tomorrow** (Asia/Bangkok) can be written
+  and `myData` only returns those two days, so nobody holds a month of the
+  village list at once. `myData` only returns the signed-in viewer's own rows.
+- `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt | releasedAt`.
+  Planning a place reserves it for 10 days (counted from `claimedAt`); nobody
+  else can plan it until it expires or its owner removes it (`releasedAt`).
+  `saveCalendarDays` takes a script lock, so two reps racing for one place can't
+  both get it; losers are told which picks to replace. Each rep can be given at
+  most 20 new places per day (`CALENDAR_CLAIM_DAILY_CAP`).
 
 ## Security notes
 

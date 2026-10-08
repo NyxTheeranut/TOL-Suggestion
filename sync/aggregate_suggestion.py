@@ -84,6 +84,29 @@ def sum_or_none(*vals):
     present = [v for v in vals if v is not None]
     return sum(present) if present else None
 
+NETWORK_TECHS = ("FTTH", "FTTB", "FTTC")
+
+
+def network_of(labels, ports_by_tech):
+    """Canonical "FTTH,FTTB,FTTC"-style string of the access technologies a
+    place has, or None. Starts from the workbook's own network label (first
+    label that names a technology wins -- the village file has both
+    "*Revised Network" and the older "Network", the revised one is blank/"None"
+    on some rows the old one still fills), then adds any technology that has
+    ports installed: a handful of rows are labelled e.g. "FTTB ONLY" yet carry
+    FTTH ports, and the port picker in the detail card must never offer a
+    technology the label pill leaves out. "Outdoor"/"None" name no technology."""
+    found = set()
+    for label in labels:
+        toks = {t for t in NETWORK_TECHS if t in str(label or "").upper()}
+        if toks:
+            found = toks
+            break
+    for tech, total in ports_by_tech.items():
+        if total:
+            found.add(tech)
+    return ",".join(t for t in NETWORK_TECHS if t in found) or None
+
 
 def col(header, index, expected):
     """Returns `index`, after asserting header[index] matches `expected`
@@ -192,6 +215,16 @@ def load_villages(path=VILLAGE_XLSB):
     # read 2502/1908).
     i_total_port = col(header, 23, "FTTH TOTAL PORT")
     i_total_avail = col(header, 24, "FTTH AVAILABLE")
+    # Other access technologies + the all-technology totals, for the detail
+    # card's port picker (FTTH stays the default and what scoring uses).
+    i_network_raw = col(header, 21, "Network")
+    i_network_rev = col(header, 22, "*Revised Network")
+    i_fttb_port = col(header, 72, "FTTB TOTAL")
+    i_fttb_avail = col(header, 73, "FTTB AVAILABLE")
+    i_fttc_port = col(header, 108, "FTTC TOTAL PORT")
+    i_fttc_avail = col(header, 109, "FTTC AVAILABLE")
+    i_all_port = col(header, 144, "TOTAL PORT")
+    i_all_avail = col(header, 145, "TOTAL AVAILABLE")
     i_active, i_active_pct = find_latest_series(header, VILLAGE_ACTIVE_VALUE_RE, VILLAGE_ACTIVE_PCT_RE)
     i_active_prev = find_prev_value(header, VILLAGE_ACTIVE_VALUE_RE)
     i_competitor = col(header, 417, "Competitor")
@@ -268,8 +301,18 @@ def load_villages(path=VILLAGE_XLSB):
             "lng": num(v[i_lng]),
             "status": clean(v[i_status]),
             "houseAll": num(v[i_house]),
+            "network": network_of(
+                (v[i_network_rev], v[i_network_raw]),
+                {"FTTH": num(v[i_total_port]), "FTTB": num(v[i_fttb_port]), "FTTC": num(v[i_fttc_port])},
+            ),
             "totalPort": num(v[i_total_port]),
             "totalAvailable": num(v[i_total_avail]),
+            "fttbPort": num(v[i_fttb_port]),
+            "fttbAvailable": num(v[i_fttb_avail]),
+            "fttcPort": num(v[i_fttc_port]),
+            "fttcAvailable": num(v[i_fttc_avail]),
+            "allPort": num(v[i_all_port]),
+            "allAvailable": num(v[i_all_avail]),
             "active": active,
             "activePrevMonth": active_prev,
             "activePct": num(v[i_active_pct]),
@@ -348,6 +391,13 @@ def load_buildings(path=BUILDING_XLSX):
     # technology (FTTH+FTTB+FTTC), overstating available capacity.
     i_total_port = col(header, 20, "FTTH TOTAL")
     i_total_avail = col(header, 21, "FTTH TOTAL AVAILABLE")
+    i_network_rev = col(header, 19, "Network_Rev")
+    i_fttb_port = col(header, 69, "FTTB TOTAL")
+    i_fttb_avail = col(header, 70, "FTTB TOTAL AVAILABLE")
+    i_fttc_port = col(header, 115, "FTTC TOTAL TAP PORTS")
+    i_fttc_avail = col(header, 116, "FTTC TOTAL AVAILABLE")
+    i_all_port = col(header, 161, "TOTAL PORT")
+    i_all_avail = col(header, 162, "TOTAL AVAILABLE")
     i_active, i_active_pct = find_latest_series(header, BUILDING_ACTIVE_VALUE_RE, BUILDING_ACTIVE_PCT_RE)
     i_active_prev = find_prev_value(header, BUILDING_ACTIVE_VALUE_RE)
     i_arpu = col(header, 254, "ARPU")
@@ -422,8 +472,18 @@ def load_buildings(path=BUILDING_XLSX):
             "floors": num(row[i_floors]),
             "units": num(row[i_units]),
             "occupancy": num(row[i_occupancy]),
+            "network": network_of(
+                (row[i_network_rev],),
+                {"FTTH": num(row[i_total_port]), "FTTB": num(row[i_fttb_port]), "FTTC": num(row[i_fttc_port])},
+            ),
             "totalPort": num(row[i_total_port]),
             "totalAvailable": num(row[i_total_avail]),
+            "fttbPort": num(row[i_fttb_port]),
+            "fttbAvailable": num(row[i_fttb_avail]),
+            "fttcPort": num(row[i_fttc_port]),
+            "fttcAvailable": num(row[i_fttc_avail]),
+            "allPort": num(row[i_all_port]),
+            "allAvailable": num(row[i_all_avail]),
             "active": active,
             "activePrevMonth": active_prev,
             "activePct": num(row[i_active_pct]),
