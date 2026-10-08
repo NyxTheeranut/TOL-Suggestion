@@ -43,7 +43,12 @@ def post(sync_secret, action, **fields):
     payload = json.dumps({"action": action, "secret": sync_secret, **fields}, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         SYNC_URL, data=payload, method="POST",
-        headers={"Content-Type": "text/plain;charset=utf-8"},
+        # A browser-style User-Agent is load-bearing: Google's web-app reply
+        # lives behind a redirect (script.googleusercontent.com/macros/echo)
+        # that answers urllib's default "Python-urllib" agent with another
+        # redirect ending in a 404 page -- even though the script itself ran
+        # and wrote the rows. With a normal agent the same redirect returns 200.
+        headers={"Content-Type": "text/plain;charset=utf-8", "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"},
     )
     try:
         with urllib.request.urlopen(req, timeout=120) as res:
