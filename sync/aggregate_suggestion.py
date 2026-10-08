@@ -525,7 +525,7 @@ def _find_l2_xlsx():
 
 
 def _find_village_lookup_file():
-    for folder in (Path("TOL") / "Data", "Config", "."):
+    for folder in (Path("TOL Tracker") / "Data", "Config", "."):
         candidate = DASHBOARD_DIR / folder / "Active FTTH In Village_BMA-West.TXT"
         if candidate.exists():
             return candidate
