@@ -636,8 +636,8 @@
           </div>
         </div>
         <div class="section-nav" id="sectionNav">
-          <a href="#search" data-sec="search" class="active">ค้นหา</a>
-          <a href="#recommend" data-sec="recommend">แนะนำ</a>
+          <a href="#search" data-sec="search" class="active">แผนที่</a>
+          <a href="#recommend" data-sec="recommend">วิเคราะห์</a>
           <a href="#calendar" data-sec="calendar">ปฏิทิน</a>
         </div>
         <div class="topbar-right">
@@ -697,7 +697,7 @@
       <section class="app-section" id="sec-recommend">
         <div class="section-scroll">
           <div class="card">
-            <h2>แนะนำ</h2>
+            <h2>วิเคราะห์</h2>
             <div class="hint">เลือกแท็กเพื่อกรอง (เลือกหลายแท็กจะจำกัดรายการให้แคบลง) หรือเปิดแนะนำอัตโนมัติเพื่อจัดอันดับทั้งหมดตามคะแนนรวม</div>
             <div class="filter-bar">
               <div class="kind-toggle" id="recKind">
@@ -1871,7 +1871,7 @@
         const stamp = new Date().toISOString().slice(0, 10);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `แนะนำ_${kindLabel}_${stamp}.csv`;
+        a.download = `วิเคราะห์_${kindLabel}_${stamp}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
