@@ -246,8 +246,6 @@
       body.role-mgr .drs-only { display: none !important; }
       body.role-mgr.view-days .month-only { display: none !important; }
       body.role-mgr:not(.view-days) .days-only { display: none !important; }
-      .drs-block { margin-bottom: 18px; }
-      .drs-block h4 { font-size: 13px; margin: 0 0 6px; color: var(--text-2); }
       .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
       .cal-dow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 4px; }
       .cal-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 118px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; }
@@ -796,7 +794,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 .cal-dow { font-size: 12px; font-weight: 600; text-transform: none; color: var(--text-3); }
 .cal-day .d-num { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
 .cal-slot { border-radius: 10px; }
-.drs-block h4 { font-family: var(--font-head); font-size: 14px; color: var(--ink); }
 .export-menu { border: none; border-radius: 12px; box-shadow: var(--shadow-lift); }
 
 /* ── detail card (modal) ────────────────────────────────────────────────── */
@@ -840,32 +837,12 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
   .section-nav { justify-self: stretch; }
   .section-nav a.active::after { bottom: -1px; }
   .modal-card { padding: 22px 20px; border-radius: 20px; }
-  .search-sidebar { width: auto; max-width: none; }
+  .search-sidebar { width: 100%; min-width: 0; max-width: none; }
 }
 
     </style>
   <style id="roster-css">
       /* ── DRS roster + assignment (managers) ─────────────────────────────── */
-      .drs-intro { margin: 0 0 14px; }
-      .roster-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; width: fit-content; max-width: 100%; }
-      .roster-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 6px 14px; border: none; background: transparent; border-radius: 9px; font-size: 13.5px; font-weight: 500; color: var(--text-2); transition: background .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease); }
-      .roster-tab:hover { color: var(--ink); }
-      .roster-tab[aria-selected="true"] { background: var(--panel); color: var(--accent-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 61, 56, .12), 0 0 0 1px var(--line); }
-      .roster-tab .rn { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; min-width: 20px; text-align: center; padding: 0 5px; border-radius: 999px; background: var(--line-2); color: var(--text-3); }
-      .roster-tab[aria-selected="true"] .rn { background: var(--accent-soft); color: var(--accent-ink); }
-      .roster-tab .rn.zero { opacity: .55; }
-      .roster-panel { margin-top: 12px; padding: 14px 16px; border-radius: 12px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
-      .roster-panel h3 { font-size: 14.5px; font-weight: 600; margin-bottom: 8px; }
-      .roster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 14px; }
-      .rchk { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 10px; border-radius: 9px; cursor: pointer; font-size: 13.5px; overflow-wrap: anywhere; transition: background .16s var(--ease); }
-      .rchk:hover { background: var(--panel); }
-      .rchk input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
-      .assign-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 16px 0 6px; padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); }
-      .assign-bar .ab-info { flex: 1 1 260px; min-width: 0; font-size: 13.5px; color: var(--ink); }
-      .assign-bar .ab-info small { display: block; color: var(--text-2); font-size: 12.5px; margin-top: 2px; }
-      .assign-msg { font-size: 13px; color: var(--text-2); margin: 4px 0 14px; min-height: 18px; }
-      .drs-block { margin-bottom: 18px; }
-      .drs-block h4 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
       .drs-tag { font: 500 11.5px/1.6 var(--font-body); padding: 0 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); }
       .big-note { font-size: 12.5px; color: var(--accent-ink); background: var(--accent-soft); border-radius: 8px; padding: 4px 10px; align-self: flex-start; }
       .cp-script { display: inline-block; margin-top: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
@@ -883,7 +860,114 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       .script-step p, .script-step li { font-size: 14px; line-height: 1.65; margin: 0 0 4px; }
       .script-step ul { margin: 0; padding-left: 20px; }
     </style>
+  <style id="board-css">
+      /* ── Month board: assign DRS by day (managers) ─────────────────────── */
+      #sec-drs .section-scroll { padding-top: 22px; }
+      .mb-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 16px; max-width: 1380px; margin-inline: auto; }
+      .mb-top h2 { font-size: 22px; font-weight: 600; }
+      .mb-sp { flex: 1; }
+      .mb-status { max-width: 1380px; margin: -6px auto 12px; font-size: 13px; color: var(--text-3); min-height: 18px; }
+      .mb-mnav { display: flex; align-items: center; gap: 4px; background: var(--panel); border-radius: 12px; padding: 3px; box-shadow: inset 0 0 0 1px var(--line); }
+      .mb-mnav b { font-family: var(--font-head); font-size: 15px; min-width: 132px; text-align: center; }
+      .mb-ib { width: 38px; height: 38px; border: none; border-radius: 9px; background: transparent; display: grid; place-items: center; color: var(--text-2); transition: background .16s var(--ease); }
+      .mb-ib:hover { background: var(--panel-2); color: var(--ink); }
+      .mb-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--panel-2); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); }
+      .mb-seg button { border: none; background: transparent; min-height: 36px; padding: 4px 14px; border-radius: 9px; font-size: 13.5px; font-weight: 500; color: var(--text-2); transition: all .16s var(--ease); }
+      .mb-seg button[aria-pressed="true"] { background: var(--panel); color: var(--accent-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 61, 56, .12), 0 0 0 1px var(--line); }
+      .mb-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 18px; align-items: start; max-width: 1380px; margin-inline: auto; }
+      .mb-layout > * { min-width: 0; }
+      @media (max-width: 1100px) { .mb-layout { grid-template-columns: minmax(0, 1fr); } }
+      .mb-step { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+      .mb-step i { font: 600 12px var(--font-mono, "IBM Plex Mono", monospace); font-style: normal; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); flex: none; }
+      .mb-step h3 { font-size: 17px; font-weight: 600; }
+      .mb-hint { font-size: 13px; color: var(--text-3); margin: 0 0 14px 34px; max-width: 72ch; }
+      .mb-hint b { color: var(--text-2); }
+      .mb-link { border: none; background: none; padding: 2px 0; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
+      .mb-pattern { overflow-x: auto; }
+      .mb-ptable { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+      .mb-ptable th { font-size: 12.5px; font-weight: 600; color: var(--text-3); padding: 2px 4px 8px; text-align: center; }
+      .mb-ptable th:first-child { text-align: left; padding-left: 2px; }
+      .mb-ptable td { padding: 3px 4px; text-align: center; border-top: 1px solid var(--line-2); }
+      .mb-ptable td:first-child { text-align: left; font-weight: 600; white-space: nowrap; padding-right: 14px; }
+      .mb-ptable td:last-child { color: var(--text-3); font: 12.5px "IBM Plex Mono", monospace; text-align: right; padding-left: 10px; white-space: nowrap; }
+      .mb-dot { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); display: inline-grid; place-items: center; transition: all .16s var(--ease); color: #fff; }
+      .mb-dot:hover { border-color: var(--accent); }
+      .mb-dot[aria-checked="true"] { background: var(--accent); border-color: transparent; }
+      .mb-dot svg { width: 18px; height: 18px; opacity: 0; }
+      .mb-dot[aria-checked="true"] svg { opacity: 1; }
+      .mb-who { display: inline-flex; align-items: center; gap: 8px; }
+      .mb-av { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; flex: none; }
+      .mb-mhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px 34px; }
+      .mb-meter { flex: 1 1 220px; max-width: 340px; }
+      .mb-meter small { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-2); margin-bottom: 3px; }
+      .mb-meter .mb-bar { height: 7px; border-radius: 99px; background: var(--line); overflow: hidden; }
+      .mb-meter .mb-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s var(--ease); }
+      .mb-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+      .mb-dow { font-size: 12.5px; font-weight: 600; color: var(--text-3); text-align: center; padding-bottom: 2px; }
+      .mb-cell { position: relative; min-height: 92px; border-radius: 12px; border: none; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); text-align: left; padding: 7px 8px; display: flex; flex-direction: column; gap: 5px; transition: all .16s var(--ease); min-width: 0; color: var(--ink); }
+      .mb-cell:hover { background: var(--panel); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, var(--line)); }
+      .mb-cell[aria-pressed="true"] { background: var(--panel); box-shadow: inset 0 0 0 2px var(--accent); }
+      .mb-cell.today .n { background: var(--accent); color: #fff; }
+      .mb-cell.out { background: transparent; box-shadow: none; pointer-events: none; }
+      .mb-cell.dim { opacity: .55; }
+      .mb-cell .n { font: 600 12.5px "IBM Plex Mono", monospace; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; }
+      .mb-cell .mb-crew { display: flex; flex-wrap: wrap; gap: 3px; }
+      .mb-cell .mb-crew .mb-av { width: 22px; height: 22px; font-size: 10.5px; }
+      .mb-cell .more { font: 600 11px "IBM Plex Mono", monospace; color: var(--text-3); align-self: center; }
+      .mb-pill { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 6px; align-self: flex-start; white-space: nowrap; }
+      .mb-pill.none { background: var(--st-warn-soft); color: var(--st-warn); }
+      .mb-pill.ok { background: var(--st-good-soft); color: var(--st-good); }
+      .mb-pill.big { background: var(--accent-soft); color: var(--accent-ink); }
+      .mb-pill.off { background: transparent; color: var(--text-3); font-weight: 500; padding-left: 0; }
+      .mb-pill .short { display: none; }
+      .mb-cell .ovr { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--st-warn); }
+      .mb-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--text-2); margin-top: 12px; align-items: center; }
+      .mb-legend .ovr { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--st-warn); }
+      .mb-sideWrap { position: sticky; top: 14px; }
+      @media (max-width: 1100px) { .mb-sideWrap { position: static; } }
+      #mbSide h3.mb-h { font-size: 18px; font-weight: 600; }
+      .mb-sub { color: var(--text-3); font-size: 13px; margin: 2px 0 12px; }
+      .mb-crewrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
+      .mb-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 3px 12px 3px 4px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); font-size: 13px; font-weight: 500; transition: all .16s var(--ease); color: var(--ink); }
+      .mb-chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+      .mb-chip[aria-pressed="false"] { opacity: .7; }
+      .mb-chip[disabled] { opacity: .45; cursor: not-allowed; }
+      .mb-chip .mb-av { width: 26px; height: 26px; }
+      .mb-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+      .mb-drsbox { border-radius: 14px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); padding: 12px 14px; margin-bottom: 10px; }
+      .mb-drsbox h4 { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+      .mb-drsbox h4 .mb-sp { flex: 1; }
+      .mb-place { display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; border-radius: 9px; background: var(--panel); margin-bottom: 5px; border-left: 3px solid var(--accent); }
+      .mb-place.backup { border-left-style: dashed; }
+      .mb-r1 { display: flex; align-items: center; gap: 6px; }
+      .mb-nm { flex: 1; font-weight: 600; font-size: 13.5px; min-width: 0; overflow-wrap: anywhere; }
+      .mb-loc { font-size: 12.5px; color: var(--text-3); }
+      .mb-mode { font-size: 11.5px; font-weight: 600; padding: 0 7px; border-radius: 6px; }
+      .mb-mode.tone-good { background: var(--st-good-soft); color: var(--st-good); }
+      .mb-mode.tone-warn { background: var(--st-warn-soft); color: var(--st-warn); }
+      .mb-mode.tone-crit { background: var(--st-crit-soft); color: var(--st-crit); }
+      .mb-mode.tone-none { background: var(--panel-2); color: var(--text-2); }
+      .mb-xb { width: 30px; height: 30px; border: none; background: transparent; border-radius: 8px; color: var(--text-3); display: grid; place-items: center; }
+      .mb-xb:hover { background: var(--st-crit-soft); color: var(--st-crit); }
+      .mb-note { font-size: 13px; border-radius: 10px; padding: 8px 12px; background: var(--accent-soft); color: var(--accent-ink); margin-bottom: 10px; }
+      .mb-empty { padding: 26px 10px; text-align: center; color: var(--text-3); font-size: 13.5px; }
+      .mb-empty b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 2px; }
+      .mb-list { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+      .mb-list th, .mb-list td { padding: 9px 10px; text-align: left; border-top: 1px solid var(--line-2); vertical-align: top; }
+      .mb-list th { font-size: 12.5px; color: var(--text-3); font-weight: 600; border-top: none; }
+      .mb-list tr.sel td { background: var(--accent-soft); }
+      .mb-list tr[data-k] { cursor: pointer; }
+      .mb-list td:first-child { white-space: nowrap; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+      .mb-toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--panel); padding: 10px 18px; border-radius: 12px; font-size: 13.5px; box-shadow: 0 14px 30px -12px rgba(0, 0, 0, .5); transition: all .25s var(--ease); pointer-events: none; z-index: 1200; max-width: 92vw; }
+      .mb-toast.show { opacity: 1; transform: translate(-50%, 0); }
+      @media (max-width: 640px) {
+        .mb-cell .mb-pill .full { display: none; } .mb-cell .mb-pill .short { display: inline; font-weight: 700; } .mb-cell .mb-pill.off { padding: 0; }
+        .mb-cell { min-height: 70px; padding: 5px; } .mb-cell .mb-crew .mb-av { width: 18px; height: 18px; font-size: 9.5px; } .mb-pill { font-size: 10.5px; padding: 0 5px; }
+        .mb-dot { width: 34px; height: 34px; } .mb-hint, .mb-mhead { margin-left: 0; }
+      }
+    </style>
   </head>
+
   <body>
     <a class="skip-link" href="#app" id="skipLink">ข้ามไปยังเนื้อหา</a>
     <div id="loginGate" class="login-gate">
@@ -912,6 +996,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           <a href="#search" data-sec="search" class="active">แผนที่</a>
           <a href="#recommend" data-sec="recommend">วิเคราะห์</a>
           <a href="#calendar" data-sec="calendar">ปฏิทิน</a>
+          <a href="#drs" data-sec="drs" class="mgr-only">จัดแผน DRS</a>
         </div>
         <div class="topbar-right">
           <div class="meta" id="topbarMeta">—</div>
@@ -1062,23 +1147,53 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             <div class="cal-days days-only" id="calGrid"></div>
             <div class="cal-grid month-only" id="calMonthGrid"></div>
           </div>
-          <div class="card mgr-only" id="drsCard">
-            <div class="cal-head">
-              <h2>จัดแผนให้ DRS</h2>
-              <div class="cal-head-right">
-                <select id="drsPick" aria-label="เลือก DRS"></select>
-                <button class="btn" id="drsRefresh" type="button">รีเฟรช</button>
+        </div>
+      </section>
+
+      <!-- ===== Section 4: DRS month board (PBH / CM / ADMIN) ===== -->
+      <section class="app-section mgr-only" id="sec-drs">
+        <div class="section-scroll">
+          <div class="mb-top">
+            <h2>จัดแผนให้ DRS</h2>
+            <div class="mb-mnav" role="group" aria-label="เดือน">
+              <button type="button" class="mb-ib" id="mbPrev" aria-label="เดือนก่อน"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+              <b id="mbMonth"></b>
+              <button type="button" class="mb-ib" id="mbNext" aria-label="เดือนถัดไป"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+            <button type="button" class="btn" id="mbToday">วันนี้</button>
+            <span class="mb-sp"></span>
+            <div class="mb-seg" role="group" aria-label="มุมมอง"><button type="button" id="mbVDay" aria-pressed="true">ตามวัน</button><button type="button" id="mbVDrs" aria-pressed="false">ตาม DRS</button></div>
+            <button type="button" class="btn" id="mbRefresh">รีเฟรช</button>
+            <button type="button" class="btn primary" id="mbGenAll"></button>
+          </div>
+          <div class="mb-status" id="mbStatus" role="status" aria-live="polite"></div>
+          <div class="mb-layout">
+            <div>
+              <div class="card" id="mbPat">
+                <div class="mb-step"><i>1</i><h3>ใครทำงานวันไหน</h3></div>
+                <p class="mb-hint">กดจุดเพื่อเลือกวันทำงานประจำสัปดาห์ของแต่ละคน ใช้เป็นค่าตั้งต้นของทุกสัปดาห์ ถ้าวันไหนต่างไปให้กดวันนั้นในปฏิทินแล้วปรับเฉพาะวัน</p>
+                <div class="mb-pattern"><table class="mb-ptable" id="mbTable"></table></div>
+              </div>
+              <div class="card" id="mbCal">
+                <div class="mb-step"><i>2</i><h3>ปฏิทินของเดือนนี้</h3></div>
+                <p class="mb-hint">เลือกวันเพื่อดูและแก้ไขทางขวา · สร้างแผนล่วงหน้าได้ไม่เกิน 14 วัน (จนถึง <b id="mbHorizon"></b>) เพื่อไม่ให้สถานที่ถูกจองไว้นานเกินไป · <span id="mbFilters"></span> <button type="button" class="mb-link" id="mbFilterGo">เปลี่ยนตัวกรอง</button></p>
+                <div class="mb-mhead"><div class="mb-meter"><small><span>สถานที่ที่ถูกจองอยู่</span><b id="mbMtxt"></b></small><div class="mb-bar"><i id="mbMbar"></i></div></div></div>
+                <div class="mb-grid" id="mbDows" role="presentation"></div>
+                <div class="mb-grid" id="mbGrid" role="grid" aria-label="ปฏิทิน DRS"></div>
+                <div class="mb-legend"><span class="mb-pill none">ยังไม่สร้าง</span><span class="mb-pill ok">สร้างแล้ว</span><span class="mb-pill big">หมู่บ้านใหญ่</span><span><i class="ovr"></i> ปรับเฉพาะวันนั้น</span></div>
+              </div>
+              <div class="card" id="mbDrsView" hidden>
+                <div class="mb-step"><i>3</i><h3 id="mbDrsTitle">ตาม DRS</h3></div>
+                <p class="mb-hint">แผนทั้งเดือนของ DRS แต่ละคน กดแถวเพื่อไปที่วันนั้น</p>
+                <div class="mb-seg" id="mbDrsPick" role="group" aria-label="เลือก DRS" style="margin:0 0 12px 34px"></div>
+                <div style="overflow-x:auto"><table class="mb-list" id="mbList"></table></div>
               </div>
             </div>
-            <div class="hint drs-intro">เลือกว่า DRS คนไหนทำงานวันไหนของสัปดาห์ แล้วกดให้ระบบสร้างแผนของวันนั้นให้ · DRS แก้แผนเองไม่ได้ ต้องให้หัวหน้าจัดให้เท่านั้น</div>
-            <div class="roster-tabs" id="rosterTabs" role="tablist" aria-label="วันในสัปดาห์"></div>
-            <div class="roster-panel" id="rosterPanel" role="tabpanel"></div>
-            <div class="assign-bar" id="assignBar"></div>
-            <div class="assign-msg" id="assignMsg" role="status" aria-live="polite"></div>
-            <div id="drsGrid"></div>
+            <aside class="mb-sideWrap"><div class="card" id="mbSide" aria-live="polite"></div></aside>
           </div>
         </div>
       </section>
+      <div class="mb-toast" id="mbToast" role="status"></div>
     </div>
 
     <div class="modal-overlay" id="modalOverlay">
@@ -1152,7 +1267,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         drsNames: {},                      // managers only: DRS email -> display name (from the Users tab's name column)
         drsPlanMap: {},                    // managers only: email -> monthKey -> day -> picks (what is shown and edited)
         roster: {},                        // managers only: ISO weekday (1=Mon..7=Sun) -> [DRS emails who work that day]
-        rosterDay: 1, assignTarget: 1,     // managers only: selected weekday tab; 0 = assign today, 1 = tomorrow
+        rosterOverrides: {},               // managers only: "YYYYMMDD" -> {add:[emails], remove:[emails]} one-date changes to the weekly roster
         calendarSlots: [null, null, null], // managers only: saved month plans
         calView: "month",                  // managers only: "month" or "days" (their plan is one; this is which view of it)
         idToken: null,
@@ -2308,9 +2423,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       function rollWindowIfNeeded() {
         if (!STATE.villages || renderedWindow === null || windowKey() === renderedWindow) return;
         if (isMgr()) {
-          const keepM = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
+          const keepM = new Set(); { const dd = mbToday(); for (let i = 0; i < MB_HORIZON; i++, dd.setDate(dd.getDate() + 1)) keepM.add(dayKeyOf(dd.getFullYear() + mbPad(dd.getMonth() + 1), dd.getDate())); }
+          if (MB.selected && mbPast(MB.selected)) MB.selected = mbTodayKey();
           Object.keys(STATE.drsPlanMap).forEach((em) => Object.keys(STATE.drsPlanMap[em]).forEach((mk) => Object.keys(STATE.drsPlanMap[em][mk]).forEach((d) => { if (!keepM.has(dayKeyOf(mk, d))) delete STATE.drsPlanMap[em][mk][d]; })));
-          STATE.rosterDay = isoWeekdayOf(calWindow()[0]);
           renderedWindow = windowKey(); renderCalendar(); return;
         } // managers keep their whole month; the date only moves their 2-day view and the DRS viewer
         const keep = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
@@ -2527,7 +2642,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       }
       function buildRoster(rows) {
         const out = {};
-        (rows || []).forEach((r) => { const wd = Number(r.weekday); if (!out[wd]) out[wd] = []; const em = String(r.email).toLowerCase(); if (!out[wd].includes(em)) out[wd].push(em); });
+        (rows || []).forEach((r) => { if (r.date != null && r.date !== "") return; const wd = Number(r.weekday); if (!out[wd]) out[wd] = []; const em = String(r.email).toLowerCase(); if (!out[wd].includes(em)) out[wd].push(em); });
         return out;
       }
       // A village (or building) this big takes the whole day: everyone rostered that
@@ -2905,6 +3020,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       function setCalStatus(msg, isError) {
         const el = document.getElementById("calSaveStatus");
         el.textContent = msg; el.style.color = isError ? "var(--st-crit)" : "var(--text-3)";
+        const mb = document.getElementById("mbStatus");
+        if (mb) { mb.textContent = msg; mb.style.color = isError ? "var(--st-crit)" : "var(--text-3)"; }
       }
 
       // One day's card (today / tomorrow): shared by the DRS calendar and the
@@ -2972,101 +3089,244 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         document.getElementById("calMonthGrid").innerHTML = html;
       }
 
-      // PBH / CM / ADMIN: roster by weekday, one button to build the next day, and every DRS's two days.
-      const THAI_DOW_ISO = [null, "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
-      const THAI_DOW_ISO_SHORT = [null, "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
-      function rosterFor(wd) { return (STATE.roster[wd] || []).filter((e) => (STATE.drsUsers || []).includes(e)); }
-      function renderRosterTabs() {
-        document.getElementById("rosterTabs").innerHTML = [1, 2, 3, 4, 5, 6, 7].map((wd) => {
-          const n = rosterFor(wd).length, sel = wd === STATE.rosterDay;
-          return `<button type="button" role="tab" class="roster-tab" id="rtab-${wd}" data-wd="${wd}" aria-selected="${sel}" aria-controls="rosterPanel" tabindex="${sel ? 0 : -1}" aria-label="${THAI_DOW_ISO[wd]} มี DRS ${n} คน">${THAI_DOW_ISO_SHORT[wd]}<span class="rn${n ? "" : " zero"}">${n}</span></button>`;
-        }).join("");
+      // ===== Month board: PBH / CM / ADMIN assign DRS by day =====
+      // One screen: a weekly pattern (who works which weekday), a month calendar (who works each date, and whether
+      // its plan exists), and a side panel for the selected day. Assignments reach a DRS only for today + tomorrow.
+      const MB_HORIZON = 14; // a manager can generate today .. today + 13 (the server enforces the same)
+      const MB_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      const MB_DOW = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+      const MB_DOW_FULL = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
+      const MB_COLORS = ["#0f7a70", "#3d6fd0", "#a8407f", "#b07206", "#7647c4", "#1b8bb0", "#c25a16", "#4f5f78"];
+      const MB_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+      const MB_X = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+      const MB = { view: null, selected: null, mode: "day", drs: null };
+      const mbPad = (n) => (n < 10 ? "0" + n : "" + n);
+      const mbKey = (d) => d.getFullYear() + "-" + mbPad(d.getMonth() + 1) + "-" + mbPad(d.getDate());
+      const mbFrom = (k) => { const p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); };
+      const mbIso = (d) => (d.getDay() === 0 ? 7 : d.getDay());
+      const mbCompact = (k) => k.replace(/-/g, "");
+      const mbMK = (k) => k.slice(0, 4) + k.slice(5, 7);
+      const mbDay = (k) => +k.slice(8, 10);
+      function mbToday() { const [y, m, d] = calDateFmt.format(new Date()).split("-").map(Number); return new Date(y, m - 1, d); } // Bangkok's today
+      const mbTodayKey = () => mbKey(mbToday());
+      function mbLastKey() { const d = mbToday(); d.setDate(d.getDate() + MB_HORIZON - 1); return mbKey(d); }
+      const mbInHorizon = (k) => k >= mbTodayKey() && k <= mbLastKey();
+      const mbPast = (k) => k < mbTodayKey();
+      const mbThDate = (d) => d.getDate() + " " + MB_MONTHS[d.getMonth()];
+      const mbColor = (email) => MB_COLORS[Math.max(0, (STATE.drsUsers || []).indexOf(email)) % MB_COLORS.length];
+      const mbAv = (email) => `<span class="mb-av" style="background:${mbColor(email)}" title="${escapeHtml(drsLabel(email))}">${escapeHtml(drsLabel(email).split(" ")[0].slice(0, 2))}</span>`;
+      function mbEnsure() {
+        if (MB.view) return;
+        const t = mbToday(); MB.view = new Date(t.getFullYear(), t.getMonth(), 1); MB.selected = mbTodayKey(); MB.drs = (STATE.drsUsers || [])[0] || null;
       }
-      function renderRosterPanel() {
-        const wd = STATE.rosterDay, users = STATE.drsUsers || [], on = new Set(rosterFor(wd));
-        const panel = document.getElementById("rosterPanel");
-        panel.setAttribute("aria-labelledby", "rtab-" + wd);
-        panel.innerHTML = `<h3>DRS ที่ทำงานวัน${THAI_DOW_ISO[wd]}</h3>` + (users.length
-          ? `<div class="roster-list">${users.map((e, i) => `<label class="rchk"><input type="checkbox" data-email="${escapeHtml(e)}" ${on.has(e) ? "checked" : ""}><span>${escapeHtml(drsLabel(e))}</span></label>`).join("")}</div>`
-          : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ — เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users</div>`);
+      function mbBuildOverrides(rows) {
+        const out = {};
+        (rows || []).forEach((r) => {
+          if (r.date == null || r.date === "" || !r.mode) return;
+          const k = String(r.date), em = String(r.email).toLowerCase();
+          if (!out[k]) out[k] = { add: [], remove: [] };
+          (r.mode === "add" ? out[k].add : out[k].remove).push(em);
+        });
+        return out;
       }
-      function renderAssignBar() {
-        const w = calWindow()[STATE.assignTarget], wd = isoWeekdayOf(w), emails = rosterFor(wd);
-        const planned = emails.filter((e) => drsGet(e, w.monthKey, w.day).length).length;
-        document.getElementById("assignBar").innerHTML = `
-          <div class="kind-toggle" id="assignTarget" role="group" aria-label="สร้างแผนให้วันไหน">
-            <button type="button" data-t="0" class="${STATE.assignTarget === 0 ? "active" : ""}">วันนี้</button>
-            <button type="button" data-t="1" class="${STATE.assignTarget === 1 ? "active" : ""}">พรุ่งนี้</button>
-          </div>
-          <div class="ab-info"><b>${THAI_DOW_ISO[wd]} ${w.day} ${THAI_MON_SHORT[w.mon - 1]}</b> · ตารางมี ${emails.length} คน${emails.length ? ` · จัดแผนแล้ว ${planned}/${emails.length}` : ""}
-            <small>${emails.length ? `หมู่บ้านที่มีอย่างน้อย ${bigVillageThreshold(emails.length)} ครัวเรือน (300 ขึ้นไป และ 100 ต่อคน) จะใช้เป็นที่เดียวทั้งวัน ทุกคนไปด้วยกัน` : "เลือก DRS ของวันนี้ในตารางด้านบนก่อน"}</small></div>
-          <button type="button" class="btn primary" id="assignGo" ${emails.length ? "" : "disabled"}>สร้างแผนให้ DRS ตามตาราง</button>`;
+      // Who works a date: the weekly pattern, minus anyone removed that date, plus anyone added.
+      function mbCrew(k) {
+        const base = new Set(STATE.roster[mbIso(mbFrom(k))] || []), o = (STATE.rosterOverrides || {})[mbCompact(k)] || { add: [], remove: [] };
+        return (STATE.drsUsers || []).filter((e) => (base.has(e) && !o.remove.includes(e)) || o.add.includes(e));
       }
-      function renderDrsView() {
-        const sel = document.getElementById("drsPick");
-        const users = STATE.drsUsers || [];
-        const cur = sel.value || "all";
-        sel.innerHTML = `<option value="all">DRS ทุกคน (${users.length})</option>` + users.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(drsLabel(e))}</option>`).join("");
-        sel.value = users.includes(cur) || cur === "all" ? cur : "all";
-        renderRosterTabs(); renderRosterPanel(); renderAssignBar();
-        const who = sel.value === "all" ? users : [sel.value];
-        const win = calWindow(), todayWd = isoWeekdayOf(win[0]);
-        document.getElementById("drsGrid").innerHTML = who.length ? who.map((email) => {
-          const cards = win.map((w) => dayCardHtml(w, drsGet(email, w.monthKey, w.day), true, email)).join("");
-          const onToday = rosterFor(todayWd).includes(email);
-          return `<div class="drs-block"><h4>${escapeHtml(drsLabel(email))}${onToday ? '<span class="drs-tag">ทำงานวันนี้ตามตาราง</span>' : ""}</h4><div class="cal-days">${cards}</div></div>`;
-        }).join("") : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ (แท็บ Users)</div>`;
+      function mbStatus(k) {
+        const crew = mbCrew(k); if (!crew.length) return "off";
+        const mk = mbMK(k), d = mbDay(k), have = crew.filter((e) => drsGet(e, mk, d).length);
+        if (!have.length) return "none";
+        if (have.length < crew.length) return "missing";
+        if (crew.every((e) => drsGet(e, mk, d).length === 1) && new Set(crew.map((e) => { const p = drsGet(e, mk, d)[0]; return p.kind + ":" + p.refId; })).size === 1) return "big";
+        return "ok";
       }
-      document.getElementById("drsPick").addEventListener("change", renderDrsView);
-      // roster tabs: click + arrow keys (roving tabindex)
-      document.getElementById("rosterTabs").addEventListener("click", (e) => {
-        const b = e.target.closest(".roster-tab"); if (!b) return;
-        STATE.rosterDay = +b.dataset.wd; renderRosterTabs(); renderRosterPanel();
-      });
-      document.getElementById("rosterTabs").addEventListener("keydown", (e) => {
-        const keys = { ArrowRight: 1, ArrowLeft: -1, Home: "first", End: "last" };
-        if (!(e.key in keys)) return;
-        e.preventDefault();
-        let wd = STATE.rosterDay;
-        wd = keys[e.key] === "first" ? 1 : keys[e.key] === "last" ? 7 : ((wd - 1 + keys[e.key] + 7) % 7) + 1;
-        STATE.rosterDay = wd; renderRosterTabs(); renderRosterPanel();
-        document.getElementById("rtab-" + wd).focus();
-      });
-      const rosterTimers = {};
-      document.getElementById("rosterPanel").addEventListener("change", (e) => {
-        const cb = e.target.closest("input[data-email]"); if (!cb) return;
-        const wd = STATE.rosterDay, cur = new Set(STATE.roster[wd] || []);
-        if (cb.checked) cur.add(cb.dataset.email); else cur.delete(cb.dataset.email);
-        STATE.roster[wd] = [...cur];
-        renderRosterTabs(); renderAssignBar(); document.getElementById("rtab-" + wd).setAttribute("tabindex", "0");
-        if (!STATE.idToken) return;
-        clearTimeout(rosterTimers[wd]);
-        rosterTimers[wd] = setTimeout(async () => {
-          try { await api("saveDrsRoster", { weekday: wd, emails: STATE.roster[wd] }); setCalStatus("บันทึกตารางงานแล้ว ✓", false); }
-          catch (err) { setCalStatus("บันทึกตารางงานไม่สำเร็จ: " + err.message, true); }
-        }, 600);
-      });
-      document.getElementById("assignBar").addEventListener("click", (e) => {
-        const t = e.target.closest("#assignTarget button");
-        if (t) { STATE.assignTarget = +t.dataset.t; renderAssignBar(); return; }
-        if (e.target.closest("#assignGo")) generateForRoster();
-      });
+      function mbStatusText(k, st) { return st === "off" ? "ไม่มีคนทำงาน" : st === "none" ? (mbInHorizon(k) ? "ยังไม่สร้าง" : mbPast(k) ? "ไม่มีแผน" : "เกิน 14 วัน") : st === "missing" ? "ขาดบางคน" : st === "big" ? "หมู่บ้านใหญ่" : "สร้างแล้ว"; }
+      function mbGenerate(k) {
+        const crew = mbCrew(k); if (!crew.length || !mbInHorizon(k)) return false;
+        const mk = mbMK(k), d = mbDay(k), res = buildDrsDayPlans(mk, d, crew, calState.tags);
+        if (!res) return false;
+        crew.forEach((e) => { drsSet(e, mk, d, res.plans[e]); queueAssign(e, mk, d, 0); });
+        return true;
+      }
+      function mbPending() {
+        const out = [], d = mbToday();
+        for (let i = 0; i < MB_HORIZON; i++, d.setDate(d.getDate() + 1)) { const k = mbKey(d), s = mbStatus(k); if (s === "none" || s === "missing") out.push(k); }
+        return out;
+      }
+      function mbHeld() {
+        const s = new Set(), add = (list) => list.forEach((p) => s.add(p.kind + ":" + p.refId));
+        Object.values(STATE.drsPlanMap).forEach((m) => Object.values(m).forEach((mo) => Object.values(mo).forEach(add)));
+        Object.values(STATE.calendarPlan).forEach((mo) => Object.values(mo).forEach(add));
+        return s.size;
+      }
+      let mbToastTimer;
+      function mbToast(msg) { const t = document.getElementById("mbToast"); t.textContent = msg; t.classList.add("show"); clearTimeout(mbToastTimer); mbToastTimer = setTimeout(() => t.classList.remove("show"), 2800); }
 
-      function setAssignMsg(msg) { document.getElementById("assignMsg").textContent = msg || ""; }
-      async function generateForRoster() {
-        const w = calWindow()[STATE.assignTarget], emails = rosterFor(isoWeekdayOf(w));
-        if (!emails.length) { setAssignMsg("ยังไม่ได้เลือก DRS ของวันนั้นในตาราง"); return; }
-        const has = emails.filter((e) => drsGet(e, w.monthKey, w.day).length);
-        if (has.length && !(await confirmDialog(`มี ${has.length} คนที่มีแผนวันนั้นอยู่แล้ว สร้างใหม่จะแทนที่แผนเดิม ดำเนินการต่อไหม?`, "สร้างใหม่", "ยกเลิก"))) return;
-        const res = buildDrsDayPlans(w.monthKey, w.day, emails, calState.tags);
-        if (!res) { setAssignMsg("ไม่มีสถานที่ที่ตรงเงื่อนไข (หรือถูกจองหมดแล้ว) — ยังไม่เปลี่ยนแผน"); return; }
-        emails.forEach((em) => { drsSet(em, w.monthKey, w.day, res.plans[em]); queueAssign(em, w.monthKey, w.day, 0); });
-        renderDrsView();
-        const short = emails.filter((em) => !res.big && res.plans[em].length < 4).length;
-        setAssignMsg(res.big
-          ? `วันหมู่บ้านใหญ่: ${res.village.name} (${whole(hhOf(res.village))} ${kindOf(res.village) === "village" ? "ครัวเรือน" : "ยูนิต"}) — ส่ง ${emails.length} คนไปที่เดียว`
-          : `สร้างแผนให้ ${emails.length} คนแล้ว` + (short ? ` · ${short} คนได้สถานที่ไม่ครบ 4 เพราะที่เหลือไม่พอ` : ""));
+      function renderBoardTable() {
+        const users = STATE.drsUsers || [];
+        document.getElementById("mbTable").innerHTML = users.length
+          ? "<thead><tr><th>DRS</th>" + MB_DOW.map((d) => `<th>${d}</th>`).join("") + "<th></th></tr></thead><tbody>" + users.map((e) => {
+            const days = [1, 2, 3, 4, 5, 6, 7].filter((wd) => (STATE.roster[wd] || []).includes(e));
+            return `<tr><td><span class="mb-who">${mbAv(e)}${escapeHtml(drsLabel(e))}</span></td>` + [1, 2, 3, 4, 5, 6, 7].map((wd) =>
+              `<td><button type="button" class="mb-dot" role="switch" aria-checked="${days.includes(wd)}" data-e="${escapeHtml(e)}" data-w="${wd}" aria-label="${escapeHtml(drsLabel(e))} ${MB_DOW_FULL[wd - 1]}">${MB_CHECK}</button></td>`).join("") + `<td>${days.length} วัน/สัปดาห์</td></tr>`;
+          }).join("") + "</tbody>"
+          : `<tbody><tr><td class="mb-empty"><b>ยังไม่มี DRS ในรายชื่อผู้ใช้</b>เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users แล้วกดรีเฟรช</td></tr></tbody>`;
       }
+      function renderBoardMonth() {
+        document.getElementById("mbMonth").textContent = MB_MONTHS[MB.view.getMonth()] + " " + (MB.view.getFullYear() + 543);
+        const last = mbFrom(mbLastKey());
+        document.getElementById("mbHorizon").textContent = mbThDate(last);
+        const f = [calState.kind === "village" ? "หมู่บ้าน" : calState.kind === "building" ? "อาคาร" : "หมู่บ้าน + อาคาร", calState.tags.size ? calState.tags.size + " แท็ก" : "ไม่เลือกแท็ก", calState.amps.size + calState.tams.size ? "เลือกบางพื้นที่" : "ทุกพื้นที่"];
+        document.getElementById("mbFilters").textContent = "ตัวกรองสถานที่ (จากแท็บปฏิทิน): " + f.join(" · ") + ".";
+        document.getElementById("mbDows").innerHTML = MB_DOW.map((d) => `<div class="mb-dow">${d}</div>`).join("");
+        const first = new Date(MB.view.getFullYear(), MB.view.getMonth(), 1), lead = mbIso(first) - 1, n = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 0).getDate(), tk = mbTodayKey();
+        let h = "";
+        for (let i = 0; i < lead; i++) h += '<div class="mb-cell out" aria-hidden="true"></div>';
+        for (let d = 1; d <= n; d++) {
+          const dt = new Date(MB.view.getFullYear(), MB.view.getMonth(), d), k = mbKey(dt), crew = mbCrew(k), st = mbStatus(k), txt = mbStatusText(k, st);
+          const P = (cls, short) => `<span class="mb-pill ${cls}"><span class="full">${txt}</span><span class="short" aria-hidden="true">${short}</span></span>`;
+          const pill = st === "off" ? P("off", "–") : st === "ok" ? P("ok", "✓") : st === "big" ? P("big", "ใหญ่") : P("none", "!");
+          const o = (STATE.rosterOverrides || {})[mbCompact(k)];
+          h += `<button type="button" class="mb-cell${k === tk ? " today" : ""}${mbPast(k) ? " dim" : ""}" role="gridcell" data-k="${k}" aria-pressed="${k === MB.selected}" tabindex="${k === MB.selected ? 0 : -1}" aria-label="${d} ${MB_MONTHS[dt.getMonth()]} ${crew.length} คนทำงาน ${txt}">` +
+            `<span class="n">${d}</span><span class="mb-crew">${crew.slice(0, 3).map(mbAv).join("")}${crew.length > 3 ? `<span class="more">+${crew.length - 3}</span>` : ""}</span>${pill}` +
+            (o && (o.add.length || o.remove.length) ? '<i class="ovr" title="ปรับเฉพาะวันนั้น"></i>' : "") + "</button>";
+        }
+        document.getElementById("mbGrid").innerHTML = h;
+        const held = mbHeld(), total = STATE.villages.length + STATE.buildings.length, pc = total ? Math.round(held / total * 100) : 0;
+        document.getElementById("mbMtxt").textContent = held + " / " + total + " แห่ง (" + pc + "%)";
+        document.getElementById("mbMbar").style.width = pc + "%";
+        const pend = mbPending(), btn = document.getElementById("mbGenAll");
+        btn.textContent = pend.length ? "สร้างแผนที่ยังขาด (" + pend.length + " วัน)" : "สร้างครบแล้ว"; btn.disabled = !pend.length;
+      }
+      function mbPlaceHtml(email, p) {
+        const r = byId(p.kind, p.refId), md = SCRIPT_MODES[r ? scriptModeOf(r).mode : "explore"], nm = r ? r.name : (p.name || "?");
+        return `<div class="mb-place${p.slot === "backup" ? " backup" : ""}"><div class="mb-r1"><span class="mb-nm">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</span><span class="mb-mode tone-${md.tone}">${md.th}</span>` +
+          `<button type="button" class="mb-xb" data-rm="${escapeHtml(email)}|${p.kind}:${escapeHtml(String(p.refId))}" aria-label="เอา ${escapeHtml(nm)} ออก">${MB_X}</button></div>` +
+          (r ? `<span class="mb-loc">${escapeHtml(locOf(r))} · ${whole(hhOf(r))} ${kindOf(r) === "village" ? "ครัวเรือน" : "ยูนิต"}</span><button type="button" class="mb-link" data-script="${p.kind}:${escapeHtml(String(p.refId))}" style="align-self:flex-start">สคริปต์การขาย</button>` : '<span class="mb-loc">ไม่พบในข้อมูลล่าสุด</span>') + "</div>";
+      }
+      function renderBoardSide() {
+        const k = MB.selected, d = mbFrom(k), crew = mbCrew(k), st = mbStatus(k), mk = mbMK(k), dn = mbDay(k), can = mbInHorizon(k) && crew.length > 0, past = mbPast(k);
+        const has = (STATE.drsUsers || []).some((e) => drsGet(e, mk, dn).length), o = (STATE.rosterOverrides || {})[mbCompact(k)];
+        let h = `<h3 class="mb-h">${MB_DOW_FULL[mbIso(d) - 1]} ${mbThDate(d)}</h3><p class="mb-sub">${k === mbTodayKey() ? "วันนี้" : past ? "ผ่านมาแล้ว" : mbInHorizon(k) ? "อยู่ในช่วงที่สร้างแผนได้" : "เกิน 14 วัน — ดูและปรับคนทำงานได้ แต่ยังสร้างแผนไม่ได้"}</p>`;
+        h += `<div style="font-size:13px;font-weight:600;margin-bottom:2px">ใครทำงานวันนี้ <span style="color:var(--text-3);font-weight:500">(กดเพื่อเพิ่ม/เอาออกเฉพาะวันนี้)</span></div><div class="mb-crewrow">` +
+          ((STATE.drsUsers || []).map((e) => `<button type="button" class="mb-chip" data-chip="${escapeHtml(e)}" aria-pressed="${crew.includes(e)}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e).split(" ")[0])}</button>`).join("") || '<span class="mb-sub">ยังไม่มี DRS</span>') + "</div>";
+        h += `<div class="mb-actions"><button type="button" class="btn primary" id="mbGenDay"${can ? "" : " disabled"}>${st === "ok" || st === "big" ? "สร้างวันนี้ใหม่" : "สร้างแผนวันนี้"}</button><button type="button" class="btn" id="mbClrDay"${has ? "" : " disabled"}>ล้างวันนี้</button>` +
+          (o && (o.add.length || o.remove.length) ? '<button type="button" class="btn" id="mbRstDay">กลับเป็นค่าตั้งต้น</button>' : "") + "</div>";
+        if (!crew.length) h += '<div class="mb-empty"><b>ไม่มีใครทำงานวันนี้</b>เลือกคนทำงานด้านบนก่อน แล้วค่อยสร้างแผน</div>';
+        else if (!has) h += `<div class="mb-empty"><b>ยังไม่มีแผน</b>${can ? "กด “สร้างแผนวันนี้” ระบบจะแบ่งสถานที่ให้ " + crew.length + " คน" : "วันนี้ยังสร้างไม่ได้"}</div>`;
+        else {
+          if (st === "big") { const p0 = drsGet(crew[0], mk, dn)[0], r0 = byId(p0.kind, p0.refId); h += `<div class="mb-note">วันหมู่บ้านใหญ่ — ทุกคนไปที่เดียวกัน${r0 ? ` (${whole(hhOf(r0))} ${kindOf(r0) === "village" ? "ครัวเรือน" : "ยูนิต"}; ตั้งแต่ ${bigVillageThreshold(crew.length)} ขึ้นไปจะใช้ทั้งวัน)` : ""}</div>`; }
+          crew.forEach((e) => {
+            const list = drsGet(e, mk, dn).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+            h += `<div class="mb-drsbox"><h4>${mbAv(e)}${escapeHtml(drsLabel(e))}<span class="mb-sp"></span><button type="button" class="btn" data-edit="${escapeHtml(e)}" style="min-height:34px;padding:2px 12px"${past ? " disabled" : ""}>แก้ไข</button></h4>` +
+              (list.length ? list.map((p) => mbPlaceHtml(e, p)).join("") : '<div class="mb-sub" style="margin:0">ยังไม่มีแผนของคนนี้ — กด “สร้างแผนวันนี้” เพื่อเติม</div>') + "</div>";
+          });
+        }
+        document.getElementById("mbSide").innerHTML = h;
+      }
+      function renderBoardDrs() {
+        const users = STATE.drsUsers || []; if (!MB.drs || !users.includes(MB.drs)) MB.drs = users[0] || null;
+        document.getElementById("mbDrsPick").innerHTML = users.map((e) => `<button type="button" data-p="${escapeHtml(e)}" aria-pressed="${e === MB.drs}">${escapeHtml(drsLabel(e).split(" ")[0])}</button>`).join("");
+        document.getElementById("mbDrsTitle").textContent = MB.drs ? "แผนของ " + drsLabel(MB.drs) : "ตาม DRS";
+        let rows = "<thead><tr><th>วัน</th><th>สถานที่</th></tr></thead><tbody>", any = false;
+        const n = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 0).getDate();
+        for (let d = 1; d <= n && MB.drs; d++) {
+          const dt = new Date(MB.view.getFullYear(), MB.view.getMonth(), d), k = mbKey(dt);
+          if (!mbCrew(k).includes(MB.drs)) continue;
+          any = true; const list = drsGet(MB.drs, mbMK(k), d);
+          rows += `<tr data-k="${k}" class="${k === MB.selected ? "sel" : ""}"><td>${MB_DOW[mbIso(dt) - 1]} ${d}</td><td>` + (list.length ? list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ") : `<span style="color:var(--text-3)">${mbInHorizon(k) ? "ยังไม่สร้าง" : mbPast(k) ? "—" : "เกิน 14 วัน"}</span>`) + "</td></tr>";
+        }
+        document.getElementById("mbList").innerHTML = rows + (any ? "" : '<tr><td colspan="2" class="mb-empty">คนนี้ไม่ได้ทำงานเดือนนี้</td></tr>') + "</tbody>";
+      }
+      function renderBoard() {
+        if (!document.getElementById("sec-drs") || !isMgr()) return;
+        mbEnsure();
+        document.getElementById("mbCal").hidden = MB.mode !== "day"; document.getElementById("mbDrsView").hidden = MB.mode !== "drs";
+        document.getElementById("mbVDay").setAttribute("aria-pressed", MB.mode === "day"); document.getElementById("mbVDrs").setAttribute("aria-pressed", MB.mode === "drs");
+        renderBoardTable(); renderBoardMonth(); renderBoardSide(); if (MB.mode === "drs") renderBoardDrs();
+      }
+      function renderDrsView() { renderBoard(); } // old name, still called from the calendar / day editor
+
+      // saving the roster: pattern per weekday, one-date changes per date (debounced)
+      const mbTimers = {};
+      function mbSaveRoster(wd) {
+        if (!STATE.idToken) return;
+        clearTimeout(mbTimers["w" + wd]);
+        mbTimers["w" + wd] = setTimeout(async () => {
+          try { await api("saveDrsRoster", { weekday: wd, emails: STATE.roster[wd] || [] }); setCalStatus("บันทึกวันทำงานแล้ว ✓", false); }
+          catch (e) { setCalStatus("บันทึกวันทำงานไม่สำเร็จ: " + e.message, true); }
+        }, 600);
+      }
+      function mbSaveOverride(k) {
+        if (!STATE.idToken) return;
+        clearTimeout(mbTimers["d" + k]);
+        mbTimers["d" + k] = setTimeout(async () => {
+          const o = (STATE.rosterOverrides || {})[mbCompact(k)] || { add: [], remove: [] };
+          try { await api("saveDrsOverride", { date: mbCompact(k), add: o.add, remove: o.remove }); setCalStatus("บันทึกการปรับวันที่ " + mbDay(k) + " แล้ว ✓", false); }
+          catch (e) { setCalStatus("บันทึกการปรับวันไม่สำเร็จ: " + e.message, true); }
+        }, 600);
+      }
+      function mbToggleCrew(k, email) {
+        const comp = mbCompact(k), base = (STATE.roster[mbIso(mbFrom(k))] || []).includes(email), on = mbCrew(k).includes(email);
+        if (!STATE.rosterOverrides) STATE.rosterOverrides = {};
+        const o = STATE.rosterOverrides[comp] = STATE.rosterOverrides[comp] || { add: [], remove: [] };
+        const rm = (a, v) => { const i = a.indexOf(v); if (i !== -1) a.splice(i, 1); };
+        if (on) {
+          rm(o.add, email); if (base && !o.remove.includes(email)) o.remove.push(email);
+          const mk = mbMK(k), d = mbDay(k);
+          if (drsGet(email, mk, d).length) { drsSet(email, mk, d, []); queueAssign(email, mk, d, 0); } // they no longer work that day: free their places
+        } else { rm(o.remove, email); if (!base && !o.add.includes(email)) o.add.push(email); }
+        if (!o.add.length && !o.remove.length) delete STATE.rosterOverrides[comp];
+        mbSaveOverride(k);
+      }
+      document.getElementById("sec-drs").addEventListener("click", async (e) => {
+        const t = e.target, $c = (sel) => t.closest(sel);
+        const dot = $c(".mb-dot");
+        if (dot) {
+          const wd = +dot.dataset.w, em = dot.dataset.e, cur = new Set(STATE.roster[wd] || []);
+          if (cur.has(em)) cur.delete(em); else cur.add(em);
+          STATE.roster[wd] = [...cur]; mbSaveRoster(wd); renderBoard(); return;
+        }
+        const cell = $c(".mb-cell[data-k]");
+        if (cell) { MB.selected = cell.dataset.k; renderBoardMonth(); renderBoardSide(); const c2 = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c2) c2.focus(); return; }
+        const chip = $c("[data-chip]"); if (chip && !chip.disabled) { mbToggleCrew(MB.selected, chip.dataset.chip); renderBoard(); return; }
+        const row = $c("#mbList tr[data-k]"); if (row) { MB.selected = row.dataset.k; renderBoard(); return; }
+        const pk = $c("[data-p]"); if (pk) { MB.drs = pk.dataset.p; renderBoard(); return; }
+        const rmb = $c("[data-rm]");
+        if (rmb) {
+          const [em, id] = rmb.dataset.rm.split("|"), mk = mbMK(MB.selected), dn = mbDay(MB.selected);
+          drsSet(em, mk, dn, drsGet(em, mk, dn).filter((p) => p.kind + ":" + p.refId !== id)); queueAssign(em, mk, dn); renderBoard(); return;
+        }
+        const sc = $c("[data-script]"); if (sc) { const [kd, id] = sc.dataset.script.split(":"); const r = byId(kd, id); if (r) openModal(r, "script"); return; }
+        const ed = $c("[data-edit]"); if (ed) { openDayEditor(mbMK(MB.selected), mbDay(MB.selected), ed.dataset.edit); return; }
+        if ($c("#mbGenDay")) { if (mbGenerate(MB.selected)) { renderBoard(); mbToast("สร้างแผนวันที่ " + mbDay(MB.selected) + " แล้ว"); } else mbToast("ไม่มีสถานที่ที่ตรงเงื่อนไข — ลองปรับตัวกรองที่แท็บปฏิทิน"); return; }
+        if ($c("#mbClrDay")) { const mk = mbMK(MB.selected), dn = mbDay(MB.selected); mbCrew(MB.selected).forEach((em) => { if (drsGet(em, mk, dn).length) { drsSet(em, mk, dn, []); queueAssign(em, mk, dn, 0); } }); renderBoard(); mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน"); return; }
+        if ($c("#mbRstDay")) { delete STATE.rosterOverrides[mbCompact(MB.selected)]; mbSaveOverride(MB.selected); renderBoard(); return; }
+        if ($c("#mbGenAll")) {
+          const pend = mbPending(); let made = 0, short = 0;
+          pend.forEach((k) => { if (mbGenerate(k)) made++; else short++; });
+          renderBoard(); mbToast(`สร้างแผนแล้ว ${made} วัน` + (short ? ` · ${short} วันสร้างไม่ได้ (สถานที่ไม่พอ)` : "") + " — เปิดแต่ละวันเพื่อตรวจและแก้ไข"); return;
+        }
+        if ($c("#mbPrev")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() - 1, 1); renderBoard(); return; }
+        if ($c("#mbNext")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 1); renderBoard(); return; }
+        if ($c("#mbToday")) { const td = mbToday(); MB.view = new Date(td.getFullYear(), td.getMonth(), 1); MB.selected = mbTodayKey(); renderBoard(); return; }
+        if ($c("#mbVDay")) { MB.mode = "day"; renderBoard(); return; }
+        if ($c("#mbVDrs")) { MB.mode = "drs"; renderBoard(); return; }
+        if ($c("#mbFilterGo")) { document.querySelector("a[data-sec=calendar]").click(); return; }
+        if ($c("#mbRefresh")) {
+          const b = $c("#mbRefresh"); b.disabled = true;
+          try { await refreshFromServer(); mbToast("รีเฟรชแล้ว"); } catch (err) { mbToast("รีเฟรชไม่สำเร็จ: " + err.message); } finally { b.disabled = false; }
+        }
+      });
+      // arrow keys move around the month
+      document.getElementById("mbGrid").addEventListener("keydown", (e) => {
+        const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]; if (!step) return;
+        e.preventDefault(); const d = mbFrom(MB.selected); d.setDate(d.getDate() + step);
+        if (d.getMonth() !== MB.view.getMonth() || d.getFullYear() !== MB.view.getFullYear()) MB.view = new Date(d.getFullYear(), d.getMonth(), 1);
+        MB.selected = mbKey(d); renderBoard(); const c = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c) c.focus();
+      });
 
       // Saving what a manager assigns: one request for everything changed, debounced.
       const pendingAssign = {};
@@ -3086,7 +3346,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const assignments = Object.keys(byEmail).map((email) => ({ email, days: byEmail[email] }));
         savesInFlight++;
         try {
-          const res = await api("assignDrsDays", { assignments }, 90000);
+          const res = await api("assignDrsDays", { assignments }, 240000);
           items.forEach(({ k, v }) => { if (pendingAssign[k] === v) delete pendingAssign[k]; });
           if (res.claimedByOthers) setClaimed(res.claimedByOthers);
           const bad = (res.results || []).filter((r) => !r.ok);
@@ -3104,7 +3364,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           if (!(r.conflicts || []).length) return;
           capped = capped || r.capReached;
           const lost = new Set(r.conflicts.map((c) => c.kind + ":" + c.refId));
-          calWindow().forEach((w) => {
+          const mp = STATE.drsPlanMap[r.email] || {};
+          Object.keys(mp).forEach((mk) => Object.keys(mp[mk]).forEach((dd) => {
+            const w = { monthKey: mk, day: +dd };
             const picks = drsGet(r.email, w.monthKey, w.day);
             const left = picks.filter((p) => !lost.has(p.kind + ":" + p.refId));
             if (left.length === picks.length) return;
@@ -3113,7 +3375,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             if (!r.capReached && conflictRounds < 3) refillDrsDay(r.email, w.monthKey, w.day, picks.length);
             if (drsGet(r.email, w.monthKey, w.day).length < Math.min(picks.length, 4)) short = true;
             queueAssign(r.email, w.monthKey, w.day, 0);
-          });
+          }));
         });
         conflictRounds++;
         renderDrsView();
@@ -3149,7 +3411,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
           STATE.drsUsers = (data.drsUsers || []).map((e) => String(e).toLowerCase());
           STATE.drsNames = data.drsNames || {};
-          STATE.roster = buildRoster(tabs.DrsRoster ? rowObjects_(tabs.DrsRoster) : []);
+          const rr = tabs.DrsRoster ? rowObjects_(tabs.DrsRoster) : [];
+          STATE.roster = buildRoster(rr); STATE.rosterOverrides = mbBuildOverrides(rr);
         } else {
           const inWin = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
           STATE.calendarPlan = {};
@@ -3163,10 +3426,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         renderCalendar();
         if (!quiet) setCalStatus("รีเฟรชแล้ว", false);
       }
-      document.getElementById("drsRefresh").addEventListener("click", async () => {
-        const btn = document.getElementById("drsRefresh"); btn.disabled = true;
-        try { await refreshFromServer(); } catch (e) { setCalStatus("รีเฟรชไม่สำเร็จ: " + e.message, true); } finally { btn.disabled = false; }
-      });
       document.getElementById("myRefresh").addEventListener("click", async () => {
         const btn = document.getElementById("myRefresh"); btn.disabled = true;
         try { await refreshFromServer(); } catch (e) { setCalStatus("รีเฟรชไม่สำเร็จ: " + e.message, true); } finally { btn.disabled = false; }
@@ -3188,7 +3447,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       }
       document.getElementById("calGrid").addEventListener("click", onCalGridClick);
       document.getElementById("calMonthGrid").addEventListener("click", onCalGridClick);
-      document.getElementById("drsGrid").addEventListener("click", onCalGridClick);
 
       // Renders the whole month's plan as a shareable PNG -- a purpose-drawn
       // card, not a screenshot, so it looks clean regardless of the app's
@@ -3872,9 +4130,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         STATE.drsPlan = (payload.drsPlan || []).map((r) => ({ ...r, monthKey: String(r.monthKey), day: Number(r.day), email: String(r.email).toLowerCase() }));
         STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
         STATE.roster = buildRoster(payload.drsRoster || []);
+        STATE.rosterOverrides = mbBuildOverrides(payload.drsRoster || []);
         STATE.drsUsers = (payload.drsUsers || []).map((e) => String(e).toLowerCase());
         STATE.drsNames = payload.drsNames || {};
-        { const w0 = calWindow()[0]; STATE.rosterDay = isoWeekdayOf(w0); STATE.assignTarget = 1; }
         document.body.classList.toggle("role-mgr", isMgr());
         try { STATE.calView = localStorage.getItem("tolCalView") === "days" ? "days" : "month"; } catch (e) { STATE.calView = "month"; }
         applyCalView();

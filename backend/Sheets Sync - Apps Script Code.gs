@@ -32,9 +32,11 @@
  *                  a released or expired place is deleted from the sheet).
  *                  While a row exists (7 days from claimedAt) nobody else can
  *                  plan that place.
- *   DrsRoster      1 row per (weekday, DRS) -- weekday (1=Mon..7=Sun) | email |
- *                  updatedBy | updatedAt. Which DRS work on which weekday; used to
- *                  generate the next day's assignments.
+ *   DrsRoster      Which DRS work when. Two kinds of row:
+ *                  weekday pattern  -- weekday (1=Mon..7=Sun) | email | updatedBy | updatedAt | "" | ""
+ *                  one-date change  -- weekday "0" | email | updatedBy | updatedAt | date YYYYMMDD | "add" or "remove"
+ *                  A DRS works a date if the pattern says so (unless removed that date) or
+ *                  the date adds them. Used to build the month board.
  * Roles (Users tab, column "role"): PBH / CM / ADMIN get the full monthly calendar,
  * the DRS roster, and build/assign each DRS's two days; a DRS only sees what was
  * assigned to them (today + tomorrow, read-only).
@@ -53,8 +55,8 @@
  *                                      instead (not a person signing in).
  *   saveCalendarTheme                -> any allow-listed signed-in viewer.
  *   saveCalendarDays                 -> PBH / CM / ADMIN only (their own "2 วัน" view).
- *   assignDrsDays / saveDrsRoster    -> PBH / CM / ADMIN only: build a DRS's two days,
- *                                      and say which DRS work on which weekday.
+ *   assignDrsDays / saveDrsRoster / saveDrsOverride -> PBH / CM / ADMIN only: assign a DRS's
+ *                                      days (today .. 13 days ahead) and say who works when.
  *   (a DRS can no longer build or save any plan -- they only receive what a manager assigned)
  *   saveCalendarMonth / ...Slot / clearCalendarMonth -> PBH / CM / ADMIN only.
  *
@@ -290,6 +292,7 @@ function doPost(e) {
       body.action === "saveCalendarDays" ||
       body.action === "assignDrsDays" ||
       body.action === "saveDrsRoster" ||
+      body.action === "saveDrsOverride" ||
       body.action === "saveCalendarMonth" ||
       body.action === "clearCalendarMonth" ||
       body.action === "saveCalendarSlot" ||
@@ -309,6 +312,8 @@ function doPost(e) {
         return jsonResponse_(assignDrsDays_(body.assignments || [], emailC));
       if (body.action === "saveDrsRoster")
         return jsonResponse_(saveDrsRoster_(body.weekday, body.emails || [], emailC));
+      if (body.action === "saveDrsOverride")
+        return jsonResponse_(saveDrsOverride_(body.date, body.add || [], body.remove || [], emailC));
       if (body.action === "saveCalendarMonth")
         return jsonResponse_(
           saveCalendarMonth_(
@@ -486,7 +491,7 @@ function myData_(idToken) {
       drsSet[e] = true;
     });
     var emailIdx = allPlan.header.indexOf("email");
-    var win = windowPlanRows_(allPlan);
+    var win = assignPlanRows_(allPlan); // today .. today + 13 for the month board
     tabs.DrsPlan = {
       header: win.header,
       rows:
@@ -950,7 +955,8 @@ var CALENDAR_CLAIM_HEADER = [
 ];
 var CALENDAR_CLAIM_DAYS = 7;
 var CALENDAR_CLAIM_DAILY_CAP = 20; // DRS: new places per day
-var CALENDAR_CLAIM_DAILY_CAP_MANAGER = 500; // PBH / CM plan whole months
+var CALENDAR_CLAIM_DAILY_CAP_MANAGER = 1500; // PBH / CM / ADMIN plan whole months for a whole team (a manager can already read everything)
+var CALENDAR_ASSIGN_DAYS = 14; // managers may assign a DRS today + this many days ahead (a DRS still only receives today + tomorrow)
 var CALENDAR_WINDOW_DAYS = 2;
 var CALENDAR_TZ = "Asia/Bangkok";
 
@@ -990,6 +996,32 @@ function windowPlanRows_(tab) {
       return allowed[String(row[0]) + ":" + Number(row[1])];
     }),
   };
+}
+
+// Days a manager may assign: today .. today + (CALENDAR_ASSIGN_DAYS - 1), Asia/Bangkok.
+function assignAllowed_() {
+  var allowed = {}, now = Date.now();
+  for (var i = 0; i < CALENDAR_ASSIGN_DAYS; i++) {
+    var ymd = Utilities.formatDate(new Date(now + i * 86400000), CALENDAR_TZ, "yyyyMMdd");
+    allowed[ymd.slice(0, 6) + ":" + Number(ymd.slice(6, 8))] = true;
+  }
+  return allowed;
+}
+function assignPlanRows_(tab) {
+  if (!tab.header || !tab.header.length) return tab;
+  var allowed = assignAllowed_();
+  return {
+    header: tab.header,
+    rows: tab.rows.filter(function (row) {
+      return allowed[String(row[0]) + ":" + Number(row[1])];
+    }),
+  };
+}
+// A claim lasts at least CALENDAR_CLAIM_DAYS, and never ends before the planned day is over.
+function claimExpiryMs_(nowMs, monthKey, day) {
+  var y = Number(String(monthKey).slice(0, 4)), m = Number(String(monthKey).slice(4, 6));
+  var dayEndBkk = Date.UTC(y, m - 1, Number(day) + 1) - 7 * 3600 * 1000; // start of the next day, Bangkok (UTC+7)
+  return Math.max(nowMs + CALENDAR_CLAIM_DAYS * 86400000, dayEndBkk);
 }
 
 function claimsSheet_() {
@@ -1077,7 +1109,7 @@ function saveCalendarDays_(days, email, role) {
 // Rows and claims are stored under the DRS's own email; the daily count is charged
 // to the manager. Returns one result per DRS.
 function assignDrsDays_(assignments, actor) {
-  var allowed = windowAllowed_();
+  var allowed = assignAllowed_();
   var drsEmails = readUsers_()
     .filter(function (u) {
       return u.role === "DRS";
@@ -1111,18 +1143,43 @@ function assignDrsDays_(assignments, actor) {
   return { ok: true, results: results, claimedByOthers: last ? last.claimedByOthers : claimedByOthers_(actor) };
 }
 
-// ---------- DrsRoster: which DRS work on which weekday ----------
-var DRS_ROSTER_HEADER = ["weekday", "email", "updatedBy", "updatedAt"];
+// ---------- DrsRoster: who works when ----------
+var DRS_ROSTER_HEADER = ["weekday", "email", "updatedBy", "updatedAt", "date", "mode"];
 
-// Replaces the roster for ONE weekday (1 = Monday .. 7 = Sunday) with these DRS.
+function rosterSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName("DrsRoster") || ss.insertSheet("DrsRoster");
+}
+function readRoster_() {
+  return normalizeRows_(rosterSheet_().getDataRange().getValues().slice(1), DRS_ROSTER_HEADER.length).map(function (r) {
+    return r.map(function (v) { return v == null ? "" : String(v); });
+  });
+}
+function writeRoster_(rows) {
+  var sheet = rosterSheet_(), width = DRS_ROSTER_HEADER.length;
+  sheet.clearContents();
+  sheet.getRange(1, 1, sheet.getMaxRows(), width).setNumberFormat("@");
+  sheet.getRange(1, 1, 1, width).setValues([DRS_ROSTER_HEADER]);
+  if (rows.length) sheet.getRange(2, 1, rows.length, width).setValues(rows);
+  sheet.setFrozenRows(1);
+}
+function drsEmailSet_() {
+  var drs = {};
+  readUsers_().forEach(function (u) { if (u.role === "DRS") drs[u.email] = true; });
+  return drs;
+}
+// A pattern row has no date; an override row does. Past one-date changes are dropped on every write.
+function isOverrideRow_(r) { return String(r[4]) !== ""; }
+function dropPastOverrides_(rows) {
+  var today = Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyyMMdd");
+  return rows.filter(function (r) { return !isOverrideRow_(r) || String(r[4]) >= today; });
+}
+
+// Replaces the weekly pattern for ONE weekday (1 = Monday .. 7 = Sunday) with these DRS.
 function saveDrsRoster_(weekday, emails, actor) {
   var wd = Number(weekday);
   if (!(wd >= 1 && wd <= 7) || wd !== Math.floor(wd)) return { ok: false, error: "bad_weekday" };
-  var drs = {};
-  readUsers_().forEach(function (u) {
-    if (u.role === "DRS") drs[u.email] = true;
-  });
-  var chosen = [];
+  var drs = drsEmailSet_(), chosen = [];
   (emails || []).forEach(function (e) {
     var em = String(e).toLowerCase();
     if (drs[em] && chosen.indexOf(em) === -1) chosen.push(em);
@@ -1130,25 +1187,47 @@ function saveDrsRoster_(weekday, emails, actor) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("DrsRoster") || ss.insertSheet("DrsRoster");
-    var width = DRS_ROSTER_HEADER.length;
-    var rows = normalizeRows_(sheet.getDataRange().getValues().slice(1), width).filter(function (r) {
-      return Number(r[0]) !== wd;
+    var rows = dropPastOverrides_(readRoster_()).filter(function (r) {
+      return isOverrideRow_(r) || Number(r[0]) !== wd;
     });
     var now = new Date().toISOString();
-    chosen.forEach(function (em) {
-      rows.push([String(wd), em, actor, now]);
-    });
-    sheet.clearContents();
-    sheet.getRange(1, 1, sheet.getMaxRows(), width).setNumberFormat("@");
-    sheet.getRange(1, 1, 1, width).setValues([DRS_ROSTER_HEADER]);
-    if (rows.length) sheet.getRange(2, 1, rows.length, width).setValues(rows);
-    sheet.setFrozenRows(1);
+    chosen.forEach(function (em) { rows.push([String(wd), em, actor, now, "", ""]); });
+    writeRoster_(rows);
   } finally {
     lock.releaseLock();
   }
   return { ok: true, weekday: wd, emails: chosen };
+}
+
+// Replaces the changes for ONE date (YYYYMMDD): DRS added to that day, and DRS removed from it.
+function saveDrsOverride_(date, add, remove, actor) {
+  var d = String(date || "");
+  if (!/^\d{8}$/.test(d)) return { ok: false, error: "bad_date" };
+  var today = Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyyMMdd");
+  var last = Utilities.formatDate(new Date(Date.now() + 120 * 86400000), CALENDAR_TZ, "yyyyMMdd");
+  if (d < today || d > last) return { ok: false, error: "date_out_of_range" };
+  var drs = drsEmailSet_();
+  function clean(list) {
+    var out = [];
+    (list || []).forEach(function (e) {
+      var em = String(e).toLowerCase();
+      if (drs[em] && out.indexOf(em) === -1) out.push(em);
+    });
+    return out;
+  }
+  var a = clean(add), rm = clean(remove).filter(function (e) { return a.indexOf(e) === -1; });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = dropPastOverrides_(readRoster_()).filter(function (r) { return !(isOverrideRow_(r) && String(r[4]) === d); });
+    var now = new Date().toISOString();
+    a.forEach(function (em) { rows.push(["0", em, actor, now, d, "add"]); });
+    rm.forEach(function (em) { rows.push(["0", em, actor, now, d, "remove"]); });
+    writeRoster_(rows);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, date: d, add: a, remove: rm };
 }
 
 // "YYYYMM" n months from now (n may be 0).
@@ -1315,6 +1394,8 @@ function savePlanDays_(days, email, opts) {
           conflicts.push({ kind: String(p.kind), refId: String(p.refId) });
           return;
         }
+        var wantExpiry = claimExpiryMs_(nowMs, mk, dn);
+        if (held && Date.parse(held[4]) < wantExpiry) held[4] = new Date(wantExpiry).toISOString(); // planned for a later day: hold it until then
         if (!held) {
           if (newToday >= opts.cap) {
             capReached = true;
@@ -1326,7 +1407,7 @@ function savePlanDays_(days, email, opts) {
             String(p.refId),
             email,
             nowIso,
-            new Date(nowMs + CALENDAR_CLAIM_DAYS * 86400000).toISOString(),
+            new Date(wantExpiry).toISOString(),
             "",
           ];
           claims.push(row);

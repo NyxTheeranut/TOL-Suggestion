@@ -144,15 +144,15 @@ useful for reviewing the UI without any of that setup.
   `myData` only returns those two days. PBH / CM save a whole month via
   `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
   additionally get every DRS's two-day rows, read-only).
-- `DrsRoster` — `weekday | email | updatedBy | updatedAt`: which DRS work on which weekday (1 = Mon … 7 = Sun), set by PBH / CM / ADMIN.
+- `DrsRoster` — which DRS work when, set by PBH / CM / ADMIN from the "จัดแผน DRS" month board: weekly pattern rows (`weekday` 1 = Mon … 7 = Sun) and one-date changes (`weekday` 0, `date` YYYYMMDD, `mode` add/remove).
 - `CalendarSlots` — up to 3 saved month plans per PBH / CM.
 - `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt`.
-  Planning a place reserves it for 7 days (counted from `claimedAt`); nobody else
+  Planning a place reserves it for at least 7 days (from `claimedAt`) and until its planned day is over, whichever is later; nobody else
   can plan it until it expires or its owner removes it — then its row is deleted
   (`releasedAt` is a legacy column, always empty). Saves take a
   script lock, so two people racing for one place can't both get it; losers are
   told which picks to replace. A DRS can be given at most 20 new places per day,
-  a PBH / CM 500 (`CALENDAR_CLAIM_DAILY_CAP[_MANAGER]`). The role is checked
+  a PBH / CM / ADMIN 1,500 (`CALENDAR_CLAIM_DAILY_CAP[_MANAGER]`); managers can assign a DRS up to 14 days ahead (`CALENDAR_ASSIGN_DAYS`), a DRS still receives only today + tomorrow. The role is checked
   server-side on every save (`wrong_role` otherwise).
 
 ## Security notes
