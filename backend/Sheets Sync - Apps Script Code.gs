@@ -28,8 +28,9 @@
  *                  sent to the page -- see saveCalendarDays_ below.
  *   CalendarSlots  up to 3 saved month plans per manager -- see below.
  *   CalendarClaims 1 row per place a viewer has planned -- kind | refId |
- *                  email | claimedAt | expiresAt | releasedAt. While active
- *                  (7 days from claimedAt, until released) nobody else can
+ *                  email | claimedAt | expiresAt | releasedAt (always empty now:
+ *                  a released or expired place is deleted from the sheet).
+ *                  While a row exists (7 days from claimedAt) nobody else can
  *                  plan that place.
  * Roles (Users tab, column "role"): PBH / CM / ADMIN get the full monthly calendar
  * and can view every DRS's two-day plan; DRS gets the two-day calendar only.
@@ -915,7 +916,8 @@ function clearCalendarSlot_(slot, email) {
 //      function refuses it if two reps race for it). Removing or replacing a
 //      pick releases the claim straight away; otherwise it simply expires.
 // CALENDAR_CLAIM_DAILY_CAP stops someone from regenerating over and over to
-// read through the whole pool (every new place a rep is handed counts).
+// read through the whole pool (every new place a rep is handed counts, even if
+// it is released again -- counted in Script Properties, see readQuotaToday_).
 
 var CALENDAR_CLAIM_HEADER = [
   "kind",
@@ -996,6 +998,23 @@ function readClaims_() {
     return r.map(function (v) {
       return v == null ? "" : String(v);
     });
+  });
+}
+
+// Per-person count of new places handed out today. Script Properties hold one
+// tiny key per person per day; yesterday's keys are deleted on each write.
+function readQuotaToday_(email, todayKey) {
+  var v = PropertiesService.getScriptProperties().getProperty(
+    "cap_" + todayKey + "_" + String(email).toLowerCase(),
+  );
+  return Number(v) || 0;
+}
+function writeQuotaToday_(email, todayKey, n) {
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty("cap_" + todayKey + "_" + String(email).toLowerCase(), String(n));
+  var all = props.getProperties();
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf("cap_") === 0 && k.indexOf("cap_" + todayKey + "_") !== 0) props.deleteProperty(k);
   });
 }
 
@@ -1142,13 +1161,10 @@ function savePlanDays_(days, email, opts) {
     claims.forEach(function (r) {
       if (claimIsActive_(r, nowMs)) byKey[r[0] + ":" + r[1]] = r;
     });
-    var newToday = claims.filter(function (r) {
-      return (
-        r[2] === email &&
-        Utilities.formatDate(new Date(r[3]), CALENDAR_TZ, "yyyyMMdd") ===
-          todayKey
-      );
-    }).length;
+    // New places handed to this person today (released ones included) -- kept
+    // in a small counter, not in CalendarClaims, so released rows can be deleted.
+    var newToday = readQuotaToday_(email, todayKey);
+    var newTodayStart = newToday;
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var planSheet = ss.getSheetByName("CalendarPlan");
@@ -1232,12 +1248,13 @@ function savePlanDays_(days, email, opts) {
       planSheet.getRange(2, 1, kept.length, width).setValues(kept);
     planSheet.setFrozenRows(1);
 
-    // Claim rows only need to live a little past their expiry (the daily cap
-    // reads today's rows, released ones included).
-    var cutoff = nowMs - (CALENDAR_CLAIM_DAYS + 2) * 86400000;
+    // CalendarClaims only holds claims that are still in force: a released
+    // place (or an expired one, or a leftover released row from an older
+    // version) is simply removed from the sheet.
     claims = claims.filter(function (r) {
-      return new Date(r[3]).getTime() >= cutoff;
+      return claimIsActive_(r, nowMs);
     });
+    if (newToday !== newTodayStart) writeQuotaToday_(email, todayKey, newToday);
     var cs = claimsSheet_();
     cs.clearContents();
     cs.getRange(
