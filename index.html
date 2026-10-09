@@ -243,8 +243,8 @@
       .export-menu button:hover { background: var(--panel-2); }
       /* mgr-only: managers always. month-only: managers in the monthly view. days-only: DRS always, managers in the 2-day view. */
       body:not(.role-mgr) .mgr-only, body:not(.role-mgr) .month-only { display: none !important; }
-      body.role-mgr.cal-days .month-only { display: none !important; }
-      body.role-mgr:not(.cal-days) .days-only { display: none !important; }
+      body.role-mgr.view-days .month-only { display: none !important; }
+      body.role-mgr:not(.view-days) .days-only { display: none !important; }
       .drs-block { margin-bottom: 18px; }
       .drs-block h4 { font-size: 13px; margin: 0 0 6px; color: var(--text-2); }
       .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
@@ -3002,7 +3002,7 @@
       // PBH / CM / ADMIN: one plan, two views of it -- the whole month, or just today + tomorrow.
       function applyCalView() {
         const days = isMgr() && STATE.calView === "days";
-        document.body.classList.toggle("cal-days", days);
+        document.body.classList.toggle("view-days", days);
         document.querySelectorAll("#calView button").forEach((b) => b.classList.toggle("active", b.dataset.v === (days ? "days" : "month")));
       }
       document.getElementById("calView").addEventListener("click", (e) => {
