@@ -47,7 +47,8 @@
  *                                      own machine -- gated by SYNC_SECRET
  *                                      instead (not a person signing in).
  *   saveCalendarTheme                -> any allow-listed signed-in viewer.
- *   saveCalendarDays                 -> DRS only (two-day calendar).
+ *   saveCalendarDays                 -> everyone (today + tomorrow). DRS use only this;
+ *                                      managers use it for their "2 วัน" view too.
  *   saveCalendarMonth / ...Slot / clearCalendarMonth -> PBH / CM / ADMIN only.
  *
  * ── SETUP (one-time) -- see this repo's README.md for the full walkthrough ─
@@ -275,7 +276,9 @@ function doPost(e) {
 
     // Two calendars, chosen by the viewer's role (Users tab):
     //   DRS       -> saveCalendarDays: today + tomorrow only (see saveCalendarDays_).
-    //   PBH / CM / ADMIN -> the monthly calendar: saveCalendarMonth / ...Slot / clearCalendarMonth.
+    //   PBH / CM / ADMIN -> the monthly calendar (saveCalendarMonth / ...Slot /
+    //                clearCalendarMonth) AND saveCalendarDays for their "2 วัน" view,
+    //                which edits the same plan (today + tomorrow of it).
     // Every place either of them plans is "claimed" for CALENDAR_CLAIM_DAYS so
     // nobody else is handed it. The role is checked HERE, not just in the page.
     if (
@@ -291,11 +294,8 @@ function doPost(e) {
       var roleC = emailC ? userRole_(emailC) : null;
       if (!emailC || !roleC)
         return jsonResponse_({ ok: false, error: "not_signed_in" });
-      if (body.action === "saveCalendarDays") {
-        if (isManager_(roleC))
-          return jsonResponse_({ ok: false, error: "wrong_role" });
-        return jsonResponse_(saveCalendarDays_(body.days || [], emailC));
-      }
+      if (body.action === "saveCalendarDays")
+        return jsonResponse_(saveCalendarDays_(body.days || [], emailC, roleC));
       if (!isManager_(roleC))
         return jsonResponse_({ ok: false, error: "wrong_role" });
       if (body.action === "saveCalendarMonth")
@@ -1016,17 +1016,24 @@ function claimedByOthers_(email) {
     });
 }
 
-// DRS: today + tomorrow only.
-function saveCalendarDays_(days, email) {
-  var allowed = windowAllowed_();
+// Today + tomorrow only. A DRS's whole plan IS those two days; a manager's plan
+// is a whole month, so for them "still planned" counts every day (a place dropped
+// from today but planned on the 20th must keep its reservation).
+function saveCalendarDays_(days, email, role) {
+  var allowed = windowAllowed_(),
+    mgr = isManager_(role);
   return savePlanDays_(days, email, {
     allowed: function (mk, dn) {
       return !!allowed[mk + ":" + dn];
     },
-    counts: function (row) {
-      return !!allowed[String(row[0]) + ":" + Number(row[1])];
-    },
-    cap: CALENDAR_CLAIM_DAILY_CAP,
+    counts: mgr
+      ? function () {
+          return true;
+        }
+      : function (row) {
+          return !!allowed[String(row[0]) + ":" + Number(row[1])];
+        },
+    cap: mgr ? CALENDAR_CLAIM_DAILY_CAP_MANAGER : CALENDAR_CLAIM_DAILY_CAP,
   });
 }
 

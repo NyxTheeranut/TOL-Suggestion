@@ -241,9 +241,10 @@
         font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap;
       }
       .export-menu button:hover { background: var(--panel-2); }
-      .mgr-only { }
-      body:not(.role-mgr) .mgr-only { display: none !important; }
-      body.role-mgr .drs-only { display: none !important; }
+      /* mgr-only: managers always. month-only: managers in the monthly view. days-only: DRS always, managers in the 2-day view. */
+      body:not(.role-mgr) .mgr-only, body:not(.role-mgr) .month-only { display: none !important; }
+      body.role-mgr.cal-days .month-only { display: none !important; }
+      body.role-mgr:not(.cal-days) .days-only { display: none !important; }
       .drs-block { margin-bottom: 18px; }
       .drs-block h4 { font-size: 13px; margin: 0 0 6px; color: var(--text-2); }
       .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
@@ -736,25 +737,26 @@
         <div class="section-scroll">
           <div class="card">
             <div class="cal-head">
-              <h2 class="drs-only">แผนเข้าพื้นที่ วันนี้ · พรุ่งนี้</h2>
-              <h2 class="mgr-only">ปฏิทินการขายรายเดือน</h2>
-              <div class="cal-slots mgr-only" id="calSlots" role="group" aria-label="ช่องบันทึกแผน"></div>
+              <h2 class="days-only">แผนเข้าพื้นที่ วันนี้ · พรุ่งนี้</h2>
+              <h2 class="month-only">ปฏิทินการขายรายเดือน</h2>
+              <div class="kind-toggle mgr-only" id="calView" role="group" aria-label="มุมมองปฏิทิน"><button data-v="month" class="active">รายเดือน</button><button data-v="days">2 วัน</button></div>
+              <div class="cal-slots month-only" id="calSlots" role="group" aria-label="ช่องบันทึกแผน"></div>
             </div>
-            <div class="hint drs-only">แสดงแค่ 2 วัน — พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · สถานที่ที่วางแผนแล้วจะถูกจองให้คุณ 7 วัน ไม่ถูกแจกให้เซลล์คนอื่น</div>
-            <div class="hint mgr-only">สถานที่ที่วางแผนแล้วจะถูกจอง 7 วัน ไม่ถูกแจกให้ DRS หรือผู้จัดการคนอื่น · ดูแผน 2 วันของแต่ละ DRS ได้ด้านล่าง</div>
+            <div class="hint days-only">แสดงแค่ 2 วัน — พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · สถานที่ที่วางแผนแล้วจะถูกจองให้คุณ 7 วัน ไม่ถูกแจกให้เซลล์คนอื่น</div>
+            <div class="hint month-only">สถานที่ที่วางแผนแล้วจะถูกจอง 7 วัน ไม่ถูกแจกให้ DRS หรือผู้จัดการคนอื่น · ดูแผน 2 วันของแต่ละ DRS ได้ด้านล่าง</div>
             <div class="cal-controls">
-              <input type="month" id="calMonth" class="mgr-only">
+              <input type="month" id="calMonth" class="month-only">
               <div class="kind-toggle" id="calKind">
                 <button data-v="both" class="active">หมู่บ้าน + อาคาร</button>
                 <button data-v="village">หมู่บ้าน</button>
                 <button data-v="building">อาคาร</button>
               </div>
               <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
-              <button class="btn primary drs-only" id="calGenDays">สร้างแผน 2 วัน</button>
-              <button class="btn drs-only" id="calClearDays">ล้างแผน</button>
-              <button class="btn primary mgr-only" id="calGenMonth">สร้างทั้งเดือน</button>
-              <button class="btn mgr-only" id="calClearMonth">ล้างเดือน</button>
-              <div class="export-menu-wrap mgr-only">
+              <button class="btn primary days-only" id="calGenDays">สร้างแผน 2 วัน</button>
+              <button class="btn days-only" id="calClearDays">ล้างแผน</button>
+              <button class="btn primary month-only" id="calGenMonth">สร้างทั้งเดือน</button>
+              <button class="btn month-only" id="calClearMonth">ล้างเดือน</button>
+              <div class="export-menu-wrap month-only">
                 <button class="btn" id="calExportBtn" aria-haspopup="true" aria-expanded="false">⬇ ส่งออก ▾</button>
                 <div class="export-menu" id="calExportMenu" hidden>
                   <button id="calExportImg">📷 รูปภาพ (PNG)</button>
@@ -772,8 +774,8 @@
             <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
           </div>
           <div class="card">
-            <div class="cal-days drs-only" id="calGrid"></div>
-            <div class="cal-grid mgr-only" id="calMonthGrid"></div>
+            <div class="cal-days days-only" id="calGrid"></div>
+            <div class="cal-grid month-only" id="calMonthGrid"></div>
           </div>
           <div class="card mgr-only" id="drsCard">
             <div class="cal-head">
@@ -859,6 +861,7 @@
         role: "DRS",                       // "PBH" / "CM" / "ADMIN" (monthly calendar) or "DRS" (two-day calendar) -- from the Users tab
         drsUsers: [], drsPlan: [],         // managers only: every DRS and their two-day plans
         calendarSlots: [null, null, null], // managers only: saved month plans
+        calView: "month",                  // managers only: "month" or "days" (their plan is one; this is which view of it)
         idToken: null,
       };
 
@@ -1927,7 +1930,7 @@
       // today/tomorrow and redraw, so tomorrow becomes today by itself.
       function rollWindowIfNeeded() {
         if (!STATE.villages || renderedWindow === null || windowKey() === renderedWindow) return;
-        if (isMgr()) { renderedWindow = windowKey(); renderDrsView(); return; } // managers keep their whole month; only the DRS viewer follows the date
+        if (isMgr()) { renderedWindow = windowKey(); renderCalendar(); return; } // managers keep their whole month; the date only moves their 2-day view and the DRS viewer
         const keep = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         Object.keys(STATE.calendarPlan).forEach((mk) => {
           Object.keys(STATE.calendarPlan[mk]).forEach((d) => { if (!keep.has(dayKeyOf(mk, d))) delete STATE.calendarPlan[mk][d]; });
@@ -2225,7 +2228,7 @@
         return monthKey === calState.monthKey ? [...calState.tags] : [];
       }
       // One entry point for "this day changed", whichever calendar the viewer has.
-      function queueSave(monthKey, day, delayMs) { if (isMgr()) queueMonthSave(monthKey, delayMs); else queueDaySave(monthKey, day, delayMs); }
+      function queueSave(monthKey, day, delayMs) { if (isMgr() && STATE.calView !== "days") queueMonthSave(monthKey, delayMs); else queueDaySave(monthKey, day, delayMs); }
 
       function queueMonthSave(monthKey, delayMs) {
         if (!STATE.idToken) return; // not signed in (sample-data preview): nothing to sync
@@ -2377,7 +2380,7 @@
       function restorePendingPlans() {
         const inWindow = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         let restored = 0;
-        if (!isMgr()) Object.keys(pendingDays).forEach((k) => {
+        Object.keys(pendingDays).forEach((k) => {
           const snap = pendingDays[k];
           if (Date.now() - snap.at > PENDING_MAX_AGE_MS || !inWindow.has(k)) { delete pendingDays[k]; return; }
           if (snap.email && STATE.email && snap.email !== STATE.email) return;
@@ -2473,7 +2476,10 @@
       }
 
       function renderCalendar() {
-        if (isMgr()) { renderCalSlots(); renderMonthGrid(); renderDrsView(); return; }
+        if (isMgr()) {
+          renderDrsView();
+          if (STATE.calView !== "days") { renderCalSlots(); renderMonthGrid(); return; }
+        }
         const win = calWindow();
         renderedWindow = win.map((w) => dayKeyOf(w.monthKey, w.day)).join(",");
         document.getElementById("calGrid").innerHTML = win.map((w) => dayCardHtml(w, (STATE.calendarPlan[w.monthKey] || {})[w.day], true)).join("");
@@ -2993,6 +2999,18 @@
           setCalStatus("บันทึกธีมไม่สำเร็จ (เก็บไว้ในเครื่องเท่านั้น): " + e2.message, true);
         }
       });
+      // PBH / CM / ADMIN: one plan, two views of it -- the whole month, or just today + tomorrow.
+      function applyCalView() {
+        const days = isMgr() && STATE.calView === "days";
+        document.body.classList.toggle("cal-days", days);
+        document.querySelectorAll("#calView button").forEach((b) => b.classList.toggle("active", b.dataset.v === (days ? "days" : "month")));
+      }
+      document.getElementById("calView").addEventListener("click", (e) => {
+        const btn = e.target.closest("button"); if (!btn || !isMgr()) return;
+        STATE.calView = btn.dataset.v === "days" ? "days" : "month";
+        try { localStorage.setItem("tolCalView", STATE.calView); } catch (err) { /* private mode */ }
+        applyCalView(); renderCalendar();
+      });
       document.getElementById("calGenDays").addEventListener("click", generateDays);
       document.getElementById("calClearDays").addEventListener("click", async () => {
         const ok = await confirmDialog("ล้างแผนวันนี้และพรุ่งนี้ทั้งหมด? สถานที่ที่จองไว้จะถูกปล่อยคืนให้เซลล์คนอื่นทันที", "ล้างแผน", "ยกเลิก");
@@ -3215,6 +3233,8 @@
         STATE.drsPlan = (payload.drsPlan || []).map((r) => ({ ...r, monthKey: String(r.monthKey), day: Number(r.day), email: String(r.email).toLowerCase() }));
         STATE.drsUsers = payload.drsUsers || [];
         document.body.classList.toggle("role-mgr", isMgr());
+        try { STATE.calView = localStorage.getItem("tolCalView") === "days" ? "days" : "month"; } catch (e) { STATE.calView = "month"; }
+        applyCalView();
         STATE.calendarPlan = {};
         const inWindow = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         (payload.calendarPlan || []).forEach((row) => {

@@ -135,11 +135,11 @@ useful for reviewing the UI without any of that setup.
   counts, ports, latest active, competitor total, market share, fault/churn,
   the business's own existing sales grading, computed tags, and `autoScore`.
 - `Users` — `email | role | note` allow-list. `role` is `PBH`, `CM`, `ADMIN` or `DRS`
-  (blank/unknown = DRS): PBH / CM / ADMIN get the monthly calendar and a view-only panel of
+  (blank/unknown = DRS): PBH / CM / ADMIN get the monthly calendar (switchable to the same two-day view DRS use — it is one plan) and a view-only panel of
   every DRS's two-day plan; DRS get the two-day calendar.
 - `CalendarTheme` — one row per (month, viewer): that viewer's selected
   theme tags (`updatedBy` is the key, not just `monthKey`).
-- `CalendarPlan` — one row per (month, day, slot, viewer) pick. A DRS saves via
+- `CalendarPlan` — one row per (month, day, slot, viewer) pick. Everyone saves their two days via
   `saveCalendarDays` — only **today and tomorrow** (Asia/Bangkok) can be written and
   `myData` only returns those two days. PBH / CM save a whole month via
   `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
