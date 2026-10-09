@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TOL Suggestion — Village &amp; Building Sales Planner</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8F%98%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230f7a70%27/%3E%3Crect x=%277%27 y=%2717%27 width=%274%27 height=%278%27 rx=%271%27 fill=%27%23fff%27 opacity=%27.55%27/%3E%3Crect x=%2714%27 y=%2712%27 width=%274%27 height=%2713%27 rx=%271%27 fill=%27%23fff%27 opacity=%27.8%27/%3E%3Crect x=%2721%27 y=%277%27 width=%274%27 height=%2718%27 rx=%271%27 fill=%27%23fff%27/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="TOL Suggestion" />
     <link rel="manifest" href="manifest.json" />
@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -611,8 +611,241 @@
         .cal-gen-btn { font-size: 8.5px; padding: 3px 1px; white-space: normal; line-height: 1.2; }
       }
     </style>
+  <style>
+      /* ── redesign layer ─────────────────────────────────────────────────── */
+/* TOL Suggestion — redesign layer (applied on top of the base styles above).
+   Direction: calm survey-desk. Teal-tinted neutrals, one desaturated teal accent, light topbar
+   with underline tabs, flat surfaces separated by tinted shadow instead of borders,
+   a real Thai-capable type pairing, sentence-case labels, tabular numbers. */
+
+/* ── tokens ─────────────────────────────────────────────────────────────── */
+:root {
+  --ink: #10211f; --text-2: #465856; --text-3: #6f817f;
+  --page: #ecf0ef; --panel: #ffffff; --panel-2: #f3f6f5;
+  --line: #dbe4e2; --line-2: #e8eeed;
+  --accent: #0f7a70; --accent-mark: #0f7a70; --accent-soft: #dff0ee; --accent-ink: #0a5a52;
+  --st-good: #1b8a4b; --st-warn: #a96d00; --st-crit: #c23b3b;
+  --st-good-soft: #e3f3e8; --st-warn-soft: #faf0d8; --st-crit-soft: #f9e5e4;
+  --topbar-bg: #ffffff; --topbar-fg: #10211f;
+  --shadow: 0 1px 0 rgba(16, 61, 56, .05), 0 10px 28px -14px rgba(16, 61, 56, .22);
+  --shadow-lift: 0 1px 0 rgba(16, 61, 56, .05), 0 16px 34px -14px rgba(16, 61, 56, .32);
+  --radius: 16px; --radius-sm: 10px;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --font-body: "IBM Plex Sans Thai", "Inter", system-ui, -apple-system, sans-serif;
+  --font-head: "Space Grotesk", "IBM Plex Sans Thai", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --ink: #e9f1ef; --text-2: #a2b4b1; --text-3: #7a8d8a;
+    --page: #0b1110; --panel: #131a19; --panel-2: #192221; --line: #25302f; --line-2: #1e2827;
+    --accent: #2fa498; --accent-mark: #3dbbae; --accent-soft: #11332f; --accent-ink: #80d9cd;
+    --st-good: #4cc38a; --st-warn: #e2b04a; --st-crit: #ee7c7c;
+    --st-good-soft: #112a1d; --st-warn-soft: #2d2410; --st-crit-soft: #2e1717;
+    --topbar-bg: #101716; --topbar-fg: #e9f1ef;
+    --shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+    --shadow-lift: 0 1px 0 rgba(0, 0, 0, .35), 0 18px 36px -14px rgba(0, 0, 0, .85);
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #e9f1ef; --text-2: #a2b4b1; --text-3: #7a8d8a;
+  --page: #0b1110; --panel: #131a19; --panel-2: #192221; --line: #25302f; --line-2: #1e2827;
+  --accent: #2fa498; --accent-mark: #3dbbae; --accent-soft: #11332f; --accent-ink: #80d9cd;
+  --st-good: #4cc38a; --st-warn: #e2b04a; --st-crit: #ee7c7c;
+  --st-good-soft: #112a1d; --st-warn-soft: #2d2410; --st-crit-soft: #2e1717;
+  --topbar-bg: #101716; --topbar-fg: #e9f1ef;
+  --shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 12px 30px -14px rgba(0, 0, 0, .7);
+  --shadow-lift: 0 1px 0 rgba(0, 0, 0, .35), 0 18px 36px -14px rgba(0, 0, 0, .85);
+}
+
+/* ── type ───────────────────────────────────────────────────────────────── */
+body { font-family: var(--font-body); font-size: 14px; line-height: 1.55; font-feature-settings: "tnum" 1; }
+h1, h2, h3 { font-family: var(--font-head); letter-spacing: -.02em; text-wrap: balance; }
+.card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.card .hint { font-size: 13px; color: var(--text-3); margin-bottom: 14px; max-width: 70ch; text-wrap: pretty; }
+.mono, .num, .brand .sub, .topbar-right .meta { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+.empty-note { font-size: 13.5px; }
+
+/* soft grain so large flat areas don't feel sterile */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9990; pointer-events: none; opacity: .035; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) body::after { mix-blend-mode: screen; opacity: .05; } }
+:root[data-theme="dark"] body::after { mix-blend-mode: screen; opacity: .05; }
+
+/* ── topbar: light, underline tabs ──────────────────────────────────────── */
+.topbar { padding: 10px 28px; border-bottom: 1px solid var(--line); box-shadow: 0 8px 24px -22px rgba(16, 61, 56, .5); }
+.brand h1 { font-size: 16px; font-weight: 600; color: var(--topbar-fg); }
+.brand .sub { color: var(--text-3); font-size: 11px; }
+.brand .bars-icon i { background: var(--accent-mark); }
+.brand .bars-icon i:nth-child(1), .brand .bars-icon i:nth-child(2) { opacity: .55; }
+.section-nav { gap: 4px; align-self: stretch; align-items: stretch; }
+.section-nav a {
+  position: relative; display: inline-flex; align-items: center; background: transparent; border: none; border-radius: 8px;
+  padding: 0 14px; min-height: 44px; font-size: 14px; font-weight: 500; color: var(--text-2);
+  transition: color .18s var(--ease), background .18s var(--ease);
+}
+.section-nav a:hover { background: var(--panel-2); color: var(--ink); }
+.section-nav a.active { background: transparent; color: var(--accent-ink); font-weight: 600; }
+.section-nav a.active::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent);
+}
+.topbar-right .meta { color: var(--text-3); font-size: 11.5px; }
+.theme-btn { background: var(--panel-2); border: 1px solid var(--line); color: var(--text-2); border-radius: 10px; width: 36px; height: 36px; transition: background .18s var(--ease), color .18s var(--ease); }
+.theme-btn:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.mock-banner { font-size: 12.5px; background: var(--st-warn-soft); color: var(--st-warn); border-bottom: 1px solid var(--line); }
+
+/* ── page + cards: no borders, tinted lift ──────────────────────────────── */
+.section-scroll { padding: 26px clamp(16px, 3vw, 40px) 64px; }
+#sec-recommend .section-scroll > *, #sec-calendar .section-scroll > * { max-width: 1360px; margin-left: auto; margin-right: auto; }
+.card { border: none; border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow); }
+.card + .card { margin-top: 18px; }
+
+/* ── controls ───────────────────────────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+select, .text-input, .cal-controls input[type="month"] {
+  font-size: 14px; min-height: 40px; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--panel);
+  transition: border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+select:hover, .text-input:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+.kind-toggle { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; overflow: visible; }
+.kind-toggle button { background: transparent; color: var(--text-2); font-size: 13.5px; font-weight: 500; padding: 7px 14px; min-height: 34px; border-radius: 9px; transition: background .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease), transform .12s var(--ease); }
+.kind-toggle button:hover { color: var(--ink); }
+.kind-toggle button.active { background: var(--panel); color: var(--accent-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 61, 56, .12), 0 0 0 1px var(--line); }
+.kind-toggle button:active { transform: scale(.97); }
+
+.btn {
+  font-size: 13.5px; font-weight: 600; min-height: 40px; padding: 8px 16px; border-radius: var(--radius-sm); background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+  transition: background .18s var(--ease), border-color .18s var(--ease), transform .12s var(--ease), box-shadow .18s var(--ease);
+}
+.btn:hover { filter: none; background: var(--panel-2); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.btn.primary { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--accent) 80%, #000); }
+.btn.primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); transform: translateY(-1px); }
+.btn:active, .btn.primary:active { transform: translateY(0) scale(.98); box-shadow: none; }
+
+.tag-chips { gap: 8px; }
+.tag-chip {
+  font-size: 13px; font-weight: 500; padding: 7px 14px; min-height: 36px; background: var(--panel); border: 1px solid var(--line); color: var(--text-2);
+  transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease), transform .12s var(--ease);
+}
+.tag-chip:hover { background: var(--panel); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--ink); }
+.tag-chip:active { transform: scale(.96); }
+.tag-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.tag-chip .n { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; opacity: .6; margin-left: 6px; }
+.tag-chips.compact .tag-chip { min-height: 30px; padding: 4px 11px; font-size: 12px; }
+.tag-chip.tag-true_win, .tag-chip.tag-net_add_neg { color: var(--st-crit); }
+.tag-chip.tag-fibre3_win, .tag-chip.tag-net_add_pos { color: var(--st-good); }
+.tag-chip.tag-nt_win { color: var(--st-warn); }
+.switch { width: 40px; height: 22px; transition: background .2s var(--ease); }
+.switch::after { width: 18px; height: 18px; transition: transform .2s var(--ease); }
+.switch.on::after { transform: translateX(18px); }
+.cal-pool-summary { font-size: 13.5px; }
+
+/* ── map / sidebar ──────────────────────────────────────────────────────── */
+.search-sidebar { width: 372px; max-width: 420px; border-right: 1px solid var(--line); box-shadow: 8px 0 28px -22px rgba(16, 61, 56, .5); position: relative; z-index: 2; }
+.sidebar-fixed { padding: 16px 16px 10px; gap: 10px; }
+.amphur-pill { font-size: 12.5px; padding: 5px 11px; transition: background .18s var(--ease), color .18s var(--ease), transform .12s var(--ease); }
+.amphur-pill:hover { filter: none; background: color-mix(in srgb, var(--pill-color) 10%, var(--panel)); }
+.amphur-pill:active { transform: scale(.97); }
+.district-card { border: none; border-left: 4px solid var(--pill-color); background: var(--panel-2); border-radius: 10px; padding: 8px 6px 7px; transition: background .18s var(--ease), transform .12s var(--ease); }
+.district-card:hover { background: color-mix(in srgb, var(--pill-color) 10%, var(--panel-2)); }
+.district-card:active { transform: scale(.97); }
+.district-card .dname { font-size: 11.5px; font-weight: 500; }
+.district-card .dcount { font-family: "IBM Plex Mono", monospace; font-size: 15px; }
+.district-group-header { font-size: 12px; }
+.list-summary { font-size: 12.5px; padding: 10px 16px 6px; }
+.result-list { padding: 0 10px 12px; }
+.result-row { padding: 11px 12px; border-radius: 10px; border: none; position: relative; transition: background .16s var(--ease); }
+.result-row:hover { background: var(--accent-soft); }
+.result-row:active { transform: scale(.995); }
+.result-row .nm { font-size: 14px; font-weight: 600; letter-spacing: -.005em; }
+.result-row .loc { font-size: 12px; margin-top: 2px; }
+.result-row .stats { gap: 5px; margin-top: 8px; }
+.stat-pill { font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
+.stat-pill:first-child:not([class*="tag-"]) { font-family: "IBM Plex Mono", monospace; font-weight: 600; background: var(--ink); color: var(--panel); }
+.map-legend { border: none; border-radius: 12px; box-shadow: var(--shadow-lift); font-size: 11.5px; padding: 8px 12px; }
+.map-pop .nm { font-family: var(--font-head); }
+
+/* ── analyse table ──────────────────────────────────────────────────────── */
+.rec-table-wrap { border: none; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); }
+.rec-table { font-size: 13.5px; }
+.rec-table th, .rec-table td { padding: 11px 14px; }
+.rec-table td { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+.rec-table td:first-child { font-family: var(--font-body); font-size: 13.5px; }
+.rec-table thead th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 600; background: var(--panel-2); }
+.rec-table tbody tr { transition: background .14s var(--ease); }
+.rec-table tbody tr:hover, .rec-table tbody tr:hover td:first-child { background: var(--accent-soft); }
+
+/* ── calendar ───────────────────────────────────────────────────────────── */
+.cal-head { align-items: center; }
+.cal-daycard { border: none; background: var(--panel-2); border-radius: 14px; padding: 16px 18px; gap: 8px; box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow .2s var(--ease); }
+.cal-daycard.today { background: var(--panel); box-shadow: inset 0 0 0 1px var(--line), inset 0 3px 0 var(--accent), var(--shadow); }
+.cal-dayhead .dn { font-family: var(--font-head); font-size: 17px; letter-spacing: -.01em; }
+.cal-dayhead .dd { font-size: 13px; color: var(--text-3); }
+.cal-daycard .cal-pick { font-size: 14px; padding: 9px 12px; border-radius: 10px; line-height: 1.35; }
+.cal-pick { font-size: 12px; border-radius: 8px; transition: transform .14s var(--ease), box-shadow .14s var(--ease); }
+.cal-pick:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -8px rgba(16, 61, 56, .5); }
+.cal-pick .cp-loc { font-size: 12px; opacity: .75; }
+.cal-gen-btn { font-size: 12.5px; padding: 8px; border-radius: 9px; transition: background .16s var(--ease), color .16s var(--ease), border-color .16s var(--ease); }
+.cal-grid .cal-day { border: none; background: var(--panel-2); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow .16s var(--ease), background .16s var(--ease); }
+.cal-grid .cal-day:not(.empty-cell):hover { background: var(--panel); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.cal-grid .cal-day.empty-cell { background: transparent; box-shadow: none; }
+.cal-dow { font-size: 12px; font-weight: 600; text-transform: none; color: var(--text-3); }
+.cal-day .d-num { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+.cal-slot { border-radius: 10px; }
+.drs-block h4 { font-family: var(--font-head); font-size: 14px; color: var(--ink); }
+.export-menu { border: none; border-radius: 12px; box-shadow: var(--shadow-lift); }
+
+/* ── detail card (modal) ────────────────────────────────────────────────── */
+.modal-overlay { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background: rgba(10, 30, 28, .38); }
+.modal-card { border-radius: 22px; box-shadow: 0 30px 80px -24px rgba(8, 36, 33, .55); padding: 28px 32px; width: 620px; }
+.modal-head h3 { font-size: 20px; font-weight: 600; }
+.modal-head h3 .modal-id { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+.modal-head .loc { font-size: 13.5px; color: var(--text-2); }
+.modal-close { background: var(--panel-2); width: 32px; height: 32px; transition: background .16s var(--ease), transform .12s var(--ease); }
+.modal-close:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.modal-close:active { transform: scale(.94); }
+.modal-badges { gap: 6px; margin: 12px 0 18px; }
+.badge { font-size: 12.5px; font-weight: 500; padding: 4px 10px; border-radius: 7px; }
+.net-pill { font-size: 11.5px; padding: 1px 8px; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-weight: 500; background: var(--panel-2); }
+.demo-grid { gap: 10px; }
+.demo-item { border: none; background: var(--panel-2); border-radius: 14px; padding: 14px 16px; }
+.demo-item .lbl { font-size: 12.5px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-3); }
+.demo-item .val, .demo-pair-cell .pair-val { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+.demo-item .val { font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.demo-pair-cell .pair-lbl { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--text-3); }
+.demo-pair-cell .pair-val { font-size: 19px; font-weight: 600; letter-spacing: -.02em; }
+.port-opt { font-size: 12px; font-weight: 500; padding: 4px 11px; border-radius: 8px; border-color: var(--line); background: var(--panel); transition: background .16s var(--ease), color .16s var(--ease), transform .12s var(--ease); }
+.port-opt:active { transform: scale(.95); }
+.port-opt.active { background: var(--accent); color: #fff; border-color: transparent; }
+.modal-tab { font-size: 14px; }
+
+/* ── entry motion (transform + opacity only) ────────────────────────────── */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.app-section.active .card, .app-section.active .cal-daycard { animation: rise .42s var(--ease) both; }
+.app-section.active .card:nth-child(2) { animation-delay: .06s; }
+.app-section.active .card:nth-child(3) { animation-delay: .12s; }
+.app-section.active .cal-daycard:nth-child(2) { animation-delay: .08s; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ── accessibility helpers ──────────────────────────────────────────────── */
+.skip-link { position: fixed; left: 12px; top: -60px; z-index: 10000; background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; transition: top .18s var(--ease); }
+.skip-link:focus { top: 12px; }
+
+@media (max-width: 760px) {
+  .topbar { padding: 10px 16px; }
+  .section-nav { justify-self: stretch; }
+  .section-nav a.active::after { bottom: -1px; }
+  .modal-card { padding: 22px 20px; border-radius: 20px; }
+  .search-sidebar { width: auto; max-width: none; }
+}
+
+    </style>
   </head>
   <body>
+    <a class="skip-link" href="#app" id="skipLink">ข้ามไปยังเนื้อหา</a>
     <div id="loginGate" class="login-gate">
       <div class="login-card">
         <div class="bars-icon"><i></i><i></i><i></i></div>
@@ -3517,6 +3750,12 @@
         calendarTheme: [],
         calendarPlan: [],
       };
+    </script>
+  <script>
+      document.getElementById("skipLink").addEventListener("click", function (e) {
+        var s = document.querySelector(".app-section.active"); if (!s) return;
+        e.preventDefault(); s.setAttribute("tabindex", "-1"); s.focus();
+      });
     </script>
   </body>
 </html>
