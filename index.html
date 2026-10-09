@@ -213,6 +213,44 @@
       .tag-chip.empty:not(.active), .amphur-pill.empty:not(.active), .district-card.empty:not(.active) { opacity: .45; }
       .cal-pick.missing { opacity: .6; font-style: italic; }
       .cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+      .cal-slots { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+      .cal-slot { position: relative; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+      .cal-slot.empty { border-style: dashed; background: var(--panel-2); }
+      .cal-slot.locked { border-color: var(--st-warn); background: var(--st-warn-soft); }
+      .cal-slot-main {
+        border: none; background: none; padding: 3px 9px; text-align: left; font: inherit; color: var(--ink);
+        display: flex; flex-direction: column; gap: 0; min-width: 0; border-radius: 8px; line-height: 1.3;
+      }
+      .cal-slot.filled .cal-slot-main { border-radius: 8px 0 0 8px; }
+      .cal-slot-main:hover, .cal-slot-lock:hover { background: var(--panel-2); }
+      .cal-slot .s-name { font-size: 9.5px; font-weight: 700; color: var(--text-3); letter-spacing: .02em; }
+      .cal-slot .s-meta { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+      .cal-slot.empty .s-meta { color: var(--text-3); font-weight: 600; }
+      .cal-slot .s-sub { font-size: 9.5px; color: var(--st-warn); font-weight: 600; }
+      .cal-slot-lock { border: none; border-left: 1px solid var(--line); background: none; padding: 0 7px; font-size: 12px; border-radius: 0 8px 8px 0; }
+      .cal-slot-menu { left: auto; right: 0; }
+      .export-menu-wrap { position: relative; }
+      .export-menu {
+        position: absolute; top: calc(100% + 4px); left: 0; z-index: 60; min-width: 160px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+        box-shadow: var(--shadow); padding: 4px; display: flex; flex-direction: column;
+      }
+      .export-menu[hidden] { display: none; }
+      .export-menu button {
+        border: none; background: none; text-align: left; padding: 9px 12px; border-radius: 7px;
+        font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap;
+      }
+      .export-menu button:hover { background: var(--panel-2); }
+      .mgr-only { }
+      body:not(.role-mgr) .mgr-only { display: none !important; }
+      body.role-mgr .drs-only { display: none !important; }
+      .drs-block { margin-bottom: 18px; }
+      .drs-block h4 { font-size: 13px; margin: 0 0 6px; color: var(--text-2); }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+      .cal-dow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 4px; }
+      .cal-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 118px; background: var(--panel-2); display: flex; flex-direction: column; gap: 5px; }
+      .cal-day.empty-cell { background: transparent; border-color: transparent; }
+      .cal-day .d-num { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
       .cal-days { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
       .cal-daycard { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--panel-2); display: flex; flex-direction: column; gap: 7px; min-width: 0; }
       .cal-daycard.today { border-color: var(--accent); background: var(--panel); }
@@ -556,6 +594,10 @@
       }
       @media (max-width: 480px) {
         .cal-days { grid-template-columns: 1fr; }
+        .cal-grid { grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
+        .cal-day { min-height: 80px; padding: 4px; font-size: 10px; }
+        .cal-grid .cal-pick { font-size: 8.5px; padding: 2px 3px; }
+        .cal-dow { font-size: 9px; }
         .cal-pick { font-size: 8.5px; padding: 2px 3px; }
         .cal-gen-btn { font-size: 8.5px; padding: 3px 1px; white-space: normal; line-height: 1.2; }
       }
@@ -694,18 +736,31 @@
         <div class="section-scroll">
           <div class="card">
             <div class="cal-head">
-              <h2>แผนเข้าพื้นที่ วันนี้ · พรุ่งนี้</h2>
+              <h2 class="drs-only">แผนเข้าพื้นที่ วันนี้ · พรุ่งนี้</h2>
+              <h2 class="mgr-only">ปฏิทินการขายรายเดือน</h2>
+              <div class="cal-slots mgr-only" id="calSlots" role="group" aria-label="ช่องบันทึกแผน"></div>
             </div>
-            <div class="hint">แสดงแค่ 2 วัน — พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · สถานที่ที่วางแผนแล้วจะถูกจองให้คุณ 10 วัน ไม่ถูกแจกให้เซลล์คนอื่น</div>
+            <div class="hint drs-only">แสดงแค่ 2 วัน — พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · สถานที่ที่วางแผนแล้วจะถูกจองให้คุณ 7 วัน ไม่ถูกแจกให้เซลล์คนอื่น</div>
+            <div class="hint mgr-only">สถานที่ที่วางแผนแล้วจะถูกจอง 7 วัน ไม่ถูกแจกให้ DRS หรือผู้จัดการคนอื่น · ดูแผน 2 วันของแต่ละ DRS ได้ด้านล่าง</div>
             <div class="cal-controls">
+              <input type="month" id="calMonth" class="mgr-only">
               <div class="kind-toggle" id="calKind">
                 <button data-v="both" class="active">หมู่บ้าน + อาคาร</button>
                 <button data-v="village">หมู่บ้าน</button>
                 <button data-v="building">อาคาร</button>
               </div>
               <select id="calStatus"><option value="all">สถานะหมู่บ้านทั้งหมด</option></select>
-              <button class="btn primary" id="calGenDays">สร้างแผน 2 วัน</button>
-              <button class="btn" id="calClearDays">ล้างแผน</button>
+              <button class="btn primary drs-only" id="calGenDays">สร้างแผน 2 วัน</button>
+              <button class="btn drs-only" id="calClearDays">ล้างแผน</button>
+              <button class="btn primary mgr-only" id="calGenMonth">สร้างทั้งเดือน</button>
+              <button class="btn mgr-only" id="calClearMonth">ล้างเดือน</button>
+              <div class="export-menu-wrap mgr-only">
+                <button class="btn" id="calExportBtn" aria-haspopup="true" aria-expanded="false">⬇ ส่งออก ▾</button>
+                <div class="export-menu" id="calExportMenu" hidden>
+                  <button id="calExportImg">📷 รูปภาพ (PNG)</button>
+                  <button id="calExportCsv">📄 ไฟล์ CSV</button>
+                </div>
+              </div>
             </div>
             <div class="tag-chips" id="calTags"></div>
             <div class="cal-pool-summary" id="calPoolSummary"></div>
@@ -717,7 +772,19 @@
             <div id="calSaveStatus" style="font-size:11.5px;color:var(--text-3);margin-top:8px;"></div>
           </div>
           <div class="card">
-            <div class="cal-days" id="calGrid"></div>
+            <div class="cal-days drs-only" id="calGrid"></div>
+            <div class="cal-grid mgr-only" id="calMonthGrid"></div>
+          </div>
+          <div class="card mgr-only" id="drsCard">
+            <div class="cal-head">
+              <h2>แผน 2 วันของ DRS</h2>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <select id="drsPick" aria-label="เลือก DRS"></select>
+                <button class="btn" id="drsRefresh">↻ รีเฟรช</button>
+              </div>
+            </div>
+            <div class="hint">ดูอย่างเดียว — แสดงวันนี้และพรุ่งนี้ของ DRS แต่ละคน (กดรีเฟรชเพื่อดึงข้อมูลล่าสุด)</div>
+            <div id="drsGrid"></div>
           </div>
         </div>
       </section>
@@ -789,6 +856,9 @@
         calendarTheme: {}, // monthKey -> {tags:[]}
         calendarPlan: {},  // monthKey -> { day -> [{slot,kind,refId}] }
         claimed: new Set(),                // places other reps currently hold ("kind:id")
+        role: "DRS",                       // "PBH" / "CM" / "ADMIN" (monthly calendar) or "DRS" (two-day calendar) -- from the Users tab
+        drsUsers: [], drsPlan: [],         // managers only: every DRS and their two-day plans
+        calendarSlots: [null, null, null], // managers only: saved month plans
         idToken: null,
       };
 
@@ -1816,6 +1886,16 @@
         calState.status = sel.value;
       }
 
+      function monthKeyOf(dateVal) { return dateVal.replace("-", ""); } // "2026-10" -> "202610"
+      function daysInMonth(monthKey) {
+        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
+        return new Date(y, m, 0).getDate();
+      }
+      function firstWeekday(monthKey) {
+        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
+        return new Date(y, m - 1, 1).getDay(); // 0=Sun
+      }
+
       /* ===== two-day window =====
          The calendar only ever covers TODAY and TOMORROW (Bangkok time) --
          never a whole month -- so nobody holds more than two days of the
@@ -1828,6 +1908,7 @@
       const calDateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: CAL_TZ, year: "numeric", month: "2-digit", day: "2-digit" });
       const THAI_DOW_FULL = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
       const THAI_MON_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      function isMgr() { return ["PBH", "CM", "ADMIN"].includes(STATE.role); }
       function calWindow() {
         return [0, 1].map((i) => {
           const [y, m, d] = calDateFmt.format(new Date(Date.now() + i * 86400000)).split("-").map(Number);
@@ -1835,6 +1916,7 @@
         });
       }
       function dayKeyOf(monthKey, day) { return monthKey + String(day).padStart(2, "0"); }
+      function calCurrentMonthKey() { return calWindow()[0].monthKey; }
       function windowKey() { return calWindow().map((w) => dayKeyOf(w.monthKey, w.day)).join(","); }
       let renderedWindow = null;
       // Places other reps currently hold -- [kind, id] pairs from the server,
@@ -1845,6 +1927,7 @@
       // today/tomorrow and redraw, so tomorrow becomes today by itself.
       function rollWindowIfNeeded() {
         if (!STATE.villages || renderedWindow === null || windowKey() === renderedWindow) return;
+        if (isMgr()) { renderedWindow = windowKey(); renderDrsView(); return; } // managers keep their whole month; only the DRS viewer follows the date
         const keep = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         Object.keys(STATE.calendarPlan).forEach((mk) => {
           Object.keys(STATE.calendarPlan[mk]).forEach((d) => { if (!keep.has(dayKeyOf(mk, d))) delete STATE.calendarPlan[mk][d]; });
@@ -2034,6 +2117,11 @@
       // Everything already planned on the OTHER day(s) of the window.
       function usedIdsInWindow(monthKey, exceptDay) {
         const used = new Set();
+        if (isMgr()) { // a monthly plan: everything already planned on this month's other days
+          const plan = STATE.calendarPlan[monthKey] || {};
+          Object.keys(plan).forEach((day) => { if (+day !== +exceptDay) plan[day].forEach((p) => used.add(p.kind + ":" + p.refId)); });
+          return used;
+        }
         Object.keys(STATE.calendarPlan).forEach((mk) => {
           const plan = STATE.calendarPlan[mk];
           Object.keys(plan).forEach((day) => {
@@ -2126,7 +2214,74 @@
       const pendingDays = (() => { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "{}") || {}; } catch (e) { return {}; } })();
       let saveTimer = null, savesInFlight = 0, conflictRounds = 0;
       function persistPending() { try { localStorage.setItem(PENDING_KEY, JSON.stringify(pendingDays)); } catch (e) { /* storage blocked -- in-memory queue still works */ } }
-      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingDays).length > 0; }
+      const PENDING_MONTH_KEY = "tolSuggestionPendingPlans";
+      const pendingMonths = (() => { try { return JSON.parse(localStorage.getItem(PENDING_MONTH_KEY) || "{}") || {}; } catch (e) { return {}; } })();
+      const monthTimers = {};
+      function persistPendingMonths() { try { localStorage.setItem(PENDING_MONTH_KEY, JSON.stringify(pendingMonths)); } catch (e) { /* storage blocked */ } }
+      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingDays).length > 0 || Object.keys(pendingMonths).length > 0; }
+      function monthTagsFor(monthKey) {
+        const t = STATE.calendarTheme[monthKey];
+        if (t) return t.tags.slice();
+        return monthKey === calState.monthKey ? [...calState.tags] : [];
+      }
+      // One entry point for "this day changed", whichever calendar the viewer has.
+      function queueSave(monthKey, day, delayMs) { if (isMgr()) queueMonthSave(monthKey, delayMs); else queueDaySave(monthKey, day, delayMs); }
+
+      function queueMonthSave(monthKey, delayMs) {
+        if (!STATE.idToken) return; // not signed in (sample-data preview): nothing to sync
+        pendingMonths[monthKey] = {
+          plan: JSON.parse(JSON.stringify(STATE.calendarPlan[monthKey] || {})),
+          tags: monthTagsFor(monthKey), at: Date.now(), email: STATE.email || null, tries: 0,
+        };
+        persistPendingMonths();
+        setCalStatus("กำลังบันทึก…", false);
+        clearTimeout(monthTimers[monthKey]);
+        monthTimers[monthKey] = setTimeout(() => sendMonth(monthKey), delayMs == null ? 700 : delayMs);
+      }
+
+      async function sendMonth(monthKey) {
+        const snap = pendingMonths[monthKey];
+        if (!snap) return;
+        savesInFlight++;
+        try {
+          const res = await api("saveCalendarMonth", { monthKey, plan: snap.plan, tags: snap.tags });
+          if (pendingMonths[monthKey] && pendingMonths[monthKey].at === snap.at) { delete pendingMonths[monthKey]; persistPendingMonths(); }
+          if (res.claimedByOthers) setClaimed(res.claimedByOthers);
+          if (res.outsideWindow) setCalStatus("เดือนนี้อยู่นอกช่วงที่บันทึกได้ (เก่ากว่า 2 เดือนหรือไกลเกิน 3 เดือนข้างหน้า)", true);
+          else if ((res.conflicts || []).length) afterMonthConflicts(res, monthKey);
+          else { const hadConflict = conflictRounds > 0; conflictRounds = 0; if (!hadConflict && !hasUnsavedPlans_()) setCalStatus("บันทึกแล้ว ✓", false); }
+        } catch (e) {
+          snap.tries = (snap.tries || 0) + 1; persistPendingMonths();
+          setCalStatus("ยังบันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ — เก็บไว้ในเครื่องแล้ว และจะลองใหม่ให้อัตโนมัติ: " + e.message, true);
+          if (snap.tries < 3) setTimeout(() => { if (pendingMonths[monthKey] && pendingMonths[monthKey].at === snap.at) sendMonth(monthKey); }, 30000);
+        } finally {
+          savesInFlight--;
+        }
+      }
+      function hasUnsavedPlans_() { return Object.keys(pendingDays).length > 0 || Object.keys(pendingMonths).length > 0; }
+
+      // Picks another rep reserved first: drop them, refill days that were full.
+      function afterMonthConflicts(res, monthKey) {
+        const lost = new Set(res.conflicts.map((c) => c.kind + ":" + c.refId));
+        const plan = STATE.calendarPlan[monthKey] || {};
+        let removed = 0, short = false;
+        Object.keys(plan).forEach((day) => {
+          const picks = plan[day] || [];
+          const left = picks.filter((p) => !lost.has(p.kind + ":" + p.refId));
+          if (left.length === picks.length) return;
+          removed += picks.length - left.length;
+          plan[day] = left;
+          if (!res.capReached && picks.length >= 4 && conflictRounds < 3) topUpDay(monthKey, +day, calState.tags);
+          if ((plan[day] || []).length < 4 && picks.length >= 4) short = true;
+        });
+        conflictRounds++;
+        renderCalendar();
+        if (dayEditState) { renderDayEditSlots(); renderDayEditTags(); renderDayEditResults(document.getElementById("dayEditSearch").value); }
+        if (removed) queueMonthSave(monthKey, 0);
+        setCalStatus(res.capReached
+          ? "ครบโควตารับสถานที่ใหม่ของวันนี้แล้ว — ลองใหม่พรุ่งนี้"
+          : `มี ${removed} แห่งที่คนอื่นจองไปก่อน — ` + (short ? "และไม่มีสถานที่อื่นให้เลือกแทนแล้ว" : "เลือกแห่งอื่นแทนให้แล้ว"), !!res.capReached || short);
+      }
 
       function queueDaySave(monthKey, day, delayMs) {
         if (!STATE.idToken) return; // not signed in (sample-data preview): nothing to sync
@@ -2198,14 +2353,17 @@
       // outlive the tab; two days of picks is far below its 64 KB body limit.
       function flushPendingKeepalive() {
         if (!STATE.idToken) return;
+        const send = (body) => {
+          try {
+            fetch(DEFAULT_SYNC_URL, {
+              method: "POST", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ idToken: STATE.idToken, ...body }),
+            }).catch(() => {});
+          } catch (e) { /* no keepalive support -- the localStorage copy still restores it next visit */ }
+        };
         const days = Object.keys(pendingDays).map((k) => ({ monthKey: pendingDays[k].monthKey, day: pendingDays[k].day, picks: pendingDays[k].picks }));
-        if (!days.length) return;
-        try {
-          fetch(DEFAULT_SYNC_URL, {
-            method: "POST", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "saveCalendarDays", idToken: STATE.idToken, days }),
-          }).catch(() => {});
-        } catch (e) { /* no keepalive support -- the localStorage copy still restores it next visit */ }
+        if (days.length) send({ action: "saveCalendarDays", days });
+        Object.keys(pendingMonths).forEach((mk) => send({ action: "saveCalendarMonth", monthKey: mk, plan: pendingMonths[mk].plan, tags: pendingMonths[mk].tags }));
       }
       window.addEventListener("beforeunload", (e) => {
         if (!hasUnsavedPlans()) return;
@@ -2219,7 +2377,7 @@
       function restorePendingPlans() {
         const inWindow = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         let restored = 0;
-        Object.keys(pendingDays).forEach((k) => {
+        if (!isMgr()) Object.keys(pendingDays).forEach((k) => {
           const snap = pendingDays[k];
           if (Date.now() - snap.at > PENDING_MAX_AGE_MS || !inWindow.has(k)) { delete pendingDays[k]; return; }
           if (snap.email && STATE.email && snap.email !== STATE.email) return;
@@ -2228,17 +2386,45 @@
           snap.tries = 0; restored++;
         });
         persistPending();
-        if (restored) { renderCalendar(); setCalStatus(`กู้คืนแผนที่ยังไม่ได้บันทึกไว้ ${restored} วัน และกำลังบันทึกให้…`, false); sendDays(); }
+        const monthLimit = calCutoffMonthKey();
+        Object.keys(pendingMonths).forEach((mk) => {
+          const snap = pendingMonths[mk];
+          if (Date.now() - snap.at > 7 * 86400000 || mk < monthLimit) { delete pendingMonths[mk]; return; }
+          if (snap.email && STATE.email && snap.email !== STATE.email) return;
+          STATE.calendarPlan[mk] = snap.plan; STATE.calendarTheme[mk] = { tags: snap.tags.slice() };
+          if (mk === calState.monthKey) calState.tags = new Set(snap.tags);
+          snap.tries = 0; restored++; sendMonth(mk);
+        });
+        persistPendingMonths();
+        if (restored) { renderCalendar(); setCalStatus(`กู้คืนแผนที่ยังไม่ได้บันทึกไว้ ${restored} รายการ และกำลังบันทึกให้…`, false); if (Object.keys(pendingDays).length) sendDays(); }
       }
 
       // Plans that were made before places could be claimed hold no claim yet,
       // so another rep could be given the same place. Re-sending them once on
       // load claims them (or replaces any that were already taken).
       function reclaimWindowPlans() {
+        if (isMgr()) { // current and future months only -- older ones are history
+          Object.keys(STATE.calendarPlan).forEach((mk) => { if (mk >= calCurrentMonthKey() && !pendingMonths[mk] && Object.keys(STATE.calendarPlan[mk]).some((d) => STATE.calendarPlan[mk][d].length)) queueMonthSave(mk, 1500); });
+          return;
+        }
         calWindow().forEach((w) => {
           const picks = (STATE.calendarPlan[w.monthKey] || {})[w.day];
           if (picks && picks.length && !pendingDays[dayKeyOf(w.monthKey, w.day)]) queueDaySave(w.monthKey, w.day, 1500);
         });
+      }
+
+      async function generateMonth() {
+        const monthKey = calState.monthKey;
+        const n = daysInMonth(monthKey);
+        if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
+        const usedExtra = new Set();
+        for (let day = 1; day <= n; day++) {
+          const picks = pickForDay(monthKey, day, usedExtra);
+          picks.forEach((p) => usedExtra.add(p.kind + ":" + p.refId));
+          STATE.calendarPlan[monthKey][day] = picks;
+        }
+        renderCalendar();
+        queueMonthSave(monthKey, 0);
       }
 
       function generateDays() {
@@ -2267,33 +2453,390 @@
         el.textContent = msg; el.style.color = isError ? "var(--st-crit)" : "var(--text-3)";
       }
 
-      function renderCalendar() {
-        const win = calWindow();
-        renderedWindow = win.map((w) => dayKeyOf(w.monthKey, w.day)).join(",");
-        document.getElementById("calGrid").innerHTML = win.map((w) => {
-          const picks = ((STATE.calendarPlan[w.monthKey] || {})[w.day] || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
-          const list = picks.length ? picks.map((p) => {
-            const r = byId(p.kind, p.refId);
-            const lbl = pickLabel(p, r);
-            const winner = r ? mksWinner(r) : null;
-            const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
-            const tip = lbl.missing ? lbl.name + " (ไม่พบในข้อมูลล่าสุด)" : lbl.name;
-            return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(lbl.name)}${r ? `<span class="cp-loc">${escapeHtml(locOf(r))}</span>` : ""}</div>`;
-          }).join("") : `<div class="empty-note">ยังไม่มีแผน</div>`;
-          return `<div class="cal-daycard${w.offset === 0 ? " today" : ""}">
-            <div class="cal-dayhead"><span class="dn">${w.offset === 0 ? "วันนี้" : "พรุ่งนี้"}</span><span class="dd">${THAI_DOW_FULL[w.dow]} ${w.day} ${THAI_MON_SHORT[w.mon - 1]}</span></div>
-            ${list}
-            <button class="cal-gen-btn" data-month="${w.monthKey}" data-edit-day="${w.day}">${picks.length ? "✎ แก้ไข" : "+ วางแผน"}</button>
-          </div>`;
-        }).join("");
+      // One day's card (today / tomorrow): shared by the DRS calendar and the
+      // managers' read-only view of a DRS.
+      function dayCardHtml(w, picksIn, editable) {
+        const picks = (picksIn || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+        const list = picks.length ? picks.map((p) => {
+          const r = byId(p.kind, p.refId);
+          const lbl = pickLabel(p, r);
+          const winner = r ? mksWinner(r) : null;
+          const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
+          const tip = lbl.missing ? lbl.name + " (ไม่พบในข้อมูลล่าสุด)" : lbl.name;
+          return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(lbl.name)}${r ? `<span class="cp-loc">${escapeHtml(locOf(r))}</span>` : ""}</div>`;
+        }).join("") : `<div class="empty-note">ยังไม่มีแผน</div>`;
+        return `<div class="cal-daycard${w.offset === 0 ? " today" : ""}">
+          <div class="cal-dayhead"><span class="dn">${w.offset === 0 ? "วันนี้" : "พรุ่งนี้"}</span><span class="dd">${THAI_DOW_FULL[w.dow]} ${w.day} ${THAI_MON_SHORT[w.mon - 1]}</span></div>
+          ${list}
+          ${editable ? `<button class="cal-gen-btn" data-month="${w.monthKey}" data-edit-day="${w.day}">${picks.length ? "✎ แก้ไข" : "+ วางแผน"}</button>` : ""}
+        </div>`;
       }
 
-      document.getElementById("calGrid").addEventListener("click", (e) => {
+      function renderCalendar() {
+        if (isMgr()) { renderCalSlots(); renderMonthGrid(); renderDrsView(); return; }
+        const win = calWindow();
+        renderedWindow = win.map((w) => dayKeyOf(w.monthKey, w.day)).join(",");
+        document.getElementById("calGrid").innerHTML = win.map((w) => dayCardHtml(w, (STATE.calendarPlan[w.monthKey] || {})[w.day], true)).join("");
+      }
+
+      // PBH / CM: the whole month.
+      function renderMonthGrid() {
+        const monthKey = calState.monthKey;
+        if (!monthKey) return;
+        renderedWindow = windowKey();
+        const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+        const n = daysInMonth(monthKey);
+        const lead = firstWeekday(monthKey);
+        const plan = STATE.calendarPlan[monthKey] || {};
+        let html = dow.map((d) => `<div class="cal-dow">${d}</div>`).join("");
+        for (let i = 0; i < lead; i++) html += `<div class="cal-day empty-cell"></div>`;
+        for (let day = 1; day <= n; day++) {
+          const picks = plan[day];
+          let inner = `<div class="d-num">${day}</div>`;
+          if (picks && picks.length) {
+            inner += picks.map((p) => {
+              const r = byId(p.kind, p.refId);
+              const lbl = pickLabel(p, r);
+              const nm = lbl.name;
+              const winner = r ? mksWinner(r) : null;
+              const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
+              const tip = lbl.missing ? nm + " (ไม่พบในข้อมูลล่าสุด)" : nm;
+              return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(nm)}</div>`;
+            }).join("");
+            inner += `<button class="cal-gen-btn" data-edit-day="${day}">✎ แก้ไข</button>`;
+          } else {
+            inner += `<button class="cal-gen-btn" data-edit-day="${day}">+ วางแผน</button>`;
+          }
+          html += `<div class="cal-day">${inner}</div>`;
+        }
+        document.getElementById("calMonthGrid").innerHTML = html;
+      }
+
+      // PBH / CM: read-only view of every DRS's two-day plan.
+      function renderDrsView() {
+        const sel = document.getElementById("drsPick");
+        const users = STATE.drsUsers || [];
+        const cur = sel.value || "all";
+        sel.innerHTML = `<option value="all">DRS ทุกคน (${users.length})</option>` + users.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join("");
+        sel.value = users.includes(cur) || cur === "all" ? cur : "all";
+        const who = sel.value === "all" ? users : [sel.value];
+        const win = calWindow();
+        const rows = STATE.drsPlan || [];
+        document.getElementById("drsGrid").innerHTML = who.length ? who.map((email) => {
+          const cards = win.map((w) => {
+            const picks = rows.filter((r) => String(r.email).toLowerCase() === email && r.monthKey === w.monthKey && +r.day === w.day)
+              .map((r) => ({ slot: String(r.slot), kind: r.kind, refId: String(r.refId), name: r.name || "" }));
+            return dayCardHtml(w, picks, false);
+          }).join("");
+          return `<div class="drs-block"><h4>${escapeHtml(email)}</h4><div class="cal-days">${cards}</div></div>`;
+        }).join("") : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ (แท็บ Users)</div>`;
+      }
+      document.getElementById("drsPick").addEventListener("change", renderDrsView);
+      document.getElementById("drsRefresh").addEventListener("click", async () => {
+        const btn = document.getElementById("drsRefresh"); btn.disabled = true;
+        try {
+          const data = await api("myData", {}, 90000);
+          const tabs = data.tabs || {};
+          STATE.drsPlan = tabs.DrsPlan ? rowObjects_(tabs.DrsPlan) : [];
+          STATE.drsUsers = data.drsUsers || [];
+          setClaimed(data.claimedByOthers);
+          renderDrsView(); renderCalTagChips();
+          setCalStatus("รีเฟรชแผน DRS แล้ว", false);
+        } catch (e) { setCalStatus("รีเฟรชไม่สำเร็จ: " + e.message, true); }
+        finally { btn.disabled = false; }
+      });
+
+      function onCalGridClick(e) {
         const pick = e.target.closest(".cal-pick");
         if (pick) { const r = byId(pick.dataset.kind, pick.dataset.id); if (r) openModal(r); return; }
         const editBtn = e.target.closest("[data-edit-day]");
-        if (editBtn) openDayEditor(editBtn.dataset.month, +editBtn.dataset.editDay);
+        if (editBtn) openDayEditor(editBtn.dataset.month || calState.monthKey, +editBtn.dataset.editDay);
+      }
+      document.getElementById("calGrid").addEventListener("click", onCalGridClick);
+      document.getElementById("calMonthGrid").addEventListener("click", onCalGridClick);
+      document.getElementById("drsGrid").addEventListener("click", onCalGridClick);
+
+      // Renders the whole month's plan as a shareable PNG -- a purpose-drawn
+      // card, not a screenshot, so it looks clean regardless of the app's
+      // current theme/zoom/scroll position. Uses the native share sheet on
+      // a phone (so it opens straight into LINE/etc.) and falls back to a
+      // plain download on desktop or wherever navigator.share isn't there.
+      const MONTH_NAMES_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      function exportCalendarImage() {
+        const monthKey = calState.monthKey;
+        if (!monthKey) return;
+        const days = daysInMonth(monthKey);
+        const lead = firstWeekday(monthKey);
+        const plan = STATE.calendarPlan[monthKey] || {};
+        const monthLabel = MONTH_NAMES_FULL[+monthKey.slice(4, 6) - 1] + " " + monthKey.slice(0, 4);
+        const dow = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+        const cellW = 168, cellH = 108, padTop = 92, padSide = 22, padBottom = 26;
+        const rows = Math.ceil((lead + days) / 7);
+        const W = 7 * cellW + padSide * 2, H = padTop + rows * cellH + padBottom;
+        const scale = 2; // sharper output on a retina screen
+        const canvas = document.createElement("canvas");
+        canvas.width = W * scale; canvas.height = H * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = "#eef1f5"; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#121a2b"; ctx.font = "700 20px Inter, sans-serif";
+        ctx.fillText("TOL Suggestion — " + monthLabel, padSide, 32);
+        ctx.fillStyle = "#7b8695"; ctx.font = "12px Inter, sans-serif";
+        ctx.fillText("ปฏิทินการขายรายเดือน", padSide, 52);
+
+        ctx.font = "700 11px Inter, sans-serif"; ctx.fillStyle = "#7b8695";
+        dow.forEach((d, i) => ctx.fillText(d.toUpperCase(), padSide + i * cellW + 8, padTop - 10));
+
+        function fitText(text, maxW) {
+          if (ctx.measureText(text).width <= maxW) return text;
+          let t = text;
+          while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+          return t + "…";
+        }
+
+        for (let day = 1; day <= days; day++) {
+          const idx = lead + day - 1;
+          const col = idx % 7, row = Math.floor(idx / 7);
+          const x = padSide + col * cellW, y = padTop + row * cellH;
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(x + 2, y + 2, cellW - 4, cellH - 4);
+          ctx.strokeStyle = "#e3e8ef"; ctx.lineWidth = 1; ctx.strokeRect(x + 2.5, y + 2.5, cellW - 5, cellH - 5);
+          ctx.fillStyle = "#55606f"; ctx.font = "700 12px Inter, sans-serif";
+          ctx.fillText(String(day), x + 10, y + 20);
+          const picks = (plan[day] || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+          ctx.font = "10.5px Inter, sans-serif";
+          picks.forEach((p, i) => {
+            const r = byId(p.kind, p.refId);
+            const label = (p.slot === "backup" ? "★ " : "") + pickLabel(p, r).name;
+            ctx.fillStyle = p.slot === "backup" ? "#7b8695" : "#0b6b63";
+            ctx.fillText(fitText(label, cellW - 20), x + 10, y + 38 + i * 15);
+          });
+        }
+
+        canvas.toBlob(async (blob) => {
+          const filename = `tol-suggestion-calendar-${monthKey}.png`;
+          const file = new File([blob], filename, { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title: monthLabel }); return; }
+            catch (e) { /* cancelled or unsupported -- fall through to download */ }
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }, "image/png");
+      }
+      // One row per planned pick (not per day), in date then slot order, so
+      // it opens in Excel as a flat, filterable/pivotable list. Lat/lng are
+      // included so a day's stops can be dropped straight into a map tool.
+      function exportCalendarCsv() {
+        const monthKey = calState.monthKey;
+        const plan = (monthKey && STATE.calendarPlan[monthKey]) || {};
+        const days = Object.keys(plan).map(Number).filter((d) => (plan[d] || []).length).sort((a, b) => a - b);
+        if (!days.length) { setCalStatus("เดือนนี้ยังไม่มีแผนให้ส่งออก", true); return; }
+        const slotOrder = { 1: 0, 2: 1, 3: 2, backup: 3 };
+        const weekdays = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+        const y = +monthKey.slice(0, 4), m = +monthKey.slice(4, 6);
+        const header = ["วันที่", "วัน", "ลำดับ", "ประเภท", "รหัส", "ชื่อ", "อำเภอ/เขต", "ตำบล/แขวง",
+          "ครัวเรือน/ยูนิต", "พอร์ตว่าง", "พอร์ตทั้งหมด", "MKS True", "Active True", "คะแนน", "ละติจูด", "ลองจิจูด"];
+        const lines = [header.map(csvField).join(",")];
+        days.forEach((d) => {
+          const date = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const dow = weekdays[new Date(y, m - 1, d).getDay()];
+          plan[d].slice().sort((a, b) => (slotOrder[a.slot] ?? 9) - (slotOrder[b.slot] ?? 9)).forEach((pk) => {
+            const r = byId(pk.kind, pk.refId);
+            const cells = r ? [
+              date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", r.id, r.name || "",
+              ampOf(r) || "", tamOf(r) || "", whole(hhOf(r)), whole(r.totalAvailable), whole(r.totalPort),
+              pct(r.mksTrue), whole(r.active), fmt(r.autoScore), r.lat ?? "", r.lng ?? "",
+            ] : [date, dow, SLOT_LABELS[pk.slot] || pk.slot, pk.kind === "village" ? "หมู่บ้าน" : "อาคาร", pk.refId, (pk.name ? pk.name + " " : "") + "(ไม่พบข้อมูล)"];
+            lines.push(cells.map(csvField).join(","));
+          });
+        });
+        const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `tol-suggestion-calendar-${monthKey}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+
+      const calExportMenu = document.getElementById("calExportMenu");
+      const calExportBtn = document.getElementById("calExportBtn");
+      function setCalExportMenu(open) {
+        calExportMenu.hidden = !open;
+        calExportBtn.setAttribute("aria-expanded", String(open));
+      }
+      calExportBtn.addEventListener("click", (e) => { e.stopPropagation(); setCalExportMenu(calExportMenu.hidden); });
+      document.getElementById("calExportImg").addEventListener("click", () => { setCalExportMenu(false); exportCalendarImage(); });
+      document.getElementById("calExportCsv").addEventListener("click", () => { setCalExportMenu(false); exportCalendarCsv(); });
+      document.addEventListener("click", (e) => { if (!calExportMenu.hidden && !e.target.closest(".export-menu-wrap")) setCalExportMenu(false); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") setCalExportMenu(false); });
+
+      /* ===== saved-plan slots (3 per person) =====
+         A slot is a snapshot of one month's plan + theme. Click an empty slot
+         to save the plan you're looking at; click a filled one to open it,
+         overwrite it with the current plan, or clear it. 🔒 keeps a slot
+         forever; an unlocked slot that hasn't been saved or opened for 30
+         days is deleted automatically (the server enforces it -- the page
+         just hides it as soon as it's expired). */
+      const SLOT_TTL_DAYS = 30;
+      const SLOT_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      let slotMenuOpen = null;
+
+      // Same rule as cutoffMonthKey_() in the Apps Script: the working plan
+      // keeps the current month plus two back; older months are pruned there.
+      function calCutoffMonthKey() {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 2);
+        return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0");
+      }
+      function slotDaysLeft(slot) {
+        const t = Date.parse(slot.lastOpenedAt);
+        if (isNaN(t)) return 0;
+        return Math.max(0, Math.ceil(SLOT_TTL_DAYS - (Date.now() - t) / 86400000));
+      }
+      function slotIsLive(slot) { return !!slot && (slot.locked || slotDaysLeft(slot) > 0); }
+      function monthLabelOf(monthKey) { return SLOT_MONTHS_SHORT[+monthKey.slice(4, 6) - 1] + " " + monthKey.slice(0, 4); }
+      function plannedDayCount(plan) { return Object.keys(plan || {}).filter((d) => (plan[d] || []).length).length; }
+
+      function renderCalSlots() {
+        document.getElementById("calSlots").innerHTML = [0, 1, 2].map((i) => {
+          const slot = STATE.calendarSlots[i];
+          if (!slotIsLive(slot)) {
+            STATE.calendarSlots[i] = null;
+            return `<div class="cal-slot empty" data-i="${i}">
+              <button class="cal-slot-main" data-act="main" title="บันทึกแผนเดือนที่แสดงอยู่ลงช่อง ${i + 1}">
+                <span class="s-name">ช่อง ${i + 1}</span><span class="s-meta">+ บันทึก</span>
+              </button></div>`;
+          }
+          // The countdown only takes up room when it matters; the full text
+          // is always in the tooltip.
+          const left = slotDaysLeft(slot);
+          const sub = slot.locked ? "" : (left <= 7 ? `เหลือ ${left} วัน` : "");
+          const tip = (slot.locked ? "เก็บถาวร" : `หมดอายุใน ${left} วัน`) + " · บันทึกเมื่อ " + String(slot.savedAt || "").slice(0, 10);
+          return `<div class="cal-slot filled${slot.locked ? " locked" : ""}" data-i="${i}">
+            <button class="cal-slot-main" data-act="main" aria-haspopup="true" aria-expanded="${slotMenuOpen === i}" title="${escapeHtml(tip)}">
+              <span class="s-name">ช่อง ${i + 1}</span>
+              <span class="s-meta">${monthLabelOf(slot.monthKey)} · ${plannedDayCount(slot.plan)} วัน</span>
+              ${sub ? `<span class="s-sub">${sub}</span>` : ""}
+            </button>
+            <button class="cal-slot-lock" data-act="lock" aria-pressed="${slot.locked}" title="${slot.locked ? "ปลดล็อก (จะหมดอายุตามปกติ)" : "ล็อกช่องนี้ไม่ให้ถูกลบ"}">${slot.locked ? "🔒" : "🔓"}</button>
+            <div class="export-menu cal-slot-menu" ${slotMenuOpen === i ? "" : "hidden"}>
+              <button data-act="open">📂 เปิดแผนนี้</button>
+              <button data-act="overwrite">💾 บันทึกทับด้วยแผนตอนนี้</button>
+              <button data-act="clear">🗑 ล้างช่องนี้</button>
+            </div></div>`;
+        }).join("");
+      }
+
+      async function saveToSlot(i) {
+        const monthKey = calState.monthKey;
+        const plan = JSON.parse(JSON.stringify(STATE.calendarPlan[monthKey] || {}));
+        if (!plannedDayCount(plan)) { setCalStatus("เดือนนี้ยังไม่มีแผนให้บันทึก — สร้างแผนก่อน", true); return; }
+        const existing = STATE.calendarSlots[i];
+        if (existing && existing.locked) { setCalStatus(`ช่อง ${i + 1} ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะบันทึกทับได้`, true); return; }
+        if (existing) {
+          const ok = await confirmDialog(`บันทึกทับช่อง ${i + 1} (${monthLabelOf(existing.monthKey)}) ด้วยแผน ${monthLabelOf(monthKey)} ตอนนี้?`, "บันทึกทับ", "ยกเลิก");
+          if (!ok) return;
+        }
+        if (JSON.stringify(plan).length > 45000) { setCalStatus("แผนใหญ่เกินกว่าจะบันทึกลงช่องได้", true); return; }
+        const now = new Date().toISOString();
+        const tags = [...calState.tags];
+        const prev = STATE.calendarSlots[i];
+        STATE.calendarSlots[i] = { monthKey, tags, plan, savedAt: now, lastOpenedAt: now, locked: false };
+        slotMenuOpen = null; renderCalSlots();
+        try {
+          await api("saveCalendarSlot", { slot: i + 1, monthKey, tags, plan });
+          setCalStatus(`บันทึกแผน ${monthLabelOf(monthKey)} ลงช่อง ${i + 1} แล้ว`, false);
+        } catch (e) {
+          STATE.calendarSlots[i] = prev || null; renderCalSlots();
+          setCalStatus(`บันทึกลงช่อง ${i + 1} ไม่สำเร็จ: ` + e.message, true);
+        }
+      }
+
+      async function openSlot(i) {
+        const slot = STATE.calendarSlots[i];
+        if (!slot) return;
+        const mk = slot.monthKey;
+        const hasCurrent = plannedDayCount(STATE.calendarPlan[mk]) > 0;
+        if (hasCurrent) {
+          const ok = await confirmDialog(`เปิดแผนจากช่อง ${i + 1}? แผน ${monthLabelOf(mk)} ที่แสดงอยู่ตอนนี้จะถูกแทนที่`, "เปิดแผนนี้", "ยกเลิก");
+          if (!ok) return;
+        }
+        STATE.calendarPlan[mk] = JSON.parse(JSON.stringify(slot.plan));
+        STATE.calendarTheme[mk] = { tags: slot.tags.slice() };
+        calState.monthKey = mk;
+        calState.tags = new Set(slot.tags);
+        document.getElementById("calMonth").value = mk.slice(0, 4) + "-" + mk.slice(4, 6);
+        slot.lastOpenedAt = new Date().toISOString();
+        slotMenuOpen = null;
+        renderCalTagChips(); renderCalendar(); renderCalSlots();
+        // Months older than the working-plan window would be pruned the
+        // moment they were written back, so those are shown only here (the
+        // slot itself still holds them).
+        const old = mk < calCutoffMonthKey();
+        try {
+          if (!old) queueMonthSave(mk, 0);
+          await api("touchCalendarSlot", { slot: i + 1 });
+          setCalStatus(old ? `เปิดแผนจากช่อง ${i + 1} แล้ว (เดือนนี้เก่ากว่า 2 เดือน — แสดงชั่วคราว ยังเก็บอยู่ในช่อง)` : `เปิดแผนจากช่อง ${i + 1} แล้ว`, false);
+        } catch (e) {
+          setCalStatus("เปิดแล้วในเครื่องนี้ แต่บันทึกกลับไม่สำเร็จ: " + e.message, true);
+        }
+      }
+
+      async function toggleSlotLock(i) {
+        const slot = STATE.calendarSlots[i];
+        if (!slot) return;
+        slot.locked = !slot.locked;
+        slot.lastOpenedAt = new Date().toISOString();
+        renderCalSlots();
+        try {
+          await api("setCalendarSlotLock", { slot: i + 1, locked: slot.locked });
+          setCalStatus(slot.locked ? `ล็อกช่อง ${i + 1} แล้ว — เก็บถาวร` : `ปลดล็อกช่อง ${i + 1} แล้ว — จะหมดอายุใน ${SLOT_TTL_DAYS} วันถ้าไม่เปิด`, false);
+        } catch (e) {
+          slot.locked = !slot.locked; renderCalSlots();
+          setCalStatus("บันทึกการล็อกไม่สำเร็จ: " + e.message, true);
+        }
+      }
+
+      async function clearSlot(i) {
+        const slot = STATE.calendarSlots[i];
+        if (!slot) return;
+        if (slot.locked) { setCalStatus(`ช่อง ${i + 1} ถูกล็อกอยู่ — ปลดล็อกก่อนจึงจะล้างได้`, true); return; }
+        const ok = await confirmDialog(`ล้างช่อง ${i + 1} (${monthLabelOf(slot.monthKey)})? ย้อนกลับไม่ได้`, "ล้างช่อง", "ยกเลิก");
+        if (!ok) return;
+        STATE.calendarSlots[i] = null; slotMenuOpen = null; renderCalSlots();
+        try {
+          await api("clearCalendarSlot", { slot: i + 1 });
+          setCalStatus(`ล้างช่อง ${i + 1} แล้ว`, false);
+        } catch (e) {
+          STATE.calendarSlots[i] = slot; renderCalSlots();
+          setCalStatus("ล้างช่องไม่สำเร็จ: " + e.message, true);
+        }
+      }
+
+      document.getElementById("calSlots").addEventListener("click", (e) => {
+        e.stopPropagation();
+        const act = e.target.closest("[data-act]"); if (!act) return;
+        const i = +act.closest(".cal-slot").dataset.i;
+        const kind = act.dataset.act;
+        if (kind === "main") {
+          if (!STATE.calendarSlots[i]) saveToSlot(i);
+          else { slotMenuOpen = slotMenuOpen === i ? null : i; renderCalSlots(); }
+        } else if (kind === "lock") toggleSlotLock(i);
+        else {
+          // Any menu choice closes the menu first, so it never lingers open
+          // behind a confirm dialog or after a refused action.
+          slotMenuOpen = null; renderCalSlots();
+          if (kind === "open") openSlot(i);
+          else if (kind === "overwrite") saveToSlot(i);
+          else if (kind === "clear") clearSlot(i);
+        }
       });
+      document.addEventListener("click", () => { if (slotMenuOpen !== null) { slotMenuOpen = null; renderCalSlots(); } });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && slotMenuOpen !== null) { slotMenuOpen = null; renderCalSlots(); } });
 
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
          time -- "สร้างแผน 2 วัน" uses the same pickForDay() for both days. ===== */
@@ -2311,7 +2854,7 @@
         STATE.calendarPlan[monthKey][day] = picks;
         renderCalendar();
         renderDayEditSlots();
-        queueDaySave(monthKey, day);
+        queueSave(monthKey, day);
       }
 
       const SLOT_LABELS = { 1: "หลัก 1", 2: "หลัก 2", 3: "หลัก 3", backup: "สำรอง" };
@@ -2367,8 +2910,9 @@
       function openDayEditor(monthKey, day) {
         dayEditState = { monthKey, day, tags: new Set(calState.tags) };
         const w = calWindow().find((x) => x.monthKey === monthKey && x.day === +day);
-        document.getElementById("dayEditTitle").textContent =
-          "แก้ไข" + (w ? (w.offset === 0 ? "วันนี้" : "พรุ่งนี้") + " · " + THAI_DOW_FULL[w.dow] + " " + w.day + " " + THAI_MON_SHORT[w.mon - 1] : " " + day);
+        document.getElementById("dayEditTitle").textContent = "แก้ไข" + (w
+          ? (w.offset === 0 ? "วันนี้" : "พรุ่งนี้") + " · " + THAI_DOW_FULL[w.dow] + " " + w.day + " " + THAI_MON_SHORT[w.mon - 1]
+          : " " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0"));
         renderDayEditSlots();
         renderDayEditTags();
         document.getElementById("dayEditSearch").value = "";
@@ -2460,8 +3004,36 @@
         renderCalendar();
       });
 
+      document.getElementById("calGenMonth").addEventListener("click", generateMonth);
+      document.getElementById("calClearMonth").addEventListener("click", async () => {
+        const monthKey = calState.monthKey;
+        const ok = await confirmDialog("ล้างทุกรายการและธีมของเดือนนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้", "ล้างเดือน", "ยกเลิก");
+        if (!ok) return;
+        clearTimeout(monthTimers[monthKey]);
+        delete pendingMonths[monthKey]; persistPendingMonths();
+        delete STATE.calendarPlan[monthKey];
+        delete STATE.calendarTheme[monthKey];
+        calState.tags = new Set();
+        renderCalTagChips();
+        renderCalendar();
+        try {
+          await api("clearCalendarMonth", { monthKey });
+          setCalStatus("ล้างข้อมูลเดือนนี้แล้ว", false);
+        } catch (e) {
+          setCalStatus("ล้างในเครื่องแล้ว แต่ล้างแผนที่แชร์ไม่สำเร็จ: " + e.message, true);
+        }
+      });
+      document.getElementById("calMonth").addEventListener("change", (e) => {
+        calState.monthKey = monthKeyOf(e.target.value);
+        const theme = STATE.calendarTheme[calState.monthKey];
+        calState.tags = new Set(theme ? theme.tags : []);
+        renderCalTagChips();
+        renderCalendar();
+      });
+
       function initCalendarDefaultMonth() {
         calState.monthKey = calWindow()[0].monthKey;
+        if (isMgr()) document.getElementById("calMonth").value = calState.monthKey.slice(0, 4) + "-" + calState.monthKey.slice(4, 6);
         const theme = STATE.calendarTheme[calState.monthKey];
         calState.tags = new Set(theme ? theme.tags : []);
       }
@@ -2628,10 +3200,25 @@
             tags: String(row.tagsCsv || "").split(",").filter(Boolean),
           };
         });
+        STATE.calendarSlots = [null, null, null];
+        (payload.calendarSlots || []).forEach((row) => {
+          const i = Number(row.slot) - 1;
+          if (!(i >= 0 && i < 3)) return;
+          let plan = {};
+          try { plan = JSON.parse(row.planJson || "{}"); } catch (e) { plan = {}; }
+          STATE.calendarSlots[i] = {
+            monthKey: String(row.monthKey), tags: String(row.tagsCsv || "").split(",").filter(Boolean), plan,
+            savedAt: row.savedAt, lastOpenedAt: row.lastOpenedAt,
+            locked: row.locked === true || row.locked === 1 || String(row.locked) === "1" || String(row.locked).toLowerCase() === "true",
+          };
+        });
+        STATE.drsPlan = (payload.drsPlan || []).map((r) => ({ ...r, monthKey: String(r.monthKey), day: Number(r.day), email: String(r.email).toLowerCase() }));
+        STATE.drsUsers = payload.drsUsers || [];
+        document.body.classList.toggle("role-mgr", isMgr());
         STATE.calendarPlan = {};
         const inWindow = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         (payload.calendarPlan || []).forEach((row) => {
-          if (!inWindow.has(dayKeyOf(row.monthKey, row.day))) return; // only today + tomorrow, even if an older server sends more
+          if (!isMgr() && !inWindow.has(dayKeyOf(row.monthKey, row.day))) return; // DRS: only today + tomorrow, even if an older server sends more
           if (!STATE.calendarPlan[row.monthKey]) STATE.calendarPlan[row.monthKey] = {};
           if (!STATE.calendarPlan[row.monthKey][row.day]) STATE.calendarPlan[row.monthKey][row.day] = [];
           STATE.calendarPlan[row.monthKey][row.day].push({ slot: String(row.slot), kind: row.kind, refId: String(row.refId), name: row.name || "" });
@@ -2824,6 +3411,8 @@
           buildings: rowObjects_(tabs.Buildings, BUILDING_FIELDS),
           calendarTheme: tabs.CalendarTheme ? rowObjects_(tabs.CalendarTheme) : [],
           calendarPlan: tabs.CalendarPlan ? rowObjects_(tabs.CalendarPlan) : [],
+          calendarSlots: tabs.CalendarSlots ? rowObjects_(tabs.CalendarSlots) : [],
+          drsPlan: tabs.DrsPlan ? rowObjects_(tabs.DrsPlan) : [],
         };
       }
 
@@ -2841,9 +3430,10 @@
             const data = await api("myData", {}, 90000);
             clearTimeout(slowTimer);
             STATE.email = data.email || null;
+            STATE.role = data.role || "DRS";
             setClaimed(data.claimedByOthers);
             document.getElementById("loginGate").style.display = "none";
-            if (!appInitialized) { initApp(reconstructPayload_(data.tabs)); appInitialized = true; }
+            if (!appInitialized) { const payload = reconstructPayload_(data.tabs); payload.drsUsers = data.drsUsers || []; initApp(payload); appInitialized = true; }
             return;
           } catch (e) {
             clearTimeout(slowTimer);
@@ -2863,7 +3453,11 @@
         if (USE_MOCK) {
           document.getElementById("loginGate").style.display = "none";
           document.getElementById("mockBanner").style.display = "block";
-          initApp(MOCK_PAYLOAD);
+          const mockRole = (new URLSearchParams(location.search).get("role") || "drs").toUpperCase(); // ?mock&role=pbh previews the manager view
+          STATE.role = ["PBH", "CM", "ADMIN"].includes(mockRole) ? mockRole : "DRS";
+          const wd = calWindow();
+          const mockPlan = (email, ids) => ids.map((id, i) => ({ email, monthKey: wd[0].monthKey, day: wd[0].day, slot: ["1", "2", "3"][i] || "backup", kind: id[0] === "v" ? "village" : "building", refId: id, name: "" }));
+          initApp({ ...MOCK_PAYLOAD, drsUsers: ["drs1@example.com", "drs2@example.com"], drsPlan: [...mockPlan("drs1@example.com", ["v1", "v3", "b1"]), ...mockPlan("drs2@example.com", ["v5"])] });
           appInitialized = true;
           return;
         }

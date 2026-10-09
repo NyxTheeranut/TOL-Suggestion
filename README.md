@@ -1,7 +1,7 @@
 # TOL Suggestion
 
 Village &amp; building sales planner for BMA-West — search/demographic lookup,
-a tag-based recommendation list, and a two-day (today + tomorrow) visit calendar in which every planned place is reserved for the rep — read
+a tag-based recommendation list, and a visit calendar — two days (today + tomorrow) for DRS, a whole month for PBH / CM — in which every planned place is reserved for 7 days — read
 live from a Google Sheet, same architecture as `TOL Tracker` / `L2 Discount
 Map` / `Route Planner` elsewhere in this Dashboard.
 
@@ -31,7 +31,8 @@ compact per-property records with tags (`high_available`, `large`,
 `sync/update_suggestion_sheet.py` pushes those into the Sheet's `Villages` /
 `Buildings` tabs; it never touches `CalendarTheme` / `CalendarPlan` — those
 belong to the live page itself (any signed-in viewer plans today's and
-tomorrow's picks; each place planned is reserved for that viewer for 10 days).
+tomorrow's picks (DRS) or a month's (PBH / CM); each place planned is reserved
+for that viewer for 7 days).
 
 Run `python3 sync/aggregate_suggestion.py --sample` any time to eyeball the
 curated fields + tag counts against the raw workbooks before trusting a sync.
@@ -133,19 +134,24 @@ useful for reviewing the UI without any of that setup.
 - `Villages` / `Buildings` — one row per property: location, household/unit
   counts, ports, latest active, competitor total, market share, fault/churn,
   the business's own existing sales grading, computed tags, and `autoScore`.
-- `Users` — `email | note` allow-list.
+- `Users` — `email | role | note` allow-list. `role` is `PBH`, `CM`, `ADMIN` or `DRS`
+  (blank/unknown = DRS): PBH / CM / ADMIN get the monthly calendar and a view-only panel of
+  every DRS's two-day plan; DRS get the two-day calendar.
 - `CalendarTheme` — one row per (month, viewer): that viewer's selected
   theme tags (`updatedBy` is the key, not just `monthKey`).
-- `CalendarPlan` — one row per (month, day, slot, viewer) pick, saved via
-  `saveCalendarDays`. Only **today and tomorrow** (Asia/Bangkok) can be written
-  and `myData` only returns those two days, so nobody holds a month of the
-  village list at once. `myData` only returns the signed-in viewer's own rows.
+- `CalendarPlan` — one row per (month, day, slot, viewer) pick. A DRS saves via
+  `saveCalendarDays` — only **today and tomorrow** (Asia/Bangkok) can be written and
+  `myData` only returns those two days. PBH / CM save a whole month via
+  `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
+  additionally get every DRS's two-day rows, read-only).
+- `CalendarSlots` — up to 3 saved month plans per PBH / CM.
 - `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt | releasedAt`.
-  Planning a place reserves it for 10 days (counted from `claimedAt`); nobody
-  else can plan it until it expires or its owner removes it (`releasedAt`).
-  `saveCalendarDays` takes a script lock, so two reps racing for one place can't
-  both get it; losers are told which picks to replace. Each rep can be given at
-  most 20 new places per day (`CALENDAR_CLAIM_DAILY_CAP`).
+  Planning a place reserves it for 7 days (counted from `claimedAt`); nobody else
+  can plan it until it expires or its owner removes it (`releasedAt`). Saves take a
+  script lock, so two people racing for one place can't both get it; losers are
+  told which picks to replace. A DRS can be given at most 20 new places per day,
+  a PBH / CM 500 (`CALENDAR_CLAIM_DAILY_CAP[_MANAGER]`). The role is checked
+  server-side on every save (`wrong_role` otherwise).
 
 ## Security notes
 
