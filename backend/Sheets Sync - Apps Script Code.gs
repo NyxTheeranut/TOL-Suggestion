@@ -32,8 +32,12 @@
  *                  a released or expired place is deleted from the sheet).
  *                  While a row exists (7 days from claimedAt) nobody else can
  *                  plan that place.
- * Roles (Users tab, column "role"): PBH / CM / ADMIN get the full monthly calendar
- * and can view every DRS's two-day plan; DRS gets the two-day calendar only.
+ *   DrsRoster      1 row per (weekday, DRS) -- weekday (1=Mon..7=Sun) | email |
+ *                  updatedBy | updatedAt. Which DRS work on which weekday; used to
+ *                  generate the next day's assignments.
+ * Roles (Users tab, column "role"): PBH / CM / ADMIN get the full monthly calendar,
+ * the DRS roster, and build/assign each DRS's two days; a DRS only sees what was
+ * assigned to them (today + tomorrow, read-only).
  * No role -> DRS (the most restricted).
  * "Users" -- who's allowed to view the dashboard: an email allow-list plus
  *   an optional role column. Created automatically (with a sample row) the first time anyone
@@ -48,8 +52,10 @@
  *                                      own machine -- gated by SYNC_SECRET
  *                                      instead (not a person signing in).
  *   saveCalendarTheme                -> any allow-listed signed-in viewer.
- *   saveCalendarDays                 -> everyone (today + tomorrow). DRS use only this;
- *                                      managers use it for their "2 วัน" view too.
+ *   saveCalendarDays                 -> PBH / CM / ADMIN only (their own "2 วัน" view).
+ *   assignDrsDays / saveDrsRoster    -> PBH / CM / ADMIN only: build a DRS's two days,
+ *                                      and say which DRS work on which weekday.
+ *   (a DRS can no longer build or save any plan -- they only receive what a manager assigned)
  *   saveCalendarMonth / ...Slot / clearCalendarMonth -> PBH / CM / ADMIN only.
  *
  * ── SETUP (one-time) -- see this repo's README.md for the full walkthrough ─
@@ -275,15 +281,15 @@ function doPost(e) {
       return jsonResponse_({ ok: true });
     }
 
-    // Two calendars, chosen by the viewer's role (Users tab):
-    //   DRS       -> saveCalendarDays: today + tomorrow only (see saveCalendarDays_).
-    //   PBH / CM / ADMIN -> the monthly calendar (saveCalendarMonth / ...Slot /
-    //                clearCalendarMonth) AND saveCalendarDays for their "2 วัน" view,
-    //                which edits the same plan (today + tomorrow of it).
-    // Every place either of them plans is "claimed" for CALENDAR_CLAIM_DAYS so
-    // nobody else is handed it. The role is checked HERE, not just in the page.
+    // Plans are built by managers (PBH / CM / ADMIN) only. A DRS cannot save a plan:
+    // a manager assigns their two days (assignDrsDays) from the day roster
+    // (saveDrsRoster). Every place planned is "claimed" for CALENDAR_CLAIM_DAYS so
+    // nobody else is handed it; a claim sits under the DRS it was assigned to.
+    // The role is checked HERE, not just in the page.
     if (
       body.action === "saveCalendarDays" ||
+      body.action === "assignDrsDays" ||
+      body.action === "saveDrsRoster" ||
       body.action === "saveCalendarMonth" ||
       body.action === "clearCalendarMonth" ||
       body.action === "saveCalendarSlot" ||
@@ -295,10 +301,14 @@ function doPost(e) {
       var roleC = emailC ? userRole_(emailC) : null;
       if (!emailC || !roleC)
         return jsonResponse_({ ok: false, error: "not_signed_in" });
-      if (body.action === "saveCalendarDays")
-        return jsonResponse_(saveCalendarDays_(body.days || [], emailC, roleC));
       if (!isManager_(roleC))
         return jsonResponse_({ ok: false, error: "wrong_role" });
+      if (body.action === "saveCalendarDays")
+        return jsonResponse_(saveCalendarDays_(body.days || [], emailC, roleC));
+      if (body.action === "assignDrsDays")
+        return jsonResponse_(assignDrsDays_(body.assignments || [], emailC));
+      if (body.action === "saveDrsRoster")
+        return jsonResponse_(saveDrsRoster_(body.weekday, body.emails || [], emailC));
       if (body.action === "saveCalendarMonth")
         return jsonResponse_(
           saveCalendarMonth_(
@@ -484,6 +494,9 @@ function myData_(idToken) {
             }),
     };
     extra.drsUsers = drs;
+    var rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DrsRoster");
+    var rv = rosterSheet ? rosterSheet.getDataRange().getValues() : [];
+    tabs.DrsRoster = rv.length ? { header: rv[0], rows: rv.slice(1) } : { header: DRS_ROSTER_HEADER, rows: [] };
   } else {
     tabs.CalendarPlan = windowPlanRows_(own); // DRS: only today + tomorrow ever leave the server
   }
@@ -1035,25 +1048,99 @@ function claimedByOthers_(email) {
     });
 }
 
-// Today + tomorrow only. A DRS's whole plan IS those two days; a manager's plan
-// is a whole month, so for them "still planned" counts every day (a place dropped
-// from today but planned on the 20th must keep its reservation).
+// A manager's own two-day view: today + tomorrow of THEIR plan. A manager's plan is
+// a whole month, so for them "still planned" counts every day (a place dropped from
+// today but planned on the 20th must keep its reservation).
 function saveCalendarDays_(days, email, role) {
-  var allowed = windowAllowed_(),
-    mgr = isManager_(role);
+  if (!isManager_(role)) return { ok: false, error: "wrong_role" };
+  var allowed = windowAllowed_();
   return savePlanDays_(days, email, {
     allowed: function (mk, dn) {
       return !!allowed[mk + ":" + dn];
     },
-    counts: mgr
-      ? function () {
-          return true;
-        }
-      : function (row) {
-          return !!allowed[String(row[0]) + ":" + Number(row[1])];
-        },
-    cap: mgr ? CALENDAR_CLAIM_DAILY_CAP_MANAGER : CALENDAR_CLAIM_DAILY_CAP,
+    counts: function () {
+      return true;
+    },
+    cap: CALENDAR_CLAIM_DAILY_CAP_MANAGER,
   });
+}
+
+// Manager builds DRS plans. assignments: [{email, days: [{monthKey, day, picks}]}].
+// Rows and claims are stored under the DRS's own email; the daily count is charged
+// to the manager. Returns one result per DRS.
+function assignDrsDays_(assignments, actor) {
+  var allowed = windowAllowed_();
+  var drsEmails = readUsers_()
+    .filter(function (u) {
+      return u.role === "DRS";
+    })
+    .map(function (u) {
+      return u.email;
+    });
+  var results = [],
+    last = null;
+  (assignments || []).forEach(function (a) {
+    var target = String((a && a.email) || "").toLowerCase();
+    if (drsEmails.indexOf(target) === -1) {
+      results.push({ email: target, ok: false, error: "not_a_drs" });
+      return;
+    }
+    var r = savePlanDays_(a.days || [], target, {
+      allowed: function (mk, dn) {
+        return !!allowed[mk + ":" + dn];
+      },
+      counts: function (row) {
+        return !!allowed[String(row[0]) + ":" + Number(row[1])];
+      },
+      cap: CALENDAR_CLAIM_DAILY_CAP_MANAGER,
+      quotaEmail: actor,
+      viewer: actor,
+      shareWith: drsEmails, // only a place held by another DRS can be shared (never a manager's)
+    });
+    last = r;
+    results.push({ email: target, ok: true, conflicts: r.conflicts, capReached: r.capReached, outsideWindow: r.outsideWindow });
+  });
+  return { ok: true, results: results, claimedByOthers: last ? last.claimedByOthers : claimedByOthers_(actor) };
+}
+
+// ---------- DrsRoster: which DRS work on which weekday ----------
+var DRS_ROSTER_HEADER = ["weekday", "email", "updatedBy", "updatedAt"];
+
+// Replaces the roster for ONE weekday (1 = Monday .. 7 = Sunday) with these DRS.
+function saveDrsRoster_(weekday, emails, actor) {
+  var wd = Number(weekday);
+  if (!(wd >= 1 && wd <= 7) || wd !== Math.floor(wd)) return { ok: false, error: "bad_weekday" };
+  var drs = {};
+  readUsers_().forEach(function (u) {
+    if (u.role === "DRS") drs[u.email] = true;
+  });
+  var chosen = [];
+  (emails || []).forEach(function (e) {
+    var em = String(e).toLowerCase();
+    if (drs[em] && chosen.indexOf(em) === -1) chosen.push(em);
+  });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("DrsRoster") || ss.insertSheet("DrsRoster");
+    var width = DRS_ROSTER_HEADER.length;
+    var rows = normalizeRows_(sheet.getDataRange().getValues().slice(1), width).filter(function (r) {
+      return Number(r[0]) !== wd;
+    });
+    var now = new Date().toISOString();
+    chosen.forEach(function (em) {
+      rows.push([String(wd), em, actor, now]);
+    });
+    sheet.clearContents();
+    sheet.getRange(1, 1, sheet.getMaxRows(), width).setNumberFormat("@");
+    sheet.getRange(1, 1, 1, width).setValues([DRS_ROSTER_HEADER]);
+    if (rows.length) sheet.getRange(2, 1, rows.length, width).setValues(rows);
+    sheet.setFrozenRows(1);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, weekday: wd, emails: chosen };
 }
 
 // "YYYYMM" n months from now (n may be 0).
@@ -1163,7 +1250,9 @@ function savePlanDays_(days, email, opts) {
     });
     // New places handed to this person today (released ones included) -- kept
     // in a small counter, not in CalendarClaims, so released rows can be deleted.
-    var newToday = readQuotaToday_(email, todayKey);
+    var quotaEmail = opts.quotaEmail || email; // who the daily count is charged to
+    var viewer = opts.viewer || email; // whose "held by others" list is returned
+    var newToday = readQuotaToday_(quotaEmail, todayKey);
     var newTodayStart = newToday;
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1199,7 +1288,22 @@ function savePlanDays_(days, email, opts) {
       (d.picks || []).slice(0, 4).forEach(function (p) {
         var key = String(p.kind) + ":" + String(p.refId);
         var held = byKey[key];
-        if (held && held[2] !== email) {
+        // A manager may send several DRS to the SAME place on the SAME day (a big
+        // village): the claim stays with the first DRS, and the others are fine as
+        // long as that holder is a DRS who is also planned there on this very day.
+        var sharedToday =
+          opts.shareWith &&
+          held &&
+          opts.shareWith.indexOf(held[2]) !== -1 &&
+          kept.some(function (row) {
+            return (
+              row[5] === held[2] &&
+              String(row[0]) === mk &&
+              Number(row[1]) === dn &&
+              String(row[3]) + ":" + String(row[4]) === key
+            );
+          });
+        if (held && held[2] !== email && !sharedToday) {
           conflicts.push({ kind: String(p.kind), refId: String(p.refId) });
           return;
         }
@@ -1235,8 +1339,18 @@ function savePlanDays_(days, email, opts) {
     Object.keys(previous).forEach(function (key) {
       var c = byKey[key];
       if (!stillPlanned[key] && c && c[2] === email) {
-        c[5] = nowIso;
-        delete byKey[key];
+        // Someone else (a DRS sent to the same village that day) still plans it:
+        // hand the claim over instead of freeing the place.
+        var heir = null;
+        kept.forEach(function (row) {
+          if (!heir && row[5] !== email && String(row[3]) + ":" + String(row[4]) === key) heir = row[5];
+        });
+        if (heir) {
+          c[2] = heir;
+        } else {
+          c[5] = nowIso;
+          delete byKey[key];
+        }
       }
     });
 
@@ -1254,7 +1368,7 @@ function savePlanDays_(days, email, opts) {
     claims = claims.filter(function (r) {
       return claimIsActive_(r, nowMs);
     });
-    if (newToday !== newTodayStart) writeQuotaToday_(email, todayKey, newToday);
+    if (newToday !== newTodayStart) writeQuotaToday_(quotaEmail, todayKey, newToday);
     var cs = claimsSheet_();
     cs.clearContents();
     cs.getRange(
@@ -1278,7 +1392,7 @@ function savePlanDays_(days, email, opts) {
       conflicts: conflicts,
       capReached: capReached,
       outsideWindow: outside,
-      claimedByOthers: claimedByOthers_(email),
+      claimedByOthers: claimedByOthers_(viewer),
     };
   } finally {
     lock.releaseLock();

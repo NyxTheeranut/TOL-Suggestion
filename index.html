@@ -243,6 +243,7 @@
       .export-menu button:hover { background: var(--panel-2); }
       /* mgr-only: managers always. month-only: managers in the monthly view. days-only: DRS always, managers in the 2-day view. */
       body:not(.role-mgr) .mgr-only, body:not(.role-mgr) .month-only { display: none !important; }
+      body.role-mgr .drs-only { display: none !important; }
       body.role-mgr.view-days .month-only { display: none !important; }
       body.role-mgr:not(.view-days) .days-only { display: none !important; }
       .drs-block { margin-bottom: 18px; }
@@ -843,6 +844,45 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 }
 
     </style>
+  <style id="roster-css">
+      /* ── DRS roster + assignment (managers) ─────────────────────────────── */
+      .drs-intro { margin: 0 0 14px; }
+      .roster-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; width: fit-content; max-width: 100%; }
+      .roster-tab { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 6px 14px; border: none; background: transparent; border-radius: 9px; font-size: 13.5px; font-weight: 500; color: var(--text-2); transition: background .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease); }
+      .roster-tab:hover { color: var(--ink); }
+      .roster-tab[aria-selected="true"] { background: var(--panel); color: var(--accent-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 61, 56, .12), 0 0 0 1px var(--line); }
+      .roster-tab .rn { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; min-width: 20px; text-align: center; padding: 0 5px; border-radius: 999px; background: var(--line-2); color: var(--text-3); }
+      .roster-tab[aria-selected="true"] .rn { background: var(--accent-soft); color: var(--accent-ink); }
+      .roster-tab .rn.zero { opacity: .55; }
+      .roster-panel { margin-top: 12px; padding: 14px 16px; border-radius: 12px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+      .roster-panel h3 { font-size: 14.5px; font-weight: 600; margin-bottom: 8px; }
+      .roster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 14px; }
+      .rchk { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 10px; border-radius: 9px; cursor: pointer; font-size: 13.5px; overflow-wrap: anywhere; transition: background .16s var(--ease); }
+      .rchk:hover { background: var(--panel); }
+      .rchk input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+      .assign-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 16px 0 6px; padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); }
+      .assign-bar .ab-info { flex: 1 1 260px; min-width: 0; font-size: 13.5px; color: var(--ink); }
+      .assign-bar .ab-info small { display: block; color: var(--text-2); font-size: 12.5px; margin-top: 2px; }
+      .assign-msg { font-size: 13px; color: var(--text-2); margin: 4px 0 14px; min-height: 18px; }
+      .drs-block { margin-bottom: 18px; }
+      .drs-block h4 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .drs-tag { font: 500 11.5px/1.6 var(--font-body); padding: 0 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); }
+      .big-note { font-size: 12.5px; color: var(--accent-ink); background: var(--accent-soft); border-radius: 8px; padding: 4px 10px; align-self: flex-start; }
+      .cp-script { display: inline-block; margin-top: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+      .cp-script:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+      .script-note { font-size: 12.5px; background: var(--st-warn-soft); color: var(--st-warn); border-radius: 9px; padding: 8px 12px; margin-bottom: 12px; }
+      .script-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border-radius: 12px; margin-bottom: 10px; background: var(--panel-2); }
+      .script-mode .sm-badge { font-family: var(--font-head); font-size: 16px; font-weight: 700; padding: 3px 12px; border-radius: 9px; background: var(--ink); color: var(--panel); }
+      .script-mode .sm-badge small { font: 500 11.5px var(--font-body); opacity: .75; margin-left: 4px; }
+      .script-mode .sm-why { font-size: 13.5px; color: var(--text-2); }
+      .script-mode.tone-good { background: var(--st-good-soft); } .script-mode.tone-good .sm-badge { background: var(--st-good); color: #fff; }
+      .script-mode.tone-warn { background: var(--st-warn-soft); } .script-mode.tone-warn .sm-badge { background: var(--st-warn); color: #fff; }
+      .script-mode.tone-crit { background: var(--st-crit-soft); } .script-mode.tone-crit .sm-badge { background: var(--st-crit); color: #fff; }
+      .script-step { margin-bottom: 14px; }
+      .script-step h4 { font-family: var(--font-head); font-size: 14px; margin: 0 0 4px; color: var(--accent-ink); }
+      .script-step p, .script-step li { font-size: 14px; line-height: 1.65; margin: 0 0 4px; }
+      .script-step ul { margin: 0; padding-left: 20px; }
+    </style>
   </head>
   <body>
     <a class="skip-link" href="#app" id="skipLink">ข้ามไปยังเนื้อหา</a>
@@ -979,15 +1019,17 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           <div class="card">
             <div class="cal-head">
               <h2 class="days-only">แผนเข้าพื้นที่ วันนี้ · พรุ่งนี้</h2>
+              <button class="btn drs-only" id="myRefresh" type="button">รีเฟรชแผน</button>
               <h2 class="month-only">ปฏิทินการขายรายเดือน</h2>
               <div class="cal-head-right">
                 <div class="cal-slots month-only" id="calSlots" role="group" aria-label="ช่องบันทึกแผน"></div>
                 <div class="kind-toggle mgr-only" id="calView" role="group" aria-label="มุมมองปฏิทิน"><button data-v="month" class="active">รายเดือน</button><button data-v="days">2 วัน</button></div>
               </div>
             </div>
-            <div class="hint days-only">แสดงแค่ 2 วัน — พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · สถานที่ที่วางแผนแล้วจะถูกจองให้คุณ 7 วัน ไม่ถูกแจกให้เซลล์คนอื่น</div>
+            <div class="hint drs-only">แผนที่หัวหน้าจัดให้คุณ — วันนี้และพรุ่งนี้ (ดูอย่างเดียว) · พอครบวัน วันที่ผ่านแล้วจะหายไปเอง · ถ้าต้องการเปลี่ยนแผนให้แจ้งหัวหน้า</div>
+            <div class="hint days-only mgr-only">แผนของคุณเอง 2 วัน · สถานที่ที่วางแผนแล้วจะถูกจอง 7 วัน ไม่ถูกแจกให้คนอื่น · จัดแผนให้ DRS ได้ที่การ์ด “จัดแผนให้ DRS” ด้านล่าง</div>
             <div class="hint month-only">สถานที่ที่วางแผนแล้วจะถูกจอง 7 วัน ไม่ถูกแจกให้ DRS หรือผู้จัดการคนอื่น · ดูแผน 2 วันของแต่ละ DRS ได้ด้านล่าง</div>
-            <div class="cal-controls">
+            <div class="cal-controls mgr-only">
               <div class="kind-toggle" id="calKind">
                 <button data-v="both" class="active">หมู่บ้าน + อาคาร</button>
                 <button data-v="village">หมู่บ้าน</button>
@@ -1007,9 +1049,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
               </div>
               <input type="month" id="calMonth" class="month-only">
             </div>
-            <div class="tag-chips" id="calTags"></div>
-            <div class="cal-pool-summary" id="calPoolSummary"></div>
-            <div class="district-panel" style="max-height:190px;margin-top:6px;">
+            <div class="tag-chips mgr-only" id="calTags"></div>
+            <div class="cal-pool-summary mgr-only" id="calPoolSummary"></div>
+            <div class="district-panel mgr-only" style="max-height:190px;margin-top:6px;">
               <div class="amphur-row" id="calAmphurRow"></div>
               <button class="district-clear" id="calDistrictClearBtn">ล้างตัวกรองเขต/ตำบล</button>
               <div id="calDistrictGrid"></div>
@@ -1022,13 +1064,17 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           </div>
           <div class="card mgr-only" id="drsCard">
             <div class="cal-head">
-              <h2>แผน 2 วันของ DRS</h2>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <h2>จัดแผนให้ DRS</h2>
+              <div class="cal-head-right">
                 <select id="drsPick" aria-label="เลือก DRS"></select>
-                <button class="btn" id="drsRefresh">↻ รีเฟรช</button>
+                <button class="btn" id="drsRefresh" type="button">รีเฟรช</button>
               </div>
             </div>
-            <div class="hint">ดูอย่างเดียว — แสดงวันนี้และพรุ่งนี้ของ DRS แต่ละคน (กดรีเฟรชเพื่อดึงข้อมูลล่าสุด)</div>
+            <div class="hint drs-intro">เลือกว่า DRS คนไหนทำงานวันไหนของสัปดาห์ แล้วกดให้ระบบสร้างแผนของวันนั้นให้ · DRS แก้แผนเองไม่ได้ ต้องให้หัวหน้าจัดให้เท่านั้น</div>
+            <div class="roster-tabs" id="rosterTabs" role="tablist" aria-label="วันในสัปดาห์"></div>
+            <div class="roster-panel" id="rosterPanel" role="tabpanel"></div>
+            <div class="assign-bar" id="assignBar"></div>
+            <div class="assign-msg" id="assignMsg" role="status" aria-live="polite"></div>
             <div id="drsGrid"></div>
           </div>
         </div>
@@ -1102,7 +1148,10 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         calendarPlan: {},  // monthKey -> { day -> [{slot,kind,refId}] }
         claimed: new Set(),                // places other reps currently hold ("kind:id")
         role: "DRS",                       // "PBH" / "CM" / "ADMIN" (monthly calendar) or "DRS" (two-day calendar) -- from the Users tab
-        drsUsers: [], drsPlan: [],         // managers only: every DRS and their two-day plans
+        drsUsers: [], drsPlan: [],         // managers only: every DRS and their two-day plans (raw rows)
+        drsPlanMap: {},                    // managers only: email -> monthKey -> day -> picks (what is shown and edited)
+        roster: {},                        // managers only: ISO weekday (1=Mon..7=Sun) -> [DRS emails who work that day]
+        rosterDay: 1, assignTarget: 1,     // managers only: selected weekday tab; 0 = assign today, 1 = tomorrow
         calendarSlots: [null, null, null], // managers only: saved month plans
         calView: "month",                  // managers only: "month" or "days" (their plan is one; this is which view of it)
         idToken: null,
@@ -1111,11 +1160,11 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const TAGS = [
         { key: "high_available", label: "พอร์ตว่างสูง" },
         { key: "large", label: "ขนาดใหญ่ (ครัวเรือน/ยูนิต)" },
-        { key: "low_fault", label: "Fault น้อย" },
+        { key: "low_fault", label: "Fault < 4%" },
         { key: "true_win", label: "True ชนะ" },
         { key: "fibre3_win", label: "Fibre3 ชนะ" },
         { key: "nt_win", label: "NT ชนะ" },
-        { key: "has_l2", label: "มี L2" },
+        { key: "has_l2", label: "L2 discount" },
         { key: "net_add_pos", label: "Net Add บวก" },
         { key: "net_add_neg", label: "Net Add ติดลบ" },
       ];
@@ -1213,6 +1262,14 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         // fix as mksWinner() below.
         if (v == null || !rivals.length || (v === 0 && rivals.every((x) => x === 0))) return "";
         return v >= Math.max(...rivals) ? "mks-true-win" : "mks-true-lose";
+      }
+      // All faults (truck roll + the other kinds) per active subscriber; null when it can't be worked out.
+      const LOW_FAULT_RATE = 0.04;
+      function faultRateOf(r) {
+        const a = r.faultTruckRoll, b = r.faultOther;
+        if (a == null && b == null) return null;
+        if (!r.active) return null;
+        return ((a || 0) + (b || 0)) / r.active;
       }
       function hhOf(r) { return kindOf(r) === "village" ? r.houseAll : r.units; }
 
@@ -1409,6 +1466,82 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       }
 
       let modalRecord = null;
+      /* ===== sales script (MOCK, rule-based) =====
+         Which script a place gets depends on who leads the MKS there:
+           True leads                         -> DEFEND   (keep and grow the customers True has)
+           a competitor leads, gap < 10 pts   -> CONVERT  (it is close: win over the undecided)
+           a competitor leads, gap >= 10 pts  -> ATTACK   (clearly behind: go in hard, with proof and offers)
+           no MKS data                        -> EXPLORE  (ask first)
+         The wording is placeholder text; the real scripts will replace the step texts later,
+         the rule can stay. */
+      const SCRIPT_CONVERT_GAP = 0.10; // MKS is a fraction (0.10 = 10 percentage points)
+      const SCRIPT_MODES = {
+        defend: { th: "ป้องกัน", en: "Defend", tone: "good" },
+        convert: { th: "โน้มน้าว", en: "Convert", tone: "warn" },
+        attack: { th: "บุก", en: "Attack", tone: "crit" },
+        explore: { th: "สำรวจ", en: "Explore", tone: "none" },
+      };
+      function scriptModeOf(r) {
+        const w = mksWinner(r);
+        if (!w) return { mode: "explore", reason: "ยังไม่มีข้อมูลส่วนแบ่งตลาด (MKS) ของที่นี่" };
+        const mine = r.mksTrue || 0;
+        if (w.key === "true") return { mode: "defend", leader: w, gap: 0, reason: `True นำอยู่ที่ ${pct(mine)}` };
+        const gap = (w.v || 0) - mine;
+        return { mode: gap >= SCRIPT_CONVERT_GAP ? "attack" : "convert", leader: w, gap, reason: `${w.label} นำ ${pct(w.v)} เทียบกับ True ${pct(mine)} (ห่าง ${Math.round(gap * 1000) / 10} จุด)` };
+      }
+      function salesScriptFor(r) {
+        const isV = kindOf(r) === "village", unit = isV ? "ครัวเรือน" : "ยูนิต";
+        const m = scriptModeOf(r), net = netAddOf(r), hh = hhOf(r), free = r.totalAvailable;
+        const l2 = (r.l2Points || []).map((p) => p.discPct).filter((v) => v != null);
+        const rival = m.leader && m.leader.key !== "true" ? m.leader.label : "เจ้าอื่น";
+        const facts = [];
+        if (free != null && free > 0) facts.push(`ยังมีพอร์ตว่าง ${whole(free)} พอร์ต ติดตั้งได้เร็ว ไม่ต้องรอลากสายใหม่`);
+        if (l2.length) facts.push(`มีโปรส่วนลดที่จุดนี้ สูงสุด ${pct(Math.max(...l2))} (L2 discount)`);
+        if (faultRateOf(r) == null || faultRateOf(r) < LOW_FAULT_RATE) facts.push("งานซ่อมในพื้นที่น้อย เครือข่ายเสถียร");
+        const head = { h: "1. เปิดการสนทนา", p: `สวัสดีครับ/ค่ะ ผม/ดิฉันมาจากทรู ดูแลพื้นที่ ${r.name || ""} ขออนุญาตใช้เวลาสั้น ๆ ครับ/ค่ะ` };
+        const where = { h: `ข้อมูลของที่นี่ (${hh != null ? whole(hh) + " " + unit : "ไม่ทราบจำนวน" + unit})`, items: facts.length ? facts : ["ยังไม่มีข้อมูลเด่นเพิ่มเติม"] };
+        const by = {
+          defend: [
+            head,
+            { h: "2. ขอบคุณและเช็กความพอใจ", p: "ขอบคุณที่ใช้ทรูนะครับ/คะ ตอนนี้ความเร็วและสัญญาณเป็นอย่างไรบ้าง มีช่วงไหนที่สะดุดหรือติดต่อศูนย์บริการยากไหม" },
+            { h: "3. เพิ่มมูลค่าให้ลูกค้าเดิม", items: ["เสนออัปเกรดความเร็วหรือแพ็กเกจที่เหมาะกับจำนวนคนในบ้านตอนนี้", "ชวนเพิ่มบริการที่ใช้ร่วมกัน (กล่องทีวี / เบอร์มือถือ) เพื่อได้ราคารวมที่ดีกว่า", ...(net != null && net < 0 ? [`ช่วงนี้ลูกค้าในพื้นที่ลดลง ${Math.abs(net)} ราย — ถามหาเหตุผล แล้วแก้ที่ต้นเหตุก่อน`] : [])] },
+            where,
+            { h: "4. กันไม่ให้ลูกค้าย้ายไปเจ้าอื่น", items: [`“มีเจ้าอื่นมาเสนอ” → ขอดูข้อเสนอ แล้วเทียบความเร็วจริง ความเสถียร และบริการหลังการขาย ไม่ต้องรีบตัดสินใจ`, "“ราคาของเขาถูกกว่า” → เสนอส่วนลดสำหรับลูกค้าเก่า หรือปรับแพ็กเกจให้เหมาะกับการใช้งานจริง"] },
+            { h: "5. ปิดท้าย", p: "ขอบคุณอีกครั้ง และขอให้แนะนำเพื่อนบ้านที่ยังไม่มีอินเทอร์เน็ตบ้าน — เพราะคนที่ใช้อยู่แล้วคือเสียงที่น่าเชื่อถือที่สุด" },
+          ],
+          convert: [
+            head,
+            { h: "2. ฟังก่อน", p: `ตอนนี้ใช้อินเทอร์เน็ตเจ้าไหนอยู่ครับ/คะ ทุกอย่างโอเคไหม มีอะไรที่อยากให้ดีกว่านี้บ้าง (ที่นี่ทรูกับ${rival}สูสีกัน ลูกค้าหลายบ้านกำลังเปรียบเทียบอยู่)` },
+            { h: "3. ให้เหตุผลที่จะลองเปลี่ยน", items: ["ขอให้ลองเทียบความเร็วจริงที่บ้านลูกค้าวันนี้ ไม่ต้องตัดสินใจทันที", `เปลี่ยนมาได้โดยไม่ต้องกังวล: ช่วยดูเรื่องสัญญาเดิมของ${rival} และวันติดตั้งที่ไม่ทำให้เน็ตหลุด`, "ถ้าในบ้านมีหลายคนใช้พร้อมกัน ให้เน้นความเสถียรเวลาใช้งานหนัก"] },
+            where,
+            { h: "4. ถ้าลูกค้าบอกว่า…", items: ["“ใช้เจ้าเดิมมานานแล้ว” → ไม่ได้ขอให้เลิกทันที แค่ขอเสนอให้เห็นภาพเทียบกัน", "“กลัวยุ่งยาก” → ทรูจัดการเรื่องติดตั้งและย้ายให้ ลูกค้าแค่เลือกวันที่สะดวก"] },
+            { h: "5. ปิดท้าย", p: "ขอเบอร์/ไลน์ นัดวันเข้าไปวัดความเร็วเทียบให้ดู หรือนัดติดตั้งถ้าลูกค้าพร้อมแล้ว" },
+          ],
+          attack: [
+            head,
+            { h: "2. เปิดประเด็นเร็ว", p: `ที่นี่ลูกค้าส่วนใหญ่ยังใช้${rival}อยู่ — ขอแนะนำทางเลือกที่เร็วกว่าและคุ้มกว่าครับ/ค่ะ ขอวัดความเร็วที่บ้านให้ดูฟรีสัก 2 นาที` },
+            { h: "3. จุดที่ต้องเน้นหนัก", items: ["พิสูจน์ด้วยตัวเลข: ทดสอบความเร็วเทียบที่หน้าบ้านลูกค้า", `ข้อเสนอที่ทำให้ตัดสินใจวันนี้: ส่วนลดค่าติดตั้ง/โปรเดือนแรก (จำกัดช่วงเวลา) ที่${rival}ไม่มี`, "ใช้เสียงจากเพื่อนบ้านที่เพิ่งเปลี่ยนมา (ถ้ามี) เป็นตัวอย่าง"] },
+            where,
+            { h: "4. รับมือการปฏิเสธ", items: [`“ใช้${rival}อยู่แล้ว” → ถามว่าเคยมีปัญหาช่วงไหน (หลุด ช้า ซ่อมนาน) แล้วโยงกับจุดแข็งของทรู`, "“แพงกว่า” → เทียบราคาต่อความเร็วและสิ่งที่ได้รวม ไม่ใช่ราคาต่อเดือนอย่างเดียว", "“ไม่สนใจ” → ขอทิ้งใบข้อมูลไว้ และขอเข้ามาอีกครั้งเมื่อสัญญาเดิมใกล้หมด"] },
+            { h: "5. ปิดท้าย", p: "สรุปข้อเสนอ ขอตัดสินใจวันนี้เพื่อรับสิทธิ์ ถ้ายังไม่พร้อมให้ขอวันนัดติดตั้งหรือวันโทรกลับที่ชัดเจน" },
+          ],
+          explore: [
+            head,
+            { h: "2. สำรวจก่อน", p: "ตอนนี้ที่บ้านใช้อินเทอร์เน็ตเจ้าไหน ใช้กันกี่คน ใช้ทำอะไรเป็นหลัก และพอใจหรือยังมีอะไรที่อยากให้ดีขึ้น — จดไว้ เพราะที่นี่ยังไม่มีข้อมูลส่วนแบ่งตลาด" },
+            where,
+            { h: "3. เลือกแนวทางตามคำตอบ", items: ["ใช้ทรูอยู่ → ใช้แนวป้องกัน (ขอบคุณ เช็กความพอใจ เสนออัปเกรด)", "ใช้เจ้าอื่นแล้วพอใจ → โน้มน้าวแบบนุ่ม (ชวนเทียบความเร็ว ไม่เร่ง)", "ใช้เจ้าอื่นแล้วไม่พอใจ → บุกเต็มที่ (ชี้จุดที่ลูกค้าเจอ แล้วเสนอทางออก)"] },
+            { h: "4. ปิดท้าย", p: "ขอเบอร์/ไลน์ และบันทึกว่าบ้านนี้ใช้เจ้าไหน เพื่อเก็บเป็นข้อมูลของพื้นที่" },
+          ],
+        };
+        return { mode: m.mode, reason: m.reason, steps: by[m.mode] };
+      }
+      function salesScriptPane(r) {
+        const sc = salesScriptFor(r), md = SCRIPT_MODES[sc.mode];
+        return `<div class="script-mode tone-${md.tone}"><span class="sm-badge">${md.th} <small>${md.en}</small></span><span class="sm-why">${escapeHtml(sc.reason)}</span></div>` +
+          `<div class="script-note">ตัวอย่างสคริปต์ (mock) — เลือกโหมดตามส่วนแบ่งตลาดจริง ส่วนข้อความจะถูกแทนที่ภายหลัง</div>` + sc.steps.map((st) =>
+          `<div class="script-step"><h4>${escapeHtml(st.h)}</h4>${st.p ? `<p>${escapeHtml(st.p)}</p>` : ""}${st.items ? `<ul>${st.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""}</div>`).join("");
+      }
+
       function openModal(record, initialTab) {
         initialTab = initialTab || "details";
         modalRecord = record;
@@ -1450,14 +1583,14 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             ${winner ? `<span class="badge ${winner.cls}">${winner.label} ชนะ</span>` : ""}
             ${(record.tags || []).filter((t) => t !== "has_l2" && !t.endsWith("_win")).map((t) => `<span class="badge">${tagLabel(t)}</span>`).join("")}
           </div>
-          ${hasL2Tab ? `
-            <div class="modal-tabs">
-              <button class="modal-tab${initialTab === "details" ? " active" : ""}" data-tab="details">รายละเอียด</button>
-              <button class="modal-tab${initialTab === "l2" ? " active" : ""}" data-tab="l2">L2<span class="modal-tab-badge">${record.l2Points.length}</span></button>
-            </div>
-            <div class="modal-pane${initialTab === "details" ? " active" : ""}" data-pane="details">${detailsPane}</div>
-            <div class="modal-pane${initialTab === "l2" ? " active" : ""}" data-pane="l2">${l2PaneHtml(record)}</div>
-          ` : detailsPane}
+          <div class="modal-tabs" role="tablist">
+            <button class="modal-tab${initialTab === "details" ? " active" : ""}" data-tab="details" role="tab">รายละเอียด</button>
+            <button class="modal-tab${initialTab === "script" ? " active" : ""}" data-tab="script" role="tab">สคริปต์การขาย</button>
+            ${hasL2Tab ? `<button class="modal-tab${initialTab === "l2" ? " active" : ""}" data-tab="l2" role="tab">L2<span class="modal-tab-badge">${record.l2Points.length}</span></button>` : ""}
+          </div>
+          <div class="modal-pane${initialTab === "details" ? " active" : ""}" data-pane="details">${detailsPane}</div>
+          <div class="modal-pane${initialTab === "script" ? " active" : ""}" data-pane="script">${salesScriptPane(record)}</div>
+          ${hasL2Tab ? `<div class="modal-pane${initialTab === "l2" ? " active" : ""}" data-pane="l2">${l2PaneHtml(record)}</div>` : ""}
         `;
         document.getElementById("modalOverlay").classList.add("open");
         document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
@@ -2173,7 +2306,12 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       // today/tomorrow and redraw, so tomorrow becomes today by itself.
       function rollWindowIfNeeded() {
         if (!STATE.villages || renderedWindow === null || windowKey() === renderedWindow) return;
-        if (isMgr()) { renderedWindow = windowKey(); renderCalendar(); return; } // managers keep their whole month; the date only moves their 2-day view and the DRS viewer
+        if (isMgr()) {
+          const keepM = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
+          Object.keys(STATE.drsPlanMap).forEach((em) => Object.keys(STATE.drsPlanMap[em]).forEach((mk) => Object.keys(STATE.drsPlanMap[em][mk]).forEach((d) => { if (!keepM.has(dayKeyOf(mk, d))) delete STATE.drsPlanMap[em][mk][d]; })));
+          STATE.rosterDay = isoWeekdayOf(calWindow()[0]);
+          renderedWindow = windowKey(); renderCalendar(); return;
+        } // managers keep their whole month; the date only moves their 2-day view and the DRS viewer
         const keep = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
         Object.keys(STATE.calendarPlan).forEach((mk) => {
           Object.keys(STATE.calendarPlan[mk]).forEach((d) => { if (!keep.has(dayKeyOf(mk, d))) delete STATE.calendarPlan[mk][d]; });
@@ -2361,8 +2499,50 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       }
 
       // Everything already planned on the OTHER day(s) of the window.
-      function usedIdsInWindow(monthKey, exceptDay) {
+      /* ===== DRS assignment (managers) =====
+         A DRS cannot build a plan. PBH / CM / ADMIN build each DRS's two days
+         (by hand in the day editor, or from the weekday roster). The picks live
+         in STATE.drsPlanMap and are saved with assignDrsDays; the server stores
+         the rows and the 7-day reservation under the DRS's own email. */
+      function isoWeekdayOf(w) { return w.dow === 0 ? 7 : w.dow; }
+      function drsGet(email, mk, day) { const m = STATE.drsPlanMap[email]; return (m && m[mk] && m[mk][day]) || []; }
+      function drsSet(email, mk, day, picks) {
+        if (!STATE.drsPlanMap[email]) STATE.drsPlanMap[email] = {};
+        if (!STATE.drsPlanMap[email][mk]) STATE.drsPlanMap[email][mk] = {};
+        STATE.drsPlanMap[email][mk][day] = picks;
+      }
+      function buildDrsMap(rows) {
+        const map = {};
+        (rows || []).forEach((r) => {
+          const em = String(r.email).toLowerCase(), mk = String(r.monthKey), d = Number(r.day);
+          if (!map[em]) map[em] = {};
+          if (!map[em][mk]) map[em][mk] = {};
+          if (!map[em][mk][d]) map[em][mk][d] = [];
+          map[em][mk][d].push({ slot: String(r.slot), kind: r.kind, refId: String(r.refId), name: r.name || "" });
+        });
+        return map;
+      }
+      function buildRoster(rows) {
+        const out = {};
+        (rows || []).forEach((r) => { const wd = Number(r.weekday); if (!out[wd]) out[wd] = []; const em = String(r.email).toLowerCase(); if (!out[wd].includes(em)) out[wd].push(em); });
+        return out;
+      }
+      // A village (or building) this big takes the whole day: everyone rostered that
+      // day goes to it together. At least 300 households, and 100 per person.
+      function bigVillageThreshold(n) { return Math.max(300, 100 * Math.max(1, n)); }
+
+      function usedIdsInWindow(monthKey, exceptDay, exceptDrs) {
         const used = new Set();
+        if (exceptDrs) { // building a DRS plan: nothing the manager or another DRS already has, except the DRS-days being replaced
+          Object.keys(STATE.calendarPlan).forEach((mk) => Object.keys(STATE.calendarPlan[mk]).forEach((d) => STATE.calendarPlan[mk][d].forEach((p) => used.add(p.kind + ":" + p.refId))));
+          Object.keys(STATE.drsPlanMap).forEach((em) => {
+            Object.keys(STATE.drsPlanMap[em]).forEach((mk) => Object.keys(STATE.drsPlanMap[em][mk]).forEach((d) => {
+              if (mk === monthKey && +d === +exceptDay && exceptDrs.includes(em)) return;
+              STATE.drsPlanMap[em][mk][d].forEach((p) => used.add(p.kind + ":" + p.refId));
+            }));
+          });
+          return used;
+        }
         if (isMgr()) { // a monthly plan: everything already planned on this month's other days
           const plan = STATE.calendarPlan[monthKey] || {};
           Object.keys(plan).forEach((day) => { if (+day !== +exceptDay) plan[day].forEach((p) => used.add(p.kind + ":" + p.refId)); });
@@ -2397,21 +2577,45 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const DAY_TRAVEL_RADIUS_KM = 6;
       // Ranked candidates for one day: the calendar's filters, minus anything on
       // the other day and anything another rep currently holds.
-      function candidatesForDay(monthKey, day, excludeExtra, tagsOverride) {
-        const used = usedIdsInWindow(monthKey, day);
+      function candidatesForDay(monthKey, day, excludeExtra, tagsOverride, exceptDrs) {
+        const used = usedIdsInWindow(monthKey, day, exceptDrs);
         (excludeExtra || []).forEach((k) => used.add(k));
         return rankedPoolForCalendar(tagsOverride).filter((r) => !used.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r));
       }
-      function pickForDay(monthKey, day, excludeExtra, tagsOverride) {
-        const candidates = candidatesForDay(monthKey, day, excludeExtra, tagsOverride);
+      // One day's set: the best candidate, then the 3 nearest to it (within the travel radius when possible).
+      function pickSetFrom(candidates) {
         if (!candidates.length) return [];
         const anchor = candidates[0];
         const withDist = candidates.slice(1).map((r) => ({ r, d: haversineKm(anchor, r) })).sort((a, b) => a.d - b.d);
         let nearby = withDist.filter((x) => x.d <= DAY_TRAVEL_RADIUS_KM);
         if (nearby.length < 3) nearby = withDist.slice(0, 3);
-        const chosen = [anchor, ...nearby.slice(0, 3).map((x) => x.r)];
+        return [anchor, ...nearby.slice(0, 3).map((x) => x.r)];
+      }
+      function recsToPicks(recs) {
         const slots = ["1", "2", "3", "backup"];
-        return chosen.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id, name: r.name || "" }));
+        return recs.map((r, i) => ({ slot: slots[i], kind: kindOf(r), refId: r.id, name: r.name || "" }));
+      }
+      function pickForDay(monthKey, day, excludeExtra, tagsOverride) {
+        return recsToPicks(pickSetFrom(candidatesForDay(monthKey, day, excludeExtra, tagsOverride)));
+      }
+      // Plans one day for several DRS at once. If the top place is big enough, the whole day
+      // is that single place for everyone; otherwise each DRS gets their own set of places.
+      function buildDrsDayPlans(monthKey, day, emails, tagsOverride) {
+        const pool = candidatesForDay(monthKey, day, [], tagsOverride, emails);
+        if (!pool.length) return null;
+        const anchor = pool[0], out = {};
+        if ((hhOf(anchor) || 0) >= bigVillageThreshold(emails.length)) {
+          emails.forEach((em) => { out[em] = recsToPicks([anchor]); });
+          return { plans: out, big: true, village: anchor };
+        }
+        let rest = pool.slice();
+        emails.forEach((em) => {
+          const set = pickSetFrom(rest);
+          out[em] = recsToPicks(set);
+          const taken = new Set(set.map((r) => kindOf(r) + ":" + r.id));
+          rest = rest.filter((r) => !taken.has(kindOf(r) + ":" + r.id));
+        });
+        return { plans: out, big: false };
       }
       // Refills the empty slots of a day (after a pick was lost to another
       // rep), keeping what's left and choosing nearest to the first stop.
@@ -2464,7 +2668,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const pendingMonths = (() => { try { return JSON.parse(localStorage.getItem(PENDING_MONTH_KEY) || "{}") || {}; } catch (e) { return {}; } })();
       const monthTimers = {};
       function persistPendingMonths() { try { localStorage.setItem(PENDING_MONTH_KEY, JSON.stringify(pendingMonths)); } catch (e) { /* storage blocked */ } }
-      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingDays).length > 0 || Object.keys(pendingMonths).length > 0; }
+      function hasUnsavedPlans() { return savesInFlight > 0 || Object.keys(pendingDays).length > 0 || Object.keys(pendingMonths).length > 0 || Object.keys(pendingAssign).length > 0; }
       function monthTagsFor(monthKey) {
         const t = STATE.calendarTheme[monthKey];
         if (t) return t.tags.slice();
@@ -2504,7 +2708,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           savesInFlight--;
         }
       }
-      function hasUnsavedPlans_() { return Object.keys(pendingDays).length > 0 || Object.keys(pendingMonths).length > 0; }
+      function hasUnsavedPlans_() { return Object.keys(pendingDays).length > 0 || Object.keys(pendingMonths).length > 0 || Object.keys(pendingAssign).length > 0; }
 
       // Picks another rep reserved first: drop them, refill days that were full.
       function afterMonthConflicts(res, monthKey) {
@@ -2609,6 +2813,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         };
         const days = Object.keys(pendingDays).map((k) => ({ monthKey: pendingDays[k].monthKey, day: pendingDays[k].day, picks: pendingDays[k].picks }));
         if (days.length) send({ action: "saveCalendarDays", days });
+        { const items = Object.keys(pendingAssign).map((k) => pendingAssign[k]); const by = {}; items.forEach((v) => { (by[v.email] = by[v.email] || []).push({ monthKey: v.monthKey, day: v.day, picks: v.picks }); }); const assignments = Object.keys(by).map((email) => ({ email, days: by[email] })); if (assignments.length) send({ action: "assignDrsDays", assignments }); }
         Object.keys(pendingMonths).forEach((mk) => send({ action: "saveCalendarMonth", monthKey: mk, plan: pendingMonths[mk].plan, tags: pendingMonths[mk].tags }));
       }
       window.addEventListener("beforeunload", (e) => {
@@ -2701,20 +2906,23 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 
       // One day's card (today / tomorrow): shared by the DRS calendar and the
       // managers' read-only view of a DRS.
-      function dayCardHtml(w, picksIn, editable) {
+      function dayCardHtml(w, picksIn, editable, drsEmail) {
         const picks = (picksIn || []).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+        const only = picks.length === 1 ? byId(picks[0].kind, picks[0].refId) : null;
+        const bigNote = only && (hhOf(only) || 0) >= 300 ? `<div class="big-note">วันหมู่บ้านใหญ่ — ทั้งวันที่เดียว (${whole(hhOf(only))} ${kindOf(only) === "village" ? "ครัวเรือน" : "ยูนิต"})</div>` : "";
         const list = picks.length ? picks.map((p) => {
           const r = byId(p.kind, p.refId);
           const lbl = pickLabel(p, r);
           const winner = r ? mksWinner(r) : null;
           const cls = (p.slot === "backup" ? " backup" : "") + (winner ? " " + winner.cls : "") + (lbl.missing ? " missing" : "");
           const tip = lbl.missing ? lbl.name + " (ไม่พบในข้อมูลล่าสุด)" : lbl.name;
-          return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(lbl.name)}${r ? `<span class="cp-loc">${escapeHtml(locOf(r))}</span>` : ""}</div>`;
-        }).join("") : `<div class="empty-note">ยังไม่มีแผน</div>`;
+          return `<div class="cal-pick${cls}" data-kind="${p.kind}" data-id="${p.refId}" title="${escapeHtml(tip)}">${p.slot === "backup" ? "★ " : ""}${escapeHtml(lbl.name)}${r ? `<span class="cp-loc">${escapeHtml(locOf(r))}</span><button type="button" class="cp-script">สคริปต์ · ${SCRIPT_MODES[scriptModeOf(r).mode].th}</button>` : ""}</div>`;
+        }).join("") : `<div class="empty-note">${editable || drsEmail ? "ยังไม่มีแผน" : "ยังไม่มีแผน — รอหัวหน้าจัดให้"}</div>`;
+        const drsAttr = drsEmail ? ` data-drs="${escapeHtml(drsEmail)}"` : "";
         return `<div class="cal-daycard${w.offset === 0 ? " today" : ""}">
           <div class="cal-dayhead"><span class="dn">${w.offset === 0 ? "วันนี้" : "พรุ่งนี้"}</span><span class="dd">${THAI_DOW_FULL[w.dow]} ${w.day} ${THAI_MON_SHORT[w.mon - 1]}</span></div>
-          ${list}
-          ${editable ? `<button class="cal-gen-btn" data-month="${w.monthKey}" data-edit-day="${w.day}">${picks.length ? "✎ แก้ไข" : "+ วางแผน"}</button>` : ""}
+          ${bigNote}${list}
+          ${editable ? `<button class="cal-gen-btn" data-month="${w.monthKey}" data-edit-day="${w.day}"${drsAttr}>${picks.length ? "✎ แก้ไข" : "+ " + (drsEmail ? "จัดแผน" : "วางแผน")}</button>` : ""}
         </div>`;
       }
 
@@ -2725,7 +2933,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         }
         const win = calWindow();
         renderedWindow = win.map((w) => dayKeyOf(w.monthKey, w.day)).join(",");
-        document.getElementById("calGrid").innerHTML = win.map((w) => dayCardHtml(w, (STATE.calendarPlan[w.monthKey] || {})[w.day], true)).join("");
+        document.getElementById("calGrid").innerHTML = win.map((w) => dayCardHtml(w, (STATE.calendarPlan[w.monthKey] || {})[w.day], isMgr())).join("");
       }
 
       // PBH / CM: the whole month.
@@ -2761,45 +2969,218 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         document.getElementById("calMonthGrid").innerHTML = html;
       }
 
-      // PBH / CM: read-only view of every DRS's two-day plan.
+      // PBH / CM / ADMIN: roster by weekday, one button to build the next day, and every DRS's two days.
+      const THAI_DOW_ISO = [null, "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
+      const THAI_DOW_ISO_SHORT = [null, "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+      function rosterFor(wd) { return (STATE.roster[wd] || []).filter((e) => (STATE.drsUsers || []).includes(e)); }
+      function renderRosterTabs() {
+        document.getElementById("rosterTabs").innerHTML = [1, 2, 3, 4, 5, 6, 7].map((wd) => {
+          const n = rosterFor(wd).length, sel = wd === STATE.rosterDay;
+          return `<button type="button" role="tab" class="roster-tab" id="rtab-${wd}" data-wd="${wd}" aria-selected="${sel}" aria-controls="rosterPanel" tabindex="${sel ? 0 : -1}" aria-label="${THAI_DOW_ISO[wd]} มี DRS ${n} คน">${THAI_DOW_ISO_SHORT[wd]}<span class="rn${n ? "" : " zero"}">${n}</span></button>`;
+        }).join("");
+      }
+      function renderRosterPanel() {
+        const wd = STATE.rosterDay, users = STATE.drsUsers || [], on = new Set(rosterFor(wd));
+        const panel = document.getElementById("rosterPanel");
+        panel.setAttribute("aria-labelledby", "rtab-" + wd);
+        panel.innerHTML = `<h3>DRS ที่ทำงานวัน${THAI_DOW_ISO[wd]}</h3>` + (users.length
+          ? `<div class="roster-list">${users.map((e, i) => `<label class="rchk"><input type="checkbox" data-email="${escapeHtml(e)}" ${on.has(e) ? "checked" : ""}><span>${escapeHtml(e)}</span></label>`).join("")}</div>`
+          : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ — เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users</div>`);
+      }
+      function renderAssignBar() {
+        const w = calWindow()[STATE.assignTarget], wd = isoWeekdayOf(w), emails = rosterFor(wd);
+        const planned = emails.filter((e) => drsGet(e, w.monthKey, w.day).length).length;
+        document.getElementById("assignBar").innerHTML = `
+          <div class="kind-toggle" id="assignTarget" role="group" aria-label="สร้างแผนให้วันไหน">
+            <button type="button" data-t="0" class="${STATE.assignTarget === 0 ? "active" : ""}">วันนี้</button>
+            <button type="button" data-t="1" class="${STATE.assignTarget === 1 ? "active" : ""}">พรุ่งนี้</button>
+          </div>
+          <div class="ab-info"><b>${THAI_DOW_ISO[wd]} ${w.day} ${THAI_MON_SHORT[w.mon - 1]}</b> · ตารางมี ${emails.length} คน${emails.length ? ` · จัดแผนแล้ว ${planned}/${emails.length}` : ""}
+            <small>${emails.length ? `หมู่บ้านที่มีอย่างน้อย ${bigVillageThreshold(emails.length)} ครัวเรือน (300 ขึ้นไป และ 100 ต่อคน) จะใช้เป็นที่เดียวทั้งวัน ทุกคนไปด้วยกัน` : "เลือก DRS ของวันนี้ในตารางด้านบนก่อน"}</small></div>
+          <button type="button" class="btn primary" id="assignGo" ${emails.length ? "" : "disabled"}>สร้างแผนให้ DRS ตามตาราง</button>`;
+      }
       function renderDrsView() {
         const sel = document.getElementById("drsPick");
         const users = STATE.drsUsers || [];
         const cur = sel.value || "all";
         sel.innerHTML = `<option value="all">DRS ทุกคน (${users.length})</option>` + users.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join("");
         sel.value = users.includes(cur) || cur === "all" ? cur : "all";
+        renderRosterTabs(); renderRosterPanel(); renderAssignBar();
         const who = sel.value === "all" ? users : [sel.value];
-        const win = calWindow();
-        const rows = STATE.drsPlan || [];
+        const win = calWindow(), todayWd = isoWeekdayOf(win[0]);
         document.getElementById("drsGrid").innerHTML = who.length ? who.map((email) => {
-          const cards = win.map((w) => {
-            const picks = rows.filter((r) => String(r.email).toLowerCase() === email && r.monthKey === w.monthKey && +r.day === w.day)
-              .map((r) => ({ slot: String(r.slot), kind: r.kind, refId: String(r.refId), name: r.name || "" }));
-            return dayCardHtml(w, picks, false);
-          }).join("");
-          return `<div class="drs-block"><h4>${escapeHtml(email)}</h4><div class="cal-days">${cards}</div></div>`;
+          const cards = win.map((w) => dayCardHtml(w, drsGet(email, w.monthKey, w.day), true, email)).join("");
+          const onToday = rosterFor(todayWd).includes(email);
+          return `<div class="drs-block"><h4>${escapeHtml(email)}${onToday ? '<span class="drs-tag">ทำงานวันนี้ตามตาราง</span>' : ""}</h4><div class="cal-days">${cards}</div></div>`;
         }).join("") : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ (แท็บ Users)</div>`;
       }
       document.getElementById("drsPick").addEventListener("change", renderDrsView);
+      // roster tabs: click + arrow keys (roving tabindex)
+      document.getElementById("rosterTabs").addEventListener("click", (e) => {
+        const b = e.target.closest(".roster-tab"); if (!b) return;
+        STATE.rosterDay = +b.dataset.wd; renderRosterTabs(); renderRosterPanel();
+      });
+      document.getElementById("rosterTabs").addEventListener("keydown", (e) => {
+        const keys = { ArrowRight: 1, ArrowLeft: -1, Home: "first", End: "last" };
+        if (!(e.key in keys)) return;
+        e.preventDefault();
+        let wd = STATE.rosterDay;
+        wd = keys[e.key] === "first" ? 1 : keys[e.key] === "last" ? 7 : ((wd - 1 + keys[e.key] + 7) % 7) + 1;
+        STATE.rosterDay = wd; renderRosterTabs(); renderRosterPanel();
+        document.getElementById("rtab-" + wd).focus();
+      });
+      const rosterTimers = {};
+      document.getElementById("rosterPanel").addEventListener("change", (e) => {
+        const cb = e.target.closest("input[data-email]"); if (!cb) return;
+        const wd = STATE.rosterDay, cur = new Set(STATE.roster[wd] || []);
+        if (cb.checked) cur.add(cb.dataset.email); else cur.delete(cb.dataset.email);
+        STATE.roster[wd] = [...cur];
+        renderRosterTabs(); renderAssignBar(); document.getElementById("rtab-" + wd).setAttribute("tabindex", "0");
+        if (!STATE.idToken) return;
+        clearTimeout(rosterTimers[wd]);
+        rosterTimers[wd] = setTimeout(async () => {
+          try { await api("saveDrsRoster", { weekday: wd, emails: STATE.roster[wd] }); setCalStatus("บันทึกตารางงานแล้ว ✓", false); }
+          catch (err) { setCalStatus("บันทึกตารางงานไม่สำเร็จ: " + err.message, true); }
+        }, 600);
+      });
+      document.getElementById("assignBar").addEventListener("click", (e) => {
+        const t = e.target.closest("#assignTarget button");
+        if (t) { STATE.assignTarget = +t.dataset.t; renderAssignBar(); return; }
+        if (e.target.closest("#assignGo")) generateForRoster();
+      });
+
+      function setAssignMsg(msg) { document.getElementById("assignMsg").textContent = msg || ""; }
+      async function generateForRoster() {
+        const w = calWindow()[STATE.assignTarget], emails = rosterFor(isoWeekdayOf(w));
+        if (!emails.length) { setAssignMsg("ยังไม่ได้เลือก DRS ของวันนั้นในตาราง"); return; }
+        const has = emails.filter((e) => drsGet(e, w.monthKey, w.day).length);
+        if (has.length && !(await confirmDialog(`มี ${has.length} คนที่มีแผนวันนั้นอยู่แล้ว สร้างใหม่จะแทนที่แผนเดิม ดำเนินการต่อไหม?`, "สร้างใหม่", "ยกเลิก"))) return;
+        const res = buildDrsDayPlans(w.monthKey, w.day, emails, calState.tags);
+        if (!res) { setAssignMsg("ไม่มีสถานที่ที่ตรงเงื่อนไข (หรือถูกจองหมดแล้ว) — ยังไม่เปลี่ยนแผน"); return; }
+        emails.forEach((em) => { drsSet(em, w.monthKey, w.day, res.plans[em]); queueAssign(em, w.monthKey, w.day, 0); });
+        renderDrsView();
+        const short = emails.filter((em) => !res.big && res.plans[em].length < 4).length;
+        setAssignMsg(res.big
+          ? `วันหมู่บ้านใหญ่: ${res.village.name} (${whole(hhOf(res.village))} ${kindOf(res.village) === "village" ? "ครัวเรือน" : "ยูนิต"}) — ส่ง ${emails.length} คนไปที่เดียว`
+          : `สร้างแผนให้ ${emails.length} คนแล้ว` + (short ? ` · ${short} คนได้สถานที่ไม่ครบ 4 เพราะที่เหลือไม่พอ` : ""));
+      }
+
+      // Saving what a manager assigns: one request for everything changed, debounced.
+      const pendingAssign = {};
+      let assignTimer = null;
+      function queueAssign(email, monthKey, day, delayMs) {
+        if (!STATE.idToken) return; // sample-data preview: nothing to sync
+        pendingAssign[email + "|" + dayKeyOf(monthKey, day)] = { email, monthKey, day: Number(day), picks: JSON.parse(JSON.stringify(drsGet(email, monthKey, day))) };
+        setCalStatus("กำลังบันทึก…", false);
+        clearTimeout(assignTimer);
+        assignTimer = setTimeout(sendAssign, delayMs == null ? 700 : delayMs);
+      }
+      async function sendAssign() {
+        const items = Object.keys(pendingAssign).map((k) => ({ k, v: pendingAssign[k] }));
+        if (!items.length) return;
+        const byEmail = {};
+        items.forEach(({ v }) => { (byEmail[v.email] = byEmail[v.email] || []).push({ monthKey: v.monthKey, day: v.day, picks: v.picks }); });
+        const assignments = Object.keys(byEmail).map((email) => ({ email, days: byEmail[email] }));
+        savesInFlight++;
+        try {
+          const res = await api("assignDrsDays", { assignments }, 90000);
+          items.forEach(({ k, v }) => { if (pendingAssign[k] === v) delete pendingAssign[k]; });
+          if (res.claimedByOthers) setClaimed(res.claimedByOthers);
+          const bad = (res.results || []).filter((r) => !r.ok);
+          if (bad.length) setCalStatus("จัดแผนให้บางคนไม่ได้ — " + bad.map((r) => r.email + " (" + r.error + ")").join(", "), true);
+          else if ((res.results || []).some((r) => (r.conflicts || []).length)) afterAssignConflicts(res.results);
+          else { const had = conflictRounds > 0; conflictRounds = 0; if (!had && !hasUnsavedPlans_()) setCalStatus("บันทึกแล้ว ✓", false); }
+        } catch (e) {
+          setCalStatus("บันทึกแผนที่จัดให้ DRS ไม่สำเร็จ: " + e.message + " — กดสร้างหรือแก้ไขอีกครั้งเพื่อส่งใหม่", true);
+        } finally { savesInFlight--; }
+      }
+      // Some places went to someone else first (or the daily limit hit): drop them and refill.
+      function afterAssignConflicts(results) {
+        let removed = 0, capped = false, short = false;
+        results.forEach((r) => {
+          if (!(r.conflicts || []).length) return;
+          capped = capped || r.capReached;
+          const lost = new Set(r.conflicts.map((c) => c.kind + ":" + c.refId));
+          calWindow().forEach((w) => {
+            const picks = drsGet(r.email, w.monthKey, w.day);
+            const left = picks.filter((p) => !lost.has(p.kind + ":" + p.refId));
+            if (left.length === picks.length) return;
+            removed += picks.length - left.length;
+            drsSet(r.email, w.monthKey, w.day, left);
+            if (!r.capReached && conflictRounds < 3) refillDrsDay(r.email, w.monthKey, w.day, picks.length);
+            if (drsGet(r.email, w.monthKey, w.day).length < Math.min(picks.length, 4)) short = true;
+            queueAssign(r.email, w.monthKey, w.day, 0);
+          });
+        });
+        conflictRounds++;
+        renderDrsView();
+        if (dayEditState && dayEditState.drs) { renderDayEditSlots(); renderDayEditTags(); renderDayEditResults(document.getElementById("dayEditSearch").value); }
+        setCalStatus(capped
+          ? "ครบโควตาสถานที่ใหม่ของวันนี้แล้ว — ลองใหม่พรุ่งนี้"
+          : `มี ${removed} แห่งที่ถูกจองไปก่อน — ` + (short ? "และไม่มีสถานที่อื่นให้เลือกแทนครบ" : "เลือกแห่งอื่นแทนให้แล้ว"), capped || short);
+      }
+      function refillDrsDay(email, mk, day, prevLen) {
+        if (prevLen === 1) { const r = buildDrsDayPlans(mk, day, [email], calState.tags); if (r) drsSet(email, mk, day, r.plans[email]); return; }
+        const picks = drsGet(email, mk, day).slice();
+        const have = new Set(picks.map((p) => p.kind + ":" + p.refId));
+        const need = 4 - picks.length;
+        if (need <= 0) return;
+        const first = picks[0] ? byId(picks[0].kind, picks[0].refId) : null;
+        let pool = candidatesForDay(mk, day, [...have], calState.tags, [email]);
+        if (first) pool = pool.map((r) => ({ r, d: haversineKm(first, r) })).sort((a, b) => a.d - b.d).map((x) => x.r);
+        const free = ["1", "2", "3", "backup"].filter((sl) => !picks.some((p) => p.slot === sl));
+        pool.slice(0, need).forEach((r, i) => picks.push({ slot: free[i], kind: kindOf(r), refId: r.id, name: r.name || "" }));
+        drsSet(email, mk, day, picks);
+      }
+
+      // Re-read everything from the server (a DRS gets what was assigned; a manager gets every DRS's plans + the roster).
+      let lastServerRefresh = Date.now();
+      async function refreshFromServer(quiet) {
+        if (USE_MOCK || !STATE.idToken) { renderCalendar(); return; }
+        const data = await api("myData", {}, 90000);
+        lastServerRefresh = Date.now();
+        const tabs = data.tabs || {};
+        setClaimed(data.claimedByOthers);
+        if (isMgr()) {
+          STATE.drsPlan = tabs.DrsPlan ? rowObjects_(tabs.DrsPlan) : [];
+          STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
+          STATE.drsUsers = (data.drsUsers || []).map((e) => String(e).toLowerCase());
+          STATE.roster = buildRoster(tabs.DrsRoster ? rowObjects_(tabs.DrsRoster) : []);
+        } else {
+          const inWin = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
+          STATE.calendarPlan = {};
+          (tabs.CalendarPlan ? rowObjects_(tabs.CalendarPlan) : []).forEach((row) => {
+            if (!inWin.has(dayKeyOf(row.monthKey, row.day))) return;
+            if (!STATE.calendarPlan[row.monthKey]) STATE.calendarPlan[row.monthKey] = {};
+            if (!STATE.calendarPlan[row.monthKey][row.day]) STATE.calendarPlan[row.monthKey][row.day] = [];
+            STATE.calendarPlan[row.monthKey][row.day].push({ slot: String(row.slot), kind: row.kind, refId: String(row.refId), name: row.name || "" });
+          });
+        }
+        renderCalendar();
+        if (!quiet) setCalStatus("รีเฟรชแล้ว", false);
+      }
       document.getElementById("drsRefresh").addEventListener("click", async () => {
         const btn = document.getElementById("drsRefresh"); btn.disabled = true;
-        try {
-          const data = await api("myData", {}, 90000);
-          const tabs = data.tabs || {};
-          STATE.drsPlan = tabs.DrsPlan ? rowObjects_(tabs.DrsPlan) : [];
-          STATE.drsUsers = data.drsUsers || [];
-          setClaimed(data.claimedByOthers);
-          renderDrsView(); renderCalTagChips();
-          setCalStatus("รีเฟรชแผน DRS แล้ว", false);
-        } catch (e) { setCalStatus("รีเฟรชไม่สำเร็จ: " + e.message, true); }
-        finally { btn.disabled = false; }
+        try { await refreshFromServer(); } catch (e) { setCalStatus("รีเฟรชไม่สำเร็จ: " + e.message, true); } finally { btn.disabled = false; }
+      });
+      document.getElementById("myRefresh").addEventListener("click", async () => {
+        const btn = document.getElementById("myRefresh"); btn.disabled = true;
+        try { await refreshFromServer(); } catch (e) { setCalStatus("รีเฟรชไม่สำเร็จ: " + e.message, true); } finally { btn.disabled = false; }
+      });
+      // A DRS who comes back to the tab gets any newly assigned plan without pressing anything.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && !isMgr() && STATE.idToken && Date.now() - lastServerRefresh > 120000) refreshFromServer(true).catch(() => {});
       });
 
       function onCalGridClick(e) {
         const pick = e.target.closest(".cal-pick");
-        if (pick) { const r = byId(pick.dataset.kind, pick.dataset.id); if (r) openModal(r); return; }
+        if (pick) {
+          const r = byId(pick.dataset.kind, pick.dataset.id);
+          if (r) openModal(r, e.target.closest(".cp-script") ? "script" : undefined);
+          return;
+        }
         const editBtn = e.target.closest("[data-edit-day]");
-        if (editBtn) openDayEditor(editBtn.dataset.month || calState.monthKey, +editBtn.dataset.editDay);
+        if (editBtn) openDayEditor(editBtn.dataset.month || calState.monthKey, +editBtn.dataset.editDay, editBtn.dataset.drs || null);
       }
       document.getElementById("calGrid").addEventListener("click", onCalGridClick);
       document.getElementById("calMonthGrid").addEventListener("click", onCalGridClick);
@@ -3089,16 +3470,24 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 
       /* ===== day editor: manual add/remove, or auto-generate, one day at a
          time -- "สร้างแผน 2 วัน" uses the same pickForDay() for both days. ===== */
-      let dayEditState = null; // { monthKey, day, tags: Set } -- tags = this day's own filter, seeded from the calendar's theme
+      let dayEditState = null; // { monthKey, day, drs, tags: Set } -- drs = the DRS being assigned (null = the viewer's own plan); tags = this day's own filter -- tags = this day's own filter, seeded from the calendar's theme
 
       function currentDayPicks() {
         if (!dayEditState) return [];
-        const { monthKey, day } = dayEditState;
+        const { monthKey, day, drs } = dayEditState;
+        if (drs) return drsGet(drs, monthKey, day);
         return (STATE.calendarPlan[monthKey] && STATE.calendarPlan[monthKey][day]) || [];
       }
 
       async function saveDayPicks(picks) {
-        const { monthKey, day } = dayEditState;
+        const { monthKey, day, drs } = dayEditState;
+        if (drs) {
+          drsSet(drs, monthKey, day, picks);
+          renderDrsView();
+          renderDayEditSlots();
+          queueAssign(drs, monthKey, day);
+          return;
+        }
         if (!STATE.calendarPlan[monthKey]) STATE.calendarPlan[monthKey] = {};
         STATE.calendarPlan[monthKey][day] = picks;
         renderCalendar();
@@ -3140,7 +3529,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       function renderDayEditTags() {
         if (!dayEditState) return;
         const { monthKey, day, tags } = dayEditState;
-        const usedElsewhere = usedIdsInWindow(monthKey, day);
+        const usedElsewhere = usedIdsInWindow(monthKey, day, dayEditState.drs ? [dayEditState.drs] : null);
         const base = calAreaPool(new Set(["tags"])).filter((r) => !usedElsewhere.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r));
         document.getElementById("dayEditTags").innerHTML = TAGS.map((t) => {
           const active = tags.has(t.key);
@@ -3156,12 +3545,12 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           : "ไม่มีรายการที่ตรงแท็กที่เลือก — ลองยกเลิกบางแท็ก";
       }
 
-      function openDayEditor(monthKey, day) {
-        dayEditState = { monthKey, day, tags: new Set(calState.tags) };
+      function openDayEditor(monthKey, day, drs) {
+        dayEditState = { monthKey, day, drs: drs || null, tags: new Set(calState.tags) };
         const w = calWindow().find((x) => x.monthKey === monthKey && x.day === +day);
         document.getElementById("dayEditTitle").textContent = "แก้ไข" + (w
           ? (w.offset === 0 ? "วันนี้" : "พรุ่งนี้") + " · " + THAI_DOW_FULL[w.dow] + " " + w.day + " " + THAI_MON_SHORT[w.mon - 1]
-          : " " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0"));
+          : " " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0")) + (drs ? " · " + drs : "");
         renderDayEditSlots();
         renderDayEditTags();
         document.getElementById("dayEditSearch").value = "";
@@ -3199,7 +3588,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       });
       document.getElementById("dayEditAutoBtn").addEventListener("click", async () => {
         const { monthKey, day, tags } = dayEditState;
-        const picks = pickForDay(monthKey, day, [], tags);
+        const { drs } = dayEditState;
+        const picks = drs ? ((buildDrsDayPlans(monthKey, day, [drs], tags) || { plans: {} }).plans[drs] || []) : pickForDay(monthKey, day, [], tags);
         // Nothing matching the chosen tags must NOT replace the day with an
         // empty plan -- leave whatever is there and say why.
         if (!picks.length) { setCalStatus("ไม่มีรายการที่ตรงแท็กที่เลือกสำหรับวันนี้ — ยังไม่เปลี่ยนแผน", true); return; }
@@ -3317,6 +3707,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         { key: "ftthAvailable", label: "FTTH Available", get: (r) => r.totalAvailable, fmt: whole },
         { key: "utilization", label: "%Utilization", get: (r) => (r.totalPort ? r.active / r.totalPort : null), fmt: pct },
         { key: "activePenetration", label: "%Penetration", get: (r) => { const hh = hhOf(r); return hh ? r.active / hh : null; }, fmt: pct },
+        { key: "churnRate", label: "Churn rate", get: (r) => (r.active && r.churnMonthly != null ? r.churnMonthly / r.active : null), fmt: pct },
+        { key: "faultRate", label: "Fault rate", get: (r) => faultRateOf(r), fmt: pct },
       ];
       const anaState = { xKey: "hh", yKey: "mksTrue", quadrant: null };
 
@@ -3474,7 +3866,10 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           };
         });
         STATE.drsPlan = (payload.drsPlan || []).map((r) => ({ ...r, monthKey: String(r.monthKey), day: Number(r.day), email: String(r.email).toLowerCase() }));
-        STATE.drsUsers = payload.drsUsers || [];
+        STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
+        STATE.roster = buildRoster(payload.drsRoster || []);
+        STATE.drsUsers = (payload.drsUsers || []).map((e) => String(e).toLowerCase());
+        { const w0 = calWindow()[0]; STATE.rosterDay = isoWeekdayOf(w0); STATE.assignTarget = 1; }
         document.body.classList.toggle("role-mgr", isMgr());
         try { STATE.calView = localStorage.getItem("tolCalView") === "days" ? "days" : "month"; } catch (e) { STATE.calView = "month"; }
         applyCalView();
@@ -3493,6 +3888,14 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         // already driving the demo card's badge and the calendar picks'
         // color. No tag at all when there's no real MKS data (mksWinner
         // returns null for that).
+        // "Fault < 4%": all faults over active subscribers is under 4%; a place with no
+        // fault figures counts as low too. Recomputed here (same rule as the sync) so the
+        // tag is right even before the next Update run.
+        STATE.villages.concat(STATE.buildings).forEach((r) => {
+          r.tags = (r.tags || []).filter((t) => t !== "low_fault");
+          const fr = faultRateOf(r);
+          if (fr == null || fr < LOW_FAULT_RATE) r.tags.push("low_fault");
+        });
         STATE.villages.concat(STATE.buildings).forEach((r) => {
           const winner = mksWinner(r);
           if (winner) {
@@ -3676,6 +4079,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           calendarPlan: tabs.CalendarPlan ? rowObjects_(tabs.CalendarPlan) : [],
           calendarSlots: tabs.CalendarSlots ? rowObjects_(tabs.CalendarSlots) : [],
           drsPlan: tabs.DrsPlan ? rowObjects_(tabs.DrsPlan) : [],
+          drsRoster: tabs.DrsRoster ? rowObjects_(tabs.DrsRoster) : [],
         };
       }
 
@@ -3720,7 +4124,10 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           STATE.role = ["PBH", "CM", "ADMIN"].includes(mockRole) ? mockRole : "DRS";
           const wd = calWindow();
           const mockPlan = (email, ids) => ids.map((id, i) => ({ email, monthKey: wd[0].monthKey, day: wd[0].day, slot: ["1", "2", "3"][i] || "backup", kind: id[0] === "v" ? "village" : "building", refId: id, name: "" }));
-          initApp({ ...MOCK_PAYLOAD, drsUsers: ["drs1@example.com", "drs2@example.com"], drsPlan: [...mockPlan("drs1@example.com", ["v1", "v3", "b1"]), ...mockPlan("drs2@example.com", ["v5"])] });
+          const mockRoster = [1, 2, 3, 4, 5].flatMap((d) => [{ weekday: String(d), email: "drs1@example.com" }]).concat([{ weekday: "4", email: "drs2@example.com" }, { weekday: "5", email: "drs2@example.com" }]);
+          initApp({ ...MOCK_PAYLOAD, drsUsers: ["drs1@example.com", "drs2@example.com", "drs3@example.com"], drsRoster: mockRoster,
+            drsPlan: [...mockPlan("drs1@example.com", ["v1", "v3", "b1"]), ...mockPlan("drs2@example.com", ["v5"])],
+            calendarPlan: STATE.role === "DRS" ? mockPlan("me@example.com", ["v1", "v3", "b1"]) : [] }); // a DRS only sees what was assigned to them
           appInitialized = true;
           return;
         }

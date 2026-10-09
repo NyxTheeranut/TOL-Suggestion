@@ -1,7 +1,7 @@
 # TOL Suggestion
 
 Village &amp; building sales planner for BMA-West — search/demographic lookup,
-a tag-based recommendation list, and a visit calendar — two days (today + tomorrow) for DRS, a whole month for PBH / CM — in which every planned place is reserved for 7 days — read
+a tag-based recommendation list, and a visit calendar — PBH / CM / ADMIN build the plans (a whole month for themselves, and today + tomorrow for each DRS from a weekday roster); a DRS only sees what was assigned to them — in which every planned place is reserved for 7 days — read
 live from a Google Sheet, same architecture as `TOL Tracker` / `L2 Discount
 Map` / `Route Planner` elsewhere in this Dashboard.
 
@@ -135,8 +135,8 @@ useful for reviewing the UI without any of that setup.
   counts, ports, latest active, competitor total, market share, fault/churn,
   the business's own existing sales grading, computed tags, and `autoScore`.
 - `Users` — `email | role | note` allow-list. `role` is `PBH`, `CM`, `ADMIN` or `DRS`
-  (blank/unknown = DRS): PBH / CM / ADMIN get the monthly calendar (switchable to the same two-day view DRS use — it is one plan) and a view-only panel of
-  every DRS's two-day plan; DRS get the two-day calendar.
+  (blank/unknown = DRS): PBH / CM / ADMIN get the monthly calendar (switchable to a two-day view — it is one plan), the DRS roster, and the tools to assign every
+  DRS's two days; a DRS gets a read-only view of what was assigned to them.
 - `CalendarTheme` — one row per (month, viewer): that viewer's selected
   theme tags (`updatedBy` is the key, not just `monthKey`).
 - `CalendarPlan` — one row per (month, day, slot, viewer) pick. Everyone saves their two days via
@@ -144,6 +144,7 @@ useful for reviewing the UI without any of that setup.
   `myData` only returns those two days. PBH / CM save a whole month via
   `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
   additionally get every DRS's two-day rows, read-only).
+- `DrsRoster` — `weekday | email | updatedBy | updatedAt`: which DRS work on which weekday (1 = Mon … 7 = Sun), set by PBH / CM / ADMIN.
 - `CalendarSlots` — up to 3 saved month plans per PBH / CM.
 - `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt`.
   Planning a place reserves it for 7 days (counted from `claimedAt`); nobody else

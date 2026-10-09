@@ -543,13 +543,26 @@ def normalize(v, lo, hi):
     return max(0.0, min(1.0, (v - lo) / (hi - lo)))
 
 
+LOW_FAULT_RATE = 0.04
+
+
+def fault_rate(r):
+    """All faults (truck roll + other) per active subscriber, or None when it
+    can't be worked out (no fault figures, or no active subscribers)."""
+    total = sum_or_none(r.get("faultTruckRoll"), r.get("faultOther"))
+    active = r.get("active")
+    if total is None or not active:
+        return None
+    return total / active
+
+
 def add_tags_and_scores(records, size_key):
     """size_key: 'houseAll' for villages, 'units' for buildings."""
     is_open = [r for r in records if r.get("status") != CLOSED_STATUS]
 
     avail_p75 = percentile([r["totalAvailable"] for r in is_open], 0.75)
     size_p75 = percentile([r[size_key] for r in records], 0.75)
-    fault_p25 = percentile([r["faultAvg"] for r in records], 0.25)
+    # (the "low_fault" tag no longer uses a percentile -- see fault_rate())
 
     avail_lo, avail_hi = percentile([r["totalAvailable"] for r in records], 0.05), percentile([r["totalAvailable"] for r in records], 0.95)
     size_lo, size_hi = percentile([r[size_key] for r in records], 0.05), percentile([r[size_key] for r in records], 0.95)
@@ -563,7 +576,11 @@ def add_tags_and_scores(records, size_key):
             tags.append("high_available")
         if size_p75 is not None and (r[size_key] or 0) >= size_p75 and size_p75 > 0:
             tags.append("large")
-        if fault_p25 is not None and r["faultAvg"] is not None and r["faultAvg"] <= fault_p25:
+        # "Fault < 4%": every fault type together (truck roll + the other kinds)
+        # over active subscribers is under 4%. A place with no fault data, or no
+        # active subscribers to divide by, counts as low fault too.
+        rate = fault_rate(r)
+        if rate is None or rate < LOW_FAULT_RATE:
             tags.append("low_fault")
         r["tags"] = tags
 
