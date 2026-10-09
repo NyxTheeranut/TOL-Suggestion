@@ -40,7 +40,7 @@
  * assigned to them (today + tomorrow, read-only).
  * No role -> DRS (the most restricted).
  * "Users" -- who's allowed to view the dashboard: an email allow-list plus
- *   an optional role column. Created automatically (with a sample row) the first time anyone
+ *   optional role and name columns (the name is what managers see for a DRS). Created automatically (with a sample row) the first time anyone
  *   signs in, same as every other project in this Dashboard.
  *
  * ── Auth ───────────────────────────────────────────────────────────────────
@@ -385,10 +385,11 @@ function readUsers_() {
   var sheet = ss.getSheetByName("Users");
   if (!sheet) {
     sheet = ss.insertSheet("Users");
-    sheet.appendRow(["email", "role", "note"]);
+    sheet.appendRow(["email", "role", "name", "note"]);
     sheet.appendRow([
       "example@gmail.com",
       "DRS",
+      "ชื่อตัวอย่าง",
       "sample row -- role is PBH, CM, ADMIN or DRS; replace with your team, then delete this",
     ]);
     sheet.setFrozenRows(1);
@@ -400,7 +401,8 @@ function readUsers_() {
     return String(h).trim().toLowerCase();
   });
   var emailCol = header.indexOf("email"),
-    roleCol = header.indexOf("role");
+    roleCol = header.indexOf("role"),
+    nameCol = Math.max(header.indexOf("name"), header.indexOf("ชื่อ")); // optional display name
   if (emailCol === -1) return [];
   var out = [];
   for (var i = 1; i < data.length; i++) {
@@ -411,6 +413,7 @@ function readUsers_() {
     out.push({
       email: em,
       role: MANAGER_ROLES.indexOf(role) !== -1 ? role : "DRS",
+      name: nameCol === -1 ? "" : String(data[i][nameCol]).trim(),
     });
   }
   return out;
@@ -494,6 +497,10 @@ function myData_(idToken) {
             }),
     };
     extra.drsUsers = drs;
+    extra.drsNames = {};
+    readUsers_().forEach(function (u) {
+      if (u.role === "DRS" && u.name) extra.drsNames[u.email] = u.name;
+    });
     var rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DrsRoster");
     var rv = rosterSheet ? rosterSheet.getDataRange().getValues() : [];
     tabs.DrsRoster = rv.length ? { header: rv[0], rows: rv.slice(1) } : { header: DRS_ROSTER_HEADER, rows: [] };
@@ -518,6 +525,7 @@ function myData_(idToken) {
     claimedByOthers: claimedByOthers_(email),
   };
   if (extra.drsUsers) res.drsUsers = extra.drsUsers;
+  if (extra.drsNames) res.drsNames = extra.drsNames;
   return res;
 }
 

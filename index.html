@@ -1149,6 +1149,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         claimed: new Set(),                // places other reps currently hold ("kind:id")
         role: "DRS",                       // "PBH" / "CM" / "ADMIN" (monthly calendar) or "DRS" (two-day calendar) -- from the Users tab
         drsUsers: [], drsPlan: [],         // managers only: every DRS and their two-day plans (raw rows)
+        drsNames: {},                      // managers only: DRS email -> display name (from the Users tab's name column)
         drsPlanMap: {},                    // managers only: email -> monthKey -> day -> picks (what is shown and edited)
         roster: {},                        // managers only: ISO weekday (1=Mon..7=Sun) -> [DRS emails who work that day]
         rosterDay: 1, assignTarget: 1,     // managers only: selected weekday tab; 0 = assign today, 1 = tomorrow
@@ -2504,6 +2505,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
          (by hand in the day editor, or from the weekday roster). The picks live
          in STATE.drsPlanMap and are saved with assignDrsDays; the server stores
          the rows and the 7-day reservation under the DRS's own email. */
+      // A DRS is shown by name (Users tab, "name" column); anyone without one falls back to their email.
+      function drsLabel(email) { return (STATE.drsNames && STATE.drsNames[email]) || email; }
       function isoWeekdayOf(w) { return w.dow === 0 ? 7 : w.dow; }
       function drsGet(email, mk, day) { const m = STATE.drsPlanMap[email]; return (m && m[mk] && m[mk][day]) || []; }
       function drsSet(email, mk, day, picks) {
@@ -2984,7 +2987,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const panel = document.getElementById("rosterPanel");
         panel.setAttribute("aria-labelledby", "rtab-" + wd);
         panel.innerHTML = `<h3>DRS ที่ทำงานวัน${THAI_DOW_ISO[wd]}</h3>` + (users.length
-          ? `<div class="roster-list">${users.map((e, i) => `<label class="rchk"><input type="checkbox" data-email="${escapeHtml(e)}" ${on.has(e) ? "checked" : ""}><span>${escapeHtml(e)}</span></label>`).join("")}</div>`
+          ? `<div class="roster-list">${users.map((e, i) => `<label class="rchk"><input type="checkbox" data-email="${escapeHtml(e)}" ${on.has(e) ? "checked" : ""}><span>${escapeHtml(drsLabel(e))}</span></label>`).join("")}</div>`
           : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ — เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users</div>`);
       }
       function renderAssignBar() {
@@ -3003,7 +3006,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const sel = document.getElementById("drsPick");
         const users = STATE.drsUsers || [];
         const cur = sel.value || "all";
-        sel.innerHTML = `<option value="all">DRS ทุกคน (${users.length})</option>` + users.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join("");
+        sel.innerHTML = `<option value="all">DRS ทุกคน (${users.length})</option>` + users.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(drsLabel(e))}</option>`).join("");
         sel.value = users.includes(cur) || cur === "all" ? cur : "all";
         renderRosterTabs(); renderRosterPanel(); renderAssignBar();
         const who = sel.value === "all" ? users : [sel.value];
@@ -3011,7 +3014,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         document.getElementById("drsGrid").innerHTML = who.length ? who.map((email) => {
           const cards = win.map((w) => dayCardHtml(w, drsGet(email, w.monthKey, w.day), true, email)).join("");
           const onToday = rosterFor(todayWd).includes(email);
-          return `<div class="drs-block"><h4>${escapeHtml(email)}${onToday ? '<span class="drs-tag">ทำงานวันนี้ตามตาราง</span>' : ""}</h4><div class="cal-days">${cards}</div></div>`;
+          return `<div class="drs-block"><h4>${escapeHtml(drsLabel(email))}${onToday ? '<span class="drs-tag">ทำงานวันนี้ตามตาราง</span>' : ""}</h4><div class="cal-days">${cards}</div></div>`;
         }).join("") : `<div class="empty-note">ยังไม่มี DRS ในรายชื่อผู้ใช้ (แท็บ Users)</div>`;
       }
       document.getElementById("drsPick").addEventListener("change", renderDrsView);
@@ -3087,7 +3090,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           items.forEach(({ k, v }) => { if (pendingAssign[k] === v) delete pendingAssign[k]; });
           if (res.claimedByOthers) setClaimed(res.claimedByOthers);
           const bad = (res.results || []).filter((r) => !r.ok);
-          if (bad.length) setCalStatus("จัดแผนให้บางคนไม่ได้ — " + bad.map((r) => r.email + " (" + r.error + ")").join(", "), true);
+          if (bad.length) setCalStatus("จัดแผนให้บางคนไม่ได้ — " + bad.map((r) => drsLabel(r.email) + " (" + r.error + ")").join(", "), true);
           else if ((res.results || []).some((r) => (r.conflicts || []).length)) afterAssignConflicts(res.results);
           else { const had = conflictRounds > 0; conflictRounds = 0; if (!had && !hasUnsavedPlans_()) setCalStatus("บันทึกแล้ว ✓", false); }
         } catch (e) {
@@ -3145,6 +3148,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           STATE.drsPlan = tabs.DrsPlan ? rowObjects_(tabs.DrsPlan) : [];
           STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
           STATE.drsUsers = (data.drsUsers || []).map((e) => String(e).toLowerCase());
+          STATE.drsNames = data.drsNames || {};
           STATE.roster = buildRoster(tabs.DrsRoster ? rowObjects_(tabs.DrsRoster) : []);
         } else {
           const inWin = new Set(calWindow().map((w) => dayKeyOf(w.monthKey, w.day)));
@@ -3550,7 +3554,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const w = calWindow().find((x) => x.monthKey === monthKey && x.day === +day);
         document.getElementById("dayEditTitle").textContent = "แก้ไข" + (w
           ? (w.offset === 0 ? "วันนี้" : "พรุ่งนี้") + " · " + THAI_DOW_FULL[w.dow] + " " + w.day + " " + THAI_MON_SHORT[w.mon - 1]
-          : " " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0")) + (drs ? " · " + drs : "");
+          : " " + monthKey.slice(0, 4) + "-" + monthKey.slice(4, 6) + "-" + String(day).padStart(2, "0")) + (drs ? " · " + drsLabel(drs) : "");
         renderDayEditSlots();
         renderDayEditTags();
         document.getElementById("dayEditSearch").value = "";
@@ -3869,6 +3873,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
         STATE.roster = buildRoster(payload.drsRoster || []);
         STATE.drsUsers = (payload.drsUsers || []).map((e) => String(e).toLowerCase());
+        STATE.drsNames = payload.drsNames || {};
         { const w0 = calWindow()[0]; STATE.rosterDay = isoWeekdayOf(w0); STATE.assignTarget = 1; }
         document.body.classList.toggle("role-mgr", isMgr());
         try { STATE.calView = localStorage.getItem("tolCalView") === "days" ? "days" : "month"; } catch (e) { STATE.calView = "month"; }
@@ -4100,7 +4105,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             STATE.role = data.role || "DRS";
             setClaimed(data.claimedByOthers);
             document.getElementById("loginGate").style.display = "none";
-            if (!appInitialized) { const payload = reconstructPayload_(data.tabs); payload.drsUsers = data.drsUsers || []; initApp(payload); appInitialized = true; }
+            if (!appInitialized) { const payload = reconstructPayload_(data.tabs); payload.drsUsers = data.drsUsers || []; payload.drsNames = data.drsNames || {}; initApp(payload); appInitialized = true; }
             return;
           } catch (e) {
             clearTimeout(slowTimer);
@@ -4125,7 +4130,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           const wd = calWindow();
           const mockPlan = (email, ids) => ids.map((id, i) => ({ email, monthKey: wd[0].monthKey, day: wd[0].day, slot: ["1", "2", "3"][i] || "backup", kind: id[0] === "v" ? "village" : "building", refId: id, name: "" }));
           const mockRoster = [1, 2, 3, 4, 5].flatMap((d) => [{ weekday: String(d), email: "drs1@example.com" }]).concat([{ weekday: "4", email: "drs2@example.com" }, { weekday: "5", email: "drs2@example.com" }]);
-          initApp({ ...MOCK_PAYLOAD, drsUsers: ["drs1@example.com", "drs2@example.com", "drs3@example.com"], drsRoster: mockRoster,
+          initApp({ ...MOCK_PAYLOAD, drsUsers: ["drs1@example.com", "drs2@example.com", "drs3@example.com"], drsNames: { "drs1@example.com": "สมชาย ใจดี", "drs2@example.com": "วิภา รักงาน" }, drsRoster: mockRoster,
             drsPlan: [...mockPlan("drs1@example.com", ["v1", "v3", "b1"]), ...mockPlan("drs2@example.com", ["v5"])],
             calendarPlan: STATE.role === "DRS" ? mockPlan("me@example.com", ["v1", "v3", "b1"]) : [] }); // a DRS only sees what was assigned to them
           appInitialized = true;
