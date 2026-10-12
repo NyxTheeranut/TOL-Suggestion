@@ -3983,7 +3983,11 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const k = dvKey(d), mk = mbMK(k), dn = mbDay(k), c = dvState(u, d), act = b.dataset.act;
         if (act === "editcrew") { DV.editCrew = !DV.editCrew; return dvRender(); }
         if (b.dataset.mem) { const em = b.dataset.mem; mbSetWorks(k, em, !mbCrewSet(k).has(em)); mbQueueOverride(k, [em]); return dvRender(); }
-        if (act === "gen") { const snap = dvSnap(u, d), ok = dvGenUnit(u, d); dvRender(true); return mbToast(ok ? "สร้างแผนแล้ว" : "ไม่มีสถานที่ว่างเหลือที่ตรงเงื่อนไข ลองปรับตัวกรองที่ปุ่ม “สร้างแผน…”", 8000, ok ? { label: "เลิกทำ", fn: () => { dvRestoreEmpty(u, d, snap); dvRender(); } } : null); }
+        if (act === "gen") { // open the filter drawer pre-set to this team and this day, instead of generating blind
+          if (u.solo) { MB.person = u.members[0]; } else { GEN.teams = new Set([u.team]); }
+          GEN.mode = c.st === "missing" ? "missing" : "redo";
+          return openGen({ day: d, who: u.solo ? "person" : "teams" });
+        }
         if (act === "addday") { u.members.forEach((e) => mbSetWorks(k, e, true)); mbQueueOverride(k, u.members); return dvRender(); }
         if (act === "clear") { const snap = dvSnap(u, d); dvWork(u, d).forEach((e) => { drsSet(e, mk, dn, []); queueAssign(e, mk, dn, 0); }); dvRender(); return mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน", 8000, { label: "เลิกทำ", fn: () => { dvRestore(d, snap); dvRender(); mbToast("คืนแผนแล้ว (ถ้าสถานที่ถูกคนอื่นจองไปแล้ว ระบบจะเลือกแห่งอื่นแทนให้)", 5000); } }); }
         if (act === "regen") { const snap = dvSnap(u, d), pins = dvPins(u, d), keep = c.picks ? dvMain(c.picks).filter((p) => pins.has(p.kind + ":" + p.refId)) : []; dvGenUnit(u, d, { keep }); dvRender(true); return mbToast("สร้างใหม่แล้ว" + (keep.length ? " · คงที่ปักหมุด " + keep.length + " แห่ง" : ""), 8000, { label: "เลิกทำ", fn: () => { dvRestoreEmpty(u, d, snap); dvRender(); } }); }
@@ -4168,7 +4172,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         b.disabled = !t.pairs.length; b.textContent = t.pairs.length ? "สร้างแผน " + t.pairs.length + " วัน-คน" : "ไม่มีคนที่ต้องสร้าง";
       }
       function openGen(preset) {
-        if (preset && preset.day != null) { GEN.from = GEN.to = preset.day; GEN.who = "working"; }
+        if (preset && preset.day != null) { GEN.from = GEN.to = preset.day; GEN.who = preset.who || "working"; }
         else if (preset && preset.picked) GEN.who = "picked";
         else if (preset && preset.person) GEN.who = "person";
         else if (GEN.who === "picked" && !MB.picked.size) GEN.who = "working";
