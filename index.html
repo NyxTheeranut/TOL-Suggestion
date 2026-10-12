@@ -1030,8 +1030,32 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       .mb-dr .mb-chip .mb-av { width: 22px; height: 22px; font-size: 10px; }
       .mb-chip.planned::after { content: "✓"; color: var(--st-good); font-weight: 700; margin-left: 2px; }
       .mb-inl { flex-basis: 100%; margin: 0 0 4px 8px; font-size: 12.5px; color: var(--text-2); overflow-wrap: anywhere; }
-      .mb-bigcard { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; margin-bottom: 8px; border-radius: 10px; background: var(--accent-soft); border-left: 3px solid var(--accent); }
-      .mb-bigtag { font-size: 11.5px; font-weight: 700; color: var(--accent-ink); }
+      .mb-tc { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+      .mb-tchead { display: flex; align-items: center; gap: 8px; }
+      .mb-bigtag { font-size: 12px; font-weight: 700; color: var(--accent-ink); }
+      .mb-route { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+      .mb-stop { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line-2); }
+      .mb-stop:first-child { border-top: none; }
+      .mb-stop.backup { opacity: .85; }
+      .mb-no { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); font: 600 12px "IBM Plex Mono", monospace; display: grid; place-items: center; margin-top: 1px; }
+      .mb-stop.backup .mb-no { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); }
+      .mb-sb { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+      .mb-icos { display: flex; gap: 2px; }
+      .mb-ico, .mb-rt { display: inline-grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: 10px; background: transparent; color: var(--text-2); cursor: pointer; text-decoration: none; transition: background .16s var(--ease), color .16s var(--ease); }
+      .mb-ico:hover, .mb-rt:hover { background: var(--accent-soft); color: var(--accent-ink); }
+      .mb-rt.lbl { width: auto; grid-auto-flow: column; gap: 6px; padding: 0 12px 0 10px; height: 34px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12.5px; font-weight: 600; }
+      .mb-rt.lbl:hover { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
+      @media (pointer: coarse) { .mb-ico, .mb-rt:not(.lbl) { width: 44px; height: 44px; } .mb-rt.lbl { height: 44px; } }
+      .mb-total { margin: 2px 0 0 34px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+      .mb-crewline { display: flex; align-items: center; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--text-2); }
+      .mb-crewline .mb-av { width: 22px; height: 22px; font-size: 10px; margin-right: -6px; box-shadow: 0 0 0 2px var(--panel); }
+      .mb-crewline span:last-child { margin-left: 10px; min-width: 0; overflow-wrap: anywhere; }
+      .mb-ed { margin: 0 0 8px; }
+      .mb-ed > summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); padding: 4px 2px; list-style: none; }
+      .mb-ed > summary::-webkit-details-marker { display: none; }
+      .mb-legend2 { margin: 12px 0 0; font-size: 12px; color: var(--text-3); }
+      .mb-toast.act { pointer-events: auto; }
+      .mb-tbtn { margin-left: 14px; border: none; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 4px 2px; }
       .mb-pd { flex-basis: 100%; margin: 0 0 4px 8px; }
       .mb-pd > summary { font-size: 12.5px; font-weight: 600; color: var(--accent-ink); cursor: pointer; padding: 2px 0; }
       .mb-scrim { position: fixed; inset: 0; background: rgba(10, 20, 19, .45); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); z-index: 1190; }
@@ -3289,7 +3313,11 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         return s.size;
       }
       let mbToastTimer;
-      function mbToast(msg) { const t = document.getElementById("mbToast"); t.textContent = msg; t.classList.add("show"); clearTimeout(mbToastTimer); mbToastTimer = setTimeout(() => t.classList.remove("show"), 3600); }
+      function mbToast(msg, ms, act) {
+        const t = document.getElementById("mbToast"); t.textContent = msg; t.classList.toggle("act", !!act); t.classList.add("show");
+        if (act) { const b = document.createElement("button"); b.type = "button"; b.className = "mb-tbtn"; b.textContent = act.label; b.addEventListener("click", () => { t.classList.remove("show"); act.fn(); }); t.appendChild(b); }
+        clearTimeout(mbToastTimer); mbToastTimer = setTimeout(() => t.classList.remove("show"), ms || 3600);
+      }
       const MB_DOW_SHORT = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
       function mbPersonDays(e) { return [1, 2, 3, 4, 5, 6, 7].filter((wd) => (STATE.roster[wd] || []).includes(e)); }
       function mbShiftLabel(e) {
@@ -3391,6 +3419,30 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         document.getElementById("mbMtxt").textContent = held.toLocaleString() + " / " + total.toLocaleString() + " แห่ง (" + pc + "%)";
         document.getElementById("mbMbar").style.width = pc + "%";
       }
+      const MB_SVG = (p) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+      const MB_I_PIN = MB_SVG('<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), MB_I_ROUTE = MB_SVG('<path d="m3 11 18-8-8 18-2-8-8-2z"/>'), MB_I_SCRIPT = MB_SVG('<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
+      const mbPlaceUrl = (r) => (r && r.lat != null && r.lng != null ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : null);
+      // Google Maps driving route through the stops (the backup place is not part of the route).
+      function mbRouteBtn(picks, withLabel) {
+        const u = mapsRouteUrl((picks || []).filter((p) => p.slot !== "backup")); if (!u) return "";
+        return `<a class="mb-rt${withLabel ? " lbl" : ""}" href="${u}" target="_blank" rel="noopener" aria-label="เปิดเส้นทางใน Google Maps" title="เปิดเส้นทางใน Google Maps">${MB_I_ROUTE}${withLabel ? "<span>เส้นทาง</span>" : ""}</a>`;
+      }
+      const mbSortPicks = (l) => l.slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0) || String(a.slot).localeCompare(String(b.slot)));
+      // A day's stops as a numbered route: name, mode pill, area/size, distance from the previous stop, map pin + sales script.
+      function mbStopsHtml(picks) {
+        let prev = null, total = 0, h = '<ol class="mb-route">';
+        mbSortPicks(picks).forEach((p, i, arr) => {
+          const r = byId(p.kind, p.refId), md = SCRIPT_MODES[r ? scriptModeOf(r).mode : "explore"], bk = p.slot === "backup";
+          let leg = "";
+          if (!bk && prev && r) { const km = haversineKm(prev, r); if (isFinite(km)) { total += km; leg = ` · ห่างจากจุดก่อน ${km.toFixed(1)} กม.`; } }
+          if (!bk && r) prev = r;
+          const url = mbPlaceUrl(r), nm = escapeHtml(r ? r.name : p.name || "?");
+          h += `<li class="mb-stop${bk ? " backup" : ""}"><span class="mb-no" aria-hidden="true">${bk ? "★" : i + 1}</span><div class="mb-sb"><div class="mb-r1"><span class="mb-nm">${bk ? "สำรอง · " : ""}${nm}</span><span class="mb-mode tone-${md.tone}" title="${escapeHtml(r ? scriptModeOf(r).reason : "")}">${md.th}</span></div>` +
+            (r ? `<span class="mb-loc">${escapeHtml(locOf(r))} · ${whole(hhOf(r))} ${kindOf(r) === "village" ? "ครัวเรือน" : "ยูนิต"}${leg}</span>` : '<span class="mb-loc">ไม่พบในข้อมูลล่าสุด</span>') + "</div>" +
+            (r ? `<div class="mb-icos">${url ? `<a class="mb-ico" href="${url}" target="_blank" rel="noopener" aria-label="เปิด ${nm} ใน Google Maps" title="เปิดใน Google Maps">${MB_I_PIN}</a>` : ""}<button type="button" class="mb-ico" data-script="${p.kind}:${escapeHtml(String(p.refId))}" aria-label="สคริปต์การขาย ${nm}" title="สคริปต์การขาย">${MB_I_SCRIPT}</button></div>` : "") + "</li>";
+        });
+        return h + "</ol>" + (total > 0 ? `<p class="mb-total">รวมประมาณ ${total.toFixed(1)} กม. ระหว่างจุด (เส้นตรง)</p>` : "");
+      }
       function renderBoardSide() {
         if (MB.person) return renderBoardPerson();
         const k = MB.selected, d = mbFrom(k), crew = mbCrew(k), st = mbStatus(k), mk = mbMK(k), dn = mbDay(k), can = mbInHorizon(k) && crew.length > 0, past = mbPast(k);
@@ -3398,33 +3450,33 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         let h = `<h3 class="mb-h">${MB_DOW_FULL[mbIso(d) - 1]} ${mbThDate(d)}</h3><p class="mb-sub">${k === mbTodayKey() ? "วันนี้" : past ? "ผ่านมาแล้ว" : mbInHorizon(k) ? "อยู่ในช่วงที่สร้างแผนได้" : "เกิน 14 วัน — ดูและปรับคนทำงานได้ แต่ยังสร้างแผนไม่ได้"} · ทำงาน ${crew.length} คน · มีแผน ${mbHave(k)} คน</p>`;
         h += `<div class="mb-actions"><button type="button" class="btn primary" id="mbGenDay"${can ? "" : " disabled"}>สร้างแผนวันนี้…</button><button type="button" class="btn" id="mbClrDay"${has && !past ? "" : " disabled"}>ล้างแผนวันนี้</button>` +
           (o && (o.add.length || o.remove.length) ? '<button type="button" class="btn" id="mbRstDay">กลับเป็นค่าตั้งต้น</button>' : "") + "</div>";
-        h += '<p class="mb-sub" style="margin:0 0 8px">กดชื่อเพื่อเพิ่ม/เอาออกเฉพาะวันนี้ · ✓ = มีแผนแล้ว · กด “ดูแผน” เพื่อดูสถานที่</p>';
+        h += '<p class="mb-sub" style="margin:0 0 8px">✓ = มีแผนแล้ว · กดชื่อเพื่อเพิ่ม/เอาออกเฉพาะวันนี้</p>';
         mbTeams().forEach((t) => {
           const m = mbMembers(t), w = m.filter((e) => crew.includes(e)), np = w.filter((e) => drsGet(e, mk, dn).length).length;
-          h += `<details class="mb-tm"${(w.length > np && can) || MB.openTeams && MB.openTeams.has(t) ? " open" : ""} data-team="${escapeHtml(t)}"><summary>${escapeHtml(t)}<span class="mb-cnt">${w.length}/${m.length} ทำงาน${w.length ? " · แผน " + np : ""}</span></summary><div class="mb-tbody">`;
-          const shared = mbTeamShared(w, mk, dn);
+          h += `<details class="mb-tm"${(w.length > np && can) || (w.length && mbTeams().length <= 3) || MB.openTeams && MB.openTeams.has(t) ? " open" : ""} data-team="${escapeHtml(t)}"><summary>${escapeHtml(t)}<span class="mb-cnt">${w.length}/${m.length} ทำงาน${w.length ? " · แผน " + np : ""}</span></summary><div class="mb-tbody">`;
+          const shared = mbTeamShared(w, mk, dn), chipOf = (e) => { const on = crew.includes(e); return `<button type="button" class="mb-chip${on && drsGet(e, mk, dn).length ? " planned" : ""}" data-chip="${escapeHtml(e)}" aria-pressed="${on}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e))}</button>`; };
           if (shared) {
-            h += `<div class="mb-bigcard"><span class="mb-bigtag">${shared.length === 1 ? "หมู่บ้านใหญ่ — " : ""}ทั้งทีมไปด้วยกัน (${w.length} คน)</span>` + shared.map((p) => {
-              const r0 = byId(p.kind, p.refId), md = SCRIPT_MODES[r0 ? scriptModeOf(r0).mode : "explore"];
-              return `<div class="mb-r1" style="margin-top:4px"><span class="mb-nm">${p.slot === "backup" ? "★ " : ""}${escapeHtml(r0 ? r0.name : p.name || "?")}</span><span class="mb-mode tone-${md.tone}">${md.th}</span></div>` +
-                (r0 ? `<span class="mb-loc">${escapeHtml(locOf(r0))} · ${whole(hhOf(r0))} ${kindOf(r0) === "village" ? "ครัวเรือน" : "ยูนิต"} · <button type="button" class="mb-link" data-script="${p.kind}:${escapeHtml(String(p.refId))}">สคริปต์การขาย</button></span>` : "");
-            }).join("") + "</div>";
+            h += `<div class="mb-tc"><div class="mb-tchead"><span class="mb-bigtag">${shared.length === 1 ? "หมู่บ้านใหญ่ · " : ""}ทั้งทีมไปด้วยกัน</span><span class="mb-sp"></span>${mbRouteBtn(shared, true)}</div>${mbStopsHtml(shared)}` +
+              `<div class="mb-crewline">${w.slice(0, 5).map(mbAv).join("")}<span>${w.length} คน · ${w.map((e) => escapeHtml(drsLabel(e).split(" ")[0])).join(", ")}</span></div></div>` +
+              `<details class="mb-ed" data-team="${escapeHtml(t)}"${MB.openEd && MB.openEd.has(t) ? " open" : ""}><summary>แก้ไขคนทำงานวันนี้</summary><div class="mb-crewrow">${m.map(chipOf).join("")}</div></details>`;
+          } else {
+            m.forEach((e) => {
+              const on = crew.includes(e), list = mbSortPicks(drsGet(e, mk, dn));
+              h += `<div class="mb-dr">${chipOf(e)}` +
+                (on ? (list.length ? `<div class="mb-inl">${list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ")} ${mbRouteBtn(list, false)} <button type="button" class="mb-link" data-edit="${escapeHtml(e)}"${past ? " disabled" : ""}>แก้ไข</button></div>` : '<span class="mb-sub" style="margin:0 0 0 6px">ยังไม่มีแผน</span>') : "") + "</div>";
+            });
           }
-          m.forEach((e) => {
-            const on = crew.includes(e), list = drsGet(e, mk, dn).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
-            h += `<div class="mb-dr"><button type="button" class="mb-chip${on && list.length ? " planned" : ""}" data-chip="${escapeHtml(e)}" aria-pressed="${on}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e))}</button>` +
-              (on && !shared ? (list.length ? `<div class="mb-inl">${list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ")} <button type="button" class="mb-link" data-edit="${escapeHtml(e)}"${past ? " disabled" : ""}>แก้ไข</button></div>` : '<span class="mb-sub" style="margin:0 0 0 6px">ยังไม่มีแผน</span>') : "") + "</div>";
-          });
           h += "</div></details>";
         });
         if (!(STATE.drsUsers || []).length) h += '<div class="mb-empty"><b>ยังไม่มี DRS</b></div>';
+        h += '<p class="mb-legend2"><b>โหมดสคริปต์:</b> ป้องกัน = True นำตลาด · โน้มน้าว = คู่แข่งนำไม่ถึง 10 คะแนน · บุก = คู่แข่งนำตั้งแต่ 10 คะแนน · สำรวจ = ยังไม่มีข้อมูลส่วนแบ่งตลาด</p>';
         document.getElementById("mbSide").innerHTML = h;
       }
       function renderBoardPerson() {
         const e = MB.person; let h = `<button type="button" class="mb-link" id="mbBack">← กลับไปดูตามวัน</button><h3 class="mb-h" style="margin-top:6px">${escapeHtml(drsLabel(e))}</h3><p class="mb-sub">${escapeHtml(mbTeamOf(e))} · วันทำงานประจำ ${mbShiftLabel(e)}</p><div class="mb-actions"><button type="button" class="btn primary" id="mbGenPerson">สร้างแผนให้คนนี้…</button></div><table class="mb-list"><thead><tr><th>วัน</th><th>สถานที่</th></tr></thead><tbody>`;
         for (let i = 0; i < MB_HORIZON; i++) {
           const k = mbKeyPlus(i), d = mbFrom(k), st = mbPState(e, k), list = drsGet(e, mbMK(k), mbDay(k));
-          h += `<tr data-k="${k}"><td>${MB_DOW[mbIso(d) - 1]} ${d.getDate()}</td><td>` + (st === "off" ? '<span style="color:var(--text-3)">ไม่ทำงาน</span>' : list.length ? list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ") : '<span style="color:var(--st-warn)">ยังไม่สร้าง</span>') + "</td></tr>";
+          h += `<tr data-k="${k}"><td>${MB_DOW[mbIso(d) - 1]} ${d.getDate()}</td><td>` + (st === "off" ? '<span style="color:var(--text-3)">ไม่ทำงาน</span>' : list.length ? mbSortPicks(list).map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ") + " " + mbRouteBtn(list, false) : '<span style="color:var(--st-warn)">ยังไม่สร้าง</span>') + "</td></tr>";
         }
         document.getElementById("mbSide").innerHTML = h + "</tbody></table>";
       }
@@ -3554,7 +3606,10 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           });
         } finally { mbCache = null; }
         genSave(); closeGen(); renderBoard();
-        mbToast(`สร้างแผน ${made} วัน-คน` + (bigs ? ` · หมู่บ้านใหญ่ ${bigs} ทีม-วัน` : "") + (short ? ` · ไม่มีสถานที่พอ ${short} วัน-คน` : "") + " — กดวันหรือชื่อเพื่อตรวจและแก้ไข");
+        // say why a day in the range was left alone, so "it stopped" is never a guess
+        const noWork = t.days.filter((k) => !mbCrew(k).length).length, already = t.days.filter((k) => mbCrew(k).length && !byDay[k]).length;
+        mbToast(`สร้างแผน ${made} วัน-คน` + (bigs ? ` · หมู่บ้านใหญ่ ${bigs} ทีม-วัน` : "") + (short ? ` · ไม่มีสถานที่พอ ${short} วัน-คน` : "") +
+          (noWork ? ` · ข้าม ${noWork} วันที่ไม่มีใครทำงาน` : "") + (already ? ` · ข้าม ${already} วันที่มีแผนครบแล้ว` : "") + " — กดวันหรือชื่อเพื่อตรวจและแก้ไข", 9000);
       }
 
       /* ── events ── */
@@ -3616,14 +3671,20 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         if (cell) { MB.person = null; MB.selected = cell.dataset.k; renderBoard(); const c2 = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c2) c2.focus(); if (window.innerWidth <= 1100) document.getElementById("mbSide").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
         const chip = $c("[data-chip]");
         if (chip && !chip.disabled) {
-          const em = chip.dataset.chip, k = MB.selected, open = new Set([...document.querySelectorAll("#mbSide details.mb-tm[open]")].map((x) => x.dataset.team)); MB.openTeams = open;
+          const em = chip.dataset.chip, k = MB.selected, open = new Set([...document.querySelectorAll("#mbSide details.mb-tm[open]")].map((x) => x.dataset.team)); MB.openTeams = open; MB.openEd = new Set([...document.querySelectorAll("#mbSide details.mb-ed[open]")].map((x) => x.dataset.team));
           mbSetWorks(k, em, !mbCrewSet(k).has(em)); mbQueueOverride(k, [em]); renderBoard(); return;
         }
         const row = $c("#mbSide tr[data-k]"); if (row) { mbSelectDay(row.dataset.k); return; }
         const scr = $c("[data-script]"); if (scr) { const [kd, id] = scr.dataset.script.split(":"); const r = byId(kd, id); if (r) openModal(r, "script"); return; }
         const ed = $c("[data-edit]"); if (ed) { openDayEditor(mbMK(MB.selected), mbDay(MB.selected), ed.dataset.edit); return; }
         if ($c("#mbGenDay")) { openGen({ day: Math.round((mbFrom(MB.selected) - mbToday()) / 86400000) }); return; }
-        if ($c("#mbClrDay")) { const mk = mbMK(MB.selected), dn = mbDay(MB.selected); mbCrew(MB.selected).forEach((em) => { if (drsGet(em, mk, dn).length) { drsSet(em, mk, dn, []); queueAssign(em, mk, dn, 0); } }); renderBoard(); mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน"); return; }
+        if ($c("#mbClrDay")) {
+          const mk = mbMK(MB.selected), dn = mbDay(MB.selected), snap = {};
+          mbCrew(MB.selected).forEach((em) => { const l = drsGet(em, mk, dn); if (l.length) { snap[em] = l.map((p) => ({ ...p })); drsSet(em, mk, dn, []); queueAssign(em, mk, dn, 0); } });
+          renderBoard();
+          mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน", 8000, { label: "เลิกทำ", fn: () => { Object.keys(snap).forEach((em) => { drsSet(em, mk, dn, snap[em]); queueAssign(em, mk, dn, 0); }); renderBoard(); mbToast("คืนแผนแล้ว (ถ้าสถานที่ถูกคนอื่นจองไปแล้ว ระบบจะเลือกแห่งอื่นแทนให้)", 5000); } });
+          return;
+        }
         if ($c("#mbRstDay")) { delete STATE.rosterOverrides[mbCompact(MB.selected)]; mbResetDay(MB.selected); renderBoard(); return; }
         if ($c("#mbPrev")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() - 1, 1); renderBoard(); return; }
         if ($c("#mbNext")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 1); renderBoard(); return; }
