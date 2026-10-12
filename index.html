@@ -2829,6 +2829,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           emails.forEach((em) => { out[em] = recsToPicks([anchor]); });
           return { plans: out, big: true, village: anchor };
         }
+        if (opts.together) { const set = recsToPicks(pickSetFrom(pool)); emails.forEach((em) => { out[em] = set.map((p) => ({ ...p })); }); return { plans: out, big: false, together: true }; } // one team: everyone goes to the same places
         let rest = pool.slice();
         emails.forEach((em) => {
           const set = pickSetFrom(rest);
@@ -3270,6 +3271,12 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const keys = new Set(members.map((e) => { const p = drsGet(e, mk, d)[0]; return p.kind + ":" + p.refId; }));
         return keys.size === 1 ? drsGet(members[0], mk, d)[0] : null;
       }
+      // The picks a whole team shares that day (identical list for every member), or null.
+      function mbTeamShared(members, mk, d) {
+        if (members.length < 2) return null;
+        const sig = (e) => drsGet(e, mk, d).map((p) => p.slot + ":" + p.kind + ":" + p.refId).join("|"), first = sig(members[0]);
+        return first && members.every((e) => sig(e) === first) ? drsGet(members[0], mk, d).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0)) : null;
+      }
       function mbHave(k) { const mk = mbMK(k), d = mbDay(k); return mbCrew(k).filter((e) => drsGet(e, mk, d).length).length; }
       function mbStatusText(k, st) {
         const miss = mbCrew(k).length - mbHave(k);
@@ -3395,16 +3402,18 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         mbTeams().forEach((t) => {
           const m = mbMembers(t), w = m.filter((e) => crew.includes(e)), np = w.filter((e) => drsGet(e, mk, dn).length).length;
           h += `<details class="mb-tm"${(w.length > np && can) || MB.openTeams && MB.openTeams.has(t) ? " open" : ""} data-team="${escapeHtml(t)}"><summary>${escapeHtml(t)}<span class="mb-cnt">${w.length}/${m.length} ทำงาน${w.length ? " · แผน " + np : ""}</span></summary><div class="mb-tbody">`;
-          const big = mbTeamBig(w, mk, dn);
-          if (big) {
-            const r0 = byId(big.kind, big.refId), md = SCRIPT_MODES[r0 ? scriptModeOf(r0).mode : "explore"];
-            h += `<div class="mb-bigcard"><span class="mb-bigtag">หมู่บ้านใหญ่ — ทั้งทีมไปที่เดียวกัน</span><div class="mb-r1"><span class="mb-nm">${escapeHtml(r0 ? r0.name : big.name || "?")}</span><span class="mb-mode tone-${md.tone}">${md.th}</span></div>` +
-              (r0 ? `<span class="mb-loc">${escapeHtml(locOf(r0))} · ${whole(hhOf(r0))} ${kindOf(r0) === "village" ? "ครัวเรือน" : "ยูนิต"}</span><button type="button" class="mb-link" data-script="${big.kind}:${escapeHtml(String(big.refId))}" style="align-self:flex-start">สคริปต์การขาย</button>` : "") + "</div>";
+          const shared = mbTeamShared(w, mk, dn);
+          if (shared) {
+            h += `<div class="mb-bigcard"><span class="mb-bigtag">${shared.length === 1 ? "หมู่บ้านใหญ่ — " : ""}ทั้งทีมไปด้วยกัน (${w.length} คน)</span>` + shared.map((p) => {
+              const r0 = byId(p.kind, p.refId), md = SCRIPT_MODES[r0 ? scriptModeOf(r0).mode : "explore"];
+              return `<div class="mb-r1" style="margin-top:4px"><span class="mb-nm">${p.slot === "backup" ? "★ " : ""}${escapeHtml(r0 ? r0.name : p.name || "?")}</span><span class="mb-mode tone-${md.tone}">${md.th}</span></div>` +
+                (r0 ? `<span class="mb-loc">${escapeHtml(locOf(r0))} · ${whole(hhOf(r0))} ${kindOf(r0) === "village" ? "ครัวเรือน" : "ยูนิต"} · <button type="button" class="mb-link" data-script="${p.kind}:${escapeHtml(String(p.refId))}">สคริปต์การขาย</button></span>` : "");
+            }).join("") + "</div>";
           }
           m.forEach((e) => {
             const on = crew.includes(e), list = drsGet(e, mk, dn).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
             h += `<div class="mb-dr"><button type="button" class="mb-chip${on && list.length ? " planned" : ""}" data-chip="${escapeHtml(e)}" aria-pressed="${on}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e))}</button>` +
-              (on && !big ? (list.length ? `<div class="mb-inl">${list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ")} <button type="button" class="mb-link" data-edit="${escapeHtml(e)}"${past ? " disabled" : ""}>แก้ไข</button></div>` : '<span class="mb-sub" style="margin:0 0 0 6px">ยังไม่มีแผน</span>') : "") + "</div>";
+              (on && !shared ? (list.length ? `<div class="mb-inl">${list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ")} <button type="button" class="mb-link" data-edit="${escapeHtml(e)}"${past ? " disabled" : ""}>แก้ไข</button></div>` : '<span class="mb-sub" style="margin:0 0 0 6px">ยังไม่มีแผน</span>') : "") + "</div>";
           });
           h += "</div></details>";
         });
@@ -3465,9 +3474,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 
       /* ── generate drawer ── */
       const MB_GEN_KEY = "tolMbGen";
-      const GEN = { from: 0, to: 6, who: "working", teams: new Set(), mode: "missing", big: true, fs: { kind: "both", status: "all", tags: new Set(), amps: new Set(), tams: new Set() } };
-      try { const sv = JSON.parse(localStorage.getItem(MB_GEN_KEY) || "null"); if (sv) { GEN.big = sv.big !== false; if (sv.fs) { GEN.fs.kind = sv.fs.kind || "both"; GEN.fs.status = sv.fs.status || "all"; GEN.fs.tags = new Set(sv.fs.tags || []); GEN.fs.amps = new Set(sv.fs.amps || []); GEN.fs.tams = new Set(sv.fs.tams || []); } } } catch (e) { /* storage blocked */ }
-      function genSave() { try { localStorage.setItem(MB_GEN_KEY, JSON.stringify({ big: GEN.big, fs: { kind: GEN.fs.kind, status: GEN.fs.status, tags: [...GEN.fs.tags], amps: [...GEN.fs.amps], tams: [...GEN.fs.tams] } })); } catch (e) { /* storage blocked */ } }
+      const GEN = { from: 0, to: 6, who: "working", teams: new Set(), mode: "missing", big: true, together: true, fs: { kind: "both", status: "all", tags: new Set(), amps: new Set(), tams: new Set() } };
+      try { const sv = JSON.parse(localStorage.getItem(MB_GEN_KEY) || "null"); if (sv) { GEN.big = sv.big !== false; GEN.together = sv.together !== false; if (sv.fs) { GEN.fs.kind = sv.fs.kind || "both"; GEN.fs.status = sv.fs.status || "all"; GEN.fs.tags = new Set(sv.fs.tags || []); GEN.fs.amps = new Set(sv.fs.amps || []); GEN.fs.tams = new Set(sv.fs.tams || []); } } } catch (e) { /* storage blocked */ }
+      function genSave() { try { localStorage.setItem(MB_GEN_KEY, JSON.stringify({ big: GEN.big, together: GEN.together, fs: { kind: GEN.fs.kind, status: GEN.fs.status, tags: [...GEN.fs.tags], amps: [...GEN.fs.amps], tams: [...GEN.fs.tams] } })); } catch (e) { /* storage blocked */ } }
       function genTargets() {
         const days = []; for (let n = GEN.from; n <= GEN.to; n++) days.push(mbKeyPlus(n));
         const people = (STATE.drsUsers || []).filter((e) => GEN.who === "picked" ? MB.picked.has(e) : GEN.who === "person" ? e === MB.person : GEN.who === "teams" ? GEN.teams.has(mbTeamOf(e)) : true);
@@ -3505,13 +3514,14 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           `<div class="mb-sub2" style="margin:0 0 4px">แท็ก (ต้องตรงทุกข้อที่เลือก)</div>${genChips(TAGS.map((t) => [t.key, t.label]), fs.tags, "data-gtag")}` +
           `<div class="mb-sub2" style="margin:10px 0 4px">อำเภอ (ไม่เลือก = ทุกอำเภอ)</div>${genChips(amps.map((a) => [a, a]), fs.amps, "data-gamp")}` +
           (fs.amps.size && tams.length ? `<div class="mb-sub2" style="margin:10px 0 4px">ตำบล (ไม่เลือก = ทุกตำบลของอำเภอที่เลือก)</div>${genChips(tams.map((a) => [a, a]), fs.tams, "data-gtam")}` : "") + "</fieldset>" +
-          `<fieldset class="mb-fs" style="border-bottom:none"><legend>5 · หมู่บ้านใหญ่</legend><label class="mb-ln"><input type="checkbox" id="mbGBig"${GEN.big ? " checked" : ""}>ถ้าหมู่บ้านอันดับแรกใหญ่พอ ให้ทุกคนไปหมู่บ้านเดียวกันทั้งวัน</label><p class="mb-sub2">ใหญ่พอ = ครัวเรือน ≥ max(300, 100 × จำนวน DRS ในวันนั้น)</p></fieldset>`;
+          `<fieldset class="mb-fs" style="border-bottom:none"><legend>5 · การไปเป็นทีม</legend><label class="mb-ln"><input type="checkbox" id="mbGTog"${GEN.together ? " checked" : ""}>คนในทีมเดียวกันไปที่เดียวกัน (ชุดสถานที่ชุดเดียวต่อทีมต่อวัน)</label><p class="mb-sub2">ทีมต่างกันได้สถานที่ไม่ซ้ำกัน · คนที่ “ไม่มีทีม” แยกกันไปคนละชุดเสมอ</p>` +
+          `<label class="mb-ln"><input type="checkbox" id="mbGBig"${GEN.big ? " checked" : ""}>ถ้าหมู่บ้านอันดับแรกใหญ่พอ ให้ทั้งทีมไปหมู่บ้านเดียวทั้งวัน</label><p class="mb-sub2">ใหญ่พอ = ครัวเรือน ≥ max(300, 100 × จำนวน DRS ในทีมวันนั้น)</p></fieldset>`;
         genPreview();
       }
       function genPreview() {
-        const t = genTargets(), { match, free } = genFree(t.pairs), need = t.pairs.length * 4, ok = need <= free, el = document.getElementById("mbPv"), b = document.getElementById("mbGoGen");
+        const t = genTargets(), { match, free } = genFree(t.pairs), groups = new Set(t.pairs.map(([k, e]) => GEN.together && mbTeamOf(e) !== MB_NOTEAM ? k + "|" + mbTeamOf(e) : k + "|" + e)).size, need = groups * 4, ok = need <= free, el = document.getElementById("mbPv"), b = document.getElementById("mbGoGen");
         el.className = "mb-pv" + (ok ? "" : " bad");
-        el.innerHTML = `ตรงเงื่อนไข <b>${match.toLocaleString()}</b> แห่ง (ว่าง <b>${free.toLocaleString()}</b>) · ต้องใช้ประมาณ <b>${need.toLocaleString()}</b> แห่ง (${t.pairs.length} วัน-คน × 4)` + (ok ? "" : "<br>สถานที่ไม่พอ — บางคนจะได้น้อยกว่า 4 แห่งหรือไม่ได้เลย");
+        el.innerHTML = `ตรงเงื่อนไข <b>${match.toLocaleString()}</b> แห่ง (ว่าง <b>${free.toLocaleString()}</b>) · ต้องใช้ประมาณ <b>${need.toLocaleString()}</b> แห่ง (${groups} ชุด × 4${GEN.together ? " · ทีม-วัน และคนไม่มีทีม" : ""})` + (ok ? "" : "<br>สถานที่ไม่พอ — บางคนจะได้น้อยกว่า 4 แห่งหรือไม่ได้เลย");
         b.disabled = !t.pairs.length; b.textContent = t.pairs.length ? "สร้างแผน " + t.pairs.length + " วัน-คน" : "ไม่มีคนที่ต้องสร้าง";
       }
       function openGen(preset) {
@@ -3536,7 +3546,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             const mk = mbMK(k), d = mbDay(k);
             teams.map((t, i) => teams[(i + di) % teams.length]).forEach((t) => {
               const emails = byDay[k].filter((e) => mbTeamOf(e) === t); if (!emails.length) return;
-              const res = buildDrsDayPlans(mk, d, emails, null, { fs: GEN.fs, big: GEN.big });
+              const res = buildDrsDayPlans(mk, d, emails, null, { fs: GEN.fs, big: GEN.big, together: GEN.together && t !== MB_NOTEAM });
               if (!res) { short += emails.length; if (GEN.mode === "redo") emails.forEach((e) => { if (drsGet(e, mk, d).length) { drsSet(e, mk, d, []); queueAssign(e, mk, d, 0); } }); return; }
               if (res.big) bigs++;
               emails.forEach((e) => { const picks = res.plans[e] || []; drsSet(e, mk, d, picks); queueAssign(e, mk, d, 0); if (picks.length) made++; else short++; });
@@ -3567,6 +3577,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         if (t.id === "mbGTo") { GEN.to = +t.value; if (GEN.from > GEN.to) GEN.from = GEN.to; return renderGen(); }
         if (t.id === "mbGStatus") { GEN.fs.status = t.value; return genPreview(); }
         if (t.id === "mbGBig") GEN.big = t.checked;
+        if (t.id === "mbGTog") { GEN.together = t.checked; genPreview(); }
       });
       mbSec.addEventListener("click", async (e) => {
         const t = e.target, $c = (sel) => t.closest(sel);
