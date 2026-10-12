@@ -145,7 +145,7 @@ useful for reviewing the UI without any of that setup.
   `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
   additionally get every DRS's two-day rows, read-only).
 - Users tab: optional `team` (or `ทีม`) column groups DRS on the "จัดแผน DRS" board (no area meaning; blank = "ไม่มีทีม"). The board's bulk actions use `saveDrsPattern` (many DRS, one weekly pattern) and `mergeDrsOverride` (one date, a few DRS).
-- `DrsRoster` — which DRS work when, set by PBH / CM / ADMIN from the "จัดแผน DRS" month board: weekly pattern rows (`weekday` 1 = Mon … 7 = Sun) and one-date changes (`weekday` 0, `date` YYYYMMDD, `mode` add/remove).
+- `DrsRoster` — which DRS work when, set by PBH / CM / ADMIN from the "จัดแผน DRS" dispatch board (team x day matrix with status / area / load views, a map of the selected day, a per-team detail panel with a day timeline, and a search palette opened with `/`): weekly pattern rows (`weekday` 1 = Mon … 7 = Sun) and one-date changes (`weekday` 0, `date` YYYYMMDD, `mode` add/remove).
 - `CalendarSlots` — up to 3 saved month plans per PBH / CM.
 - `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt`.
   Planning a place reserves it for at least 7 days (from `claimedAt`) and until its planned day is over, whichever is later; nobody else

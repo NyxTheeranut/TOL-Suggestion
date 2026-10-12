@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -1078,6 +1078,301 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       @media (prefers-reduced-motion: reduce) { .mb-drawer, .mb-scrim { transition: none; } }
       @media (max-width: 640px) { .mb-prow { grid-template-columns: auto minmax(0, 1fr) 78px; } .mb-prow .mb-strip { grid-column: 1 / -1; } .mb-sthead { display: none; } .mb-pscroll { max-height: none; } }
     </style>
+  <style id="dv-css">
+#dv{
+  --dground:#e9ecee; --dpanel:#ffffff; --dtint:#f4f6f7; --dtint-2:#eaeef0;
+  --dink:#10151a; --dink-2:#37424b; --dmuted:#65727b; --don-ink:#ffffff;
+  --dline:#d6dce0; --dline-2:#e6eaed;
+  --dok:#1f7a3d; --dok-soft:#e2f1e7; --dwarn:#9a5600; --dwarn-soft:#fcefd2; --dcrit:#bf2a1f; --dcrit-soft:#fbe5e2;
+  --dt1:#2f6fdb; --dt2:#c2367d; --dt3:#2f8f4e; --dt4:#0e8aa8; --dt5:#5b6b86; --dt6:#a8741a; --dt7:#3e8f86;
+  --dpop:0 20px 48px -18px rgba(8,16,22,.45), 0 2px 6px rgba(8,16,22,.08);
+  --dr-sm:6px; --dr-md:10px;
+  --dease:cubic-bezier(.16,1,.3,1);
+  --dfont:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif; --dmono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])) #dv{
+  --dground:#0b0d0f; --dpanel:#14171a; --dtint:#1a1e22; --dtint-2:#1f2429;
+  --dink:#eceff1; --dink-2:#b8c2c9; --dmuted:#8a979f; --don-ink:#0b0d0f;
+  --dline:#272d33; --dline-2:#1f252a;
+  --dok:#5fce86; --dok-soft:#10261a; --dwarn:#e8b04f; --dwarn-soft:#2a2210; --dcrit:#f48b82; --dcrit-soft:#2d1715;
+  --dt1:#6ea0ff; --dt2:#f07ab0; --dt3:#62c47f; --dt4:#45bfdc; --dt5:#97a7c2; --dt6:#d6a54a; --dt7:#5cc3b7;
+  --dpop:0 20px 48px -18px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.4); color-scheme:dark;}}
+:root[data-theme="dark"] #dv{
+  --dground:#0b0d0f; --dpanel:#14171a; --dtint:#1a1e22; --dtint-2:#1f2429;
+  --dink:#eceff1; --dink-2:#b8c2c9; --dmuted:#8a979f; --don-ink:#0b0d0f;
+  --dline:#272d33; --dline-2:#1f252a;
+  --dok:#5fce86; --dok-soft:#10261a; --dwarn:#e8b04f; --dwarn-soft:#2a2210; --dcrit:#f48b82; --dcrit-soft:#2d1715;
+  --dt1:#6ea0ff; --dt2:#f07ab0; --dt3:#62c47f; --dt4:#45bfdc; --dt5:#97a7c2; --dt6:#d6a54a; --dt7:#5cc3b7;
+  --dpop:0 20px 48px -18px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.4); color-scheme:dark;}
+#dv *{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--dline) transparent}
+#dv{margin:0;background:var(--dground);color:var(--dink);font:14px/1.5 var(--dfont);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 0}
+#dv ::selection{background:color-mix(in srgb,var(--dink) 20%,transparent)}
+#dv input,#dv select,#dv button{font:inherit;color:inherit;caret-color:var(--dink);accent-color:var(--dink)}
+#dv button{cursor:pointer}
+#dv a{color:inherit}
+#dv :focus-visible{outline:2px solid var(--dink);outline-offset:2px;border-radius:6px}
+#dv h1,#dv h2,#dv h3,#dv h4,#dv p{margin:0}
+#dv .dvic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#dv .dvic.lg{width:18px;height:18px}
+#dv .dvm{font-family:var(--dmono);font-variant-numeric:tabular-nums}
+#dv .skip{position:absolute;left:12px;top:-60px;background:var(--dink);color:var(--don-ink);padding:8px 14px;border-radius:8px;z-index:90;text-decoration:none}
+#dv .skip:focus{top:10px}
+#dv .dvb{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:5px 14px;border:1px solid var(--dline);border-radius:var(--dr-sm);background:var(--dpanel);font-size:13.5px;font-weight:600;transition:background .16s var(--dease),border-color .16s var(--dease),transform .12s var(--dease)}
+#dv .dvb:hover{background:var(--dtint);border-color:var(--dink-2)}
+#dv .dvb:active{transform:translateY(1px) scale(.99)}
+#dv .dvb.primary{background:var(--dink);color:var(--don-ink);border-color:var(--dink)}
+#dv .dvb.primary:hover{background:color-mix(in srgb,var(--dink) 86%,var(--dpanel))}
+#dv .dvb.quiet{background:transparent;border-color:transparent}
+#dv .dvb.quiet:hover{background:var(--dtint-2);border-color:transparent}
+#dv .dvb.sm{min-height:32px;padding:2px 11px;font-size:13px}
+#dv .dvb[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+#dv .kbd{font:500 11px var(--dmono);padding:1px 6px;border:1px solid var(--dline);border-bottom-width:2px;border-radius:5px;color:var(--dmuted);background:var(--dtint)}
+#dv .ib{display:inline-grid;place-items:center;width:34px;height:34px;border:none;border-radius:var(--dr-sm);background:transparent;color:var(--dink-2);transition:background .16s var(--dease),color .16s var(--dease)}
+#dv .ib:hover{background:var(--dtint-2);color:var(--dink)}
+#dv .ib[aria-pressed="true"]{background:var(--dink);color:var(--don-ink)}
+@media (pointer:coarse){#dv .ib{width:44px;height:44px}}
+#dv .seg{display:inline-flex;gap:2px;padding:3px;background:var(--dtint-2);border-radius:8px}
+#dv .seg button{border:none;background:transparent;min-height:28px;padding:1px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--dink-2)}
+#dv .seg button[aria-pressed="true"]{background:var(--dpanel);color:var(--dink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.14)}
+#dv .top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;height:54px;padding:0 clamp(14px,2.2vw,32px);background:color-mix(in srgb,var(--dground) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--dline)}
+#dv .top h1{font-size:17px;font-weight:700;letter-spacing:-.01em;margin-right:6px}
+#dv .top .sp{flex:1}
+#dv .find{display:flex;align-items:center;gap:10px;min-width:min(340px,34vw);height:36px;padding:0 10px 0 12px;border:1px solid var(--dline);border-radius:var(--dr-sm);background:var(--dpanel);color:var(--dmuted);font-size:13.5px;text-align:left}
+#dv .find:hover{border-color:var(--dink-2)}
+#dv .find span:first-of-type{flex:1}
+#dv .board{display:grid;gap:14px;padding:14px clamp(14px,2.2vw,32px) 40px;max-width:1600px;margin:0 auto}
+#dv .rowA{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;align-items:stretch}
+#dv .rowB{display:grid;grid-template-columns:minmax(0,1fr) 452px;gap:14px;align-items:stretch}
+#dv .rowA>*,#dv .rowB>*{min-width:0}
+@media (max-width:1100px){#dv .rowA,#dv .rowB{grid-template-columns:minmax(0,1fr)}}
+#dv .pane{background:var(--dpanel);border:1px solid var(--dline);border-radius:var(--dr-md)}
+#dv .pane-h{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--dline-2);min-height:48px}
+#dv .pane-h h2{font-size:14px;font-weight:700}
+#dv .pane-h .sp{flex:1}
+#dv .dvsub{font-size:12.5px;color:var(--dmuted)}
+#dv .attn{display:flex;flex-direction:column}
+#dv .tmw{padding:14px 14px 12px;border-bottom:1px solid var(--dline-2)}
+#dv .tms{font-size:16px;font-weight:700;line-height:1.35;letter-spacing:-.005em}
+#dv .tms.warn{color:var(--dwarn)}
+#dv .tms.ok{color:var(--dink)}
+#dv .tmd{font-size:12.5px;color:var(--dmuted);margin-top:2px}
+#dv .tmc{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+#dv .tc{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 9px 0 8px;border-radius:7px;font-size:12.5px;font-weight:600;border:1px solid var(--dline);background:var(--dpanel);cursor:pointer}
+#dv .tc:hover{border-color:var(--dink-2)}
+#dv .tc i{width:8px;height:8px;border-radius:50%}
+#dv .tc .dvic{width:13px;height:13px;stroke-width:2.4}
+#dv .tc.ok .dvic{color:var(--dok)}
+#dv .tc.missing{background:var(--dwarn-soft);border-color:transparent;color:var(--dwarn)}
+#dv .tc.off{opacity:.5}
+#dv .al{list-style:none;margin:0;padding:4px 6px 8px;display:flex;flex-direction:column;gap:1px;overflow:auto}
+#dv .al li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border-radius:var(--dr-sm)}
+#dv .al li:hover{background:var(--dtint)}
+#dv .gl{width:20px;height:20px;border-radius:50%;display:grid;place-items:center}
+#dv .gl.crit{background:var(--dcrit-soft);color:var(--dcrit)}
+#dv .gl.warn{background:var(--dwarn-soft);color:var(--dwarn)}
+#dv .gl.info{background:var(--dtint-2);color:var(--dink-2)}
+#dv .gl .dvic{width:12px;height:12px;stroke-width:2.4}
+#dv .al .tx{min-width:0;font-size:13px;line-height:1.35;text-align:left;border:none;background:none;padding:2px 0;color:var(--dink)}
+#dv .al .tx:hover{text-decoration:underline;text-underline-offset:3px}
+#dv .al .tx small{display:block;color:var(--dmuted);font-size:12px}
+#dv .dve{padding:22px 16px;text-align:center;color:var(--dmuted);font-size:13px}
+#dv .dve b{display:block;color:var(--dink);font-size:14px;margin-bottom:2px}
+@media (min-width:1101px){#dv .attn{contain:size;overflow:hidden}
+#dv .al{flex:1;min-height:0}}
+#dv .mx-wrap{display:flex;flex-direction:column;min-height:0}
+#dv .mx-scroll{overflow-x:auto;padding:4px 12px 8px}
+#dv .mx{display:grid;grid-template-columns:164px repeat(var(--n,14),minmax(50px,1fr)) 80px;min-width:calc(164px + var(--n,14) * 54px + 80px);gap:3px;align-items:stretch}
+#dv .dh{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 0;border:none;background:transparent;border-radius:var(--dr-sm);color:var(--dmuted);font-size:12px;line-height:1.2}
+#dv .dh b{font:600 14px var(--dmono);color:var(--dink)}
+#dv .dh.we{color:var(--dcrit)}
+#dv .dh.we b{color:var(--dcrit)}
+#dv .dh.today b{background:var(--dink);color:var(--don-ink);border-radius:999px;padding:0 7px}
+#dv .dh:hover{background:var(--dtint)}
+#dv .dh[aria-pressed="true"]{background:var(--dtint-2)}
+#dv .corner,#dv .balh{font-size:12px;color:var(--dmuted);display:flex;align-items:flex-end;padding:0 8px 5px}
+#dv .balh{justify-content:flex-end}
+#dv .tm{display:flex;align-items:center;gap:8px;min-height:36px;padding:3px 8px;border:none;background:transparent;border-radius:var(--dr-sm);text-align:left}
+#dv .tm:hover{background:var(--dtint)}
+#dv .tm[aria-pressed="true"]{background:var(--dtint-2)}
+#dv .tm .dvdot{width:10px;height:10px;border-radius:3px;flex:none;background:var(--tc)}
+#dv .tm .nm{font-weight:600;font-size:13.5px;line-height:1.15}
+#dv .tm .ct{display:block;font:11.5px var(--dmono);color:var(--dmuted)}
+#dv .cell{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;min-height:36px;padding:0;border:1px solid color-mix(in srgb,var(--tc) 26%,var(--dline-2));border-radius:var(--dr-sm);background:color-mix(in srgb,var(--tc) 11%,var(--dpanel));color:var(--dink);font:600 12.5px var(--dmono);transition:transform .12s var(--dease),box-shadow .14s var(--dease)}
+#dv .cell:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--dink) 28%,transparent)}
+#dv .cell:active{transform:scale(.97)}
+#dv .cell .dvic{width:13px;height:13px;stroke-width:2.4;color:var(--tc)}
+#dv .cell.big{background:color-mix(in srgb,var(--tc) 22%,var(--dpanel))}
+#dv .cell.missing{background:repeating-linear-gradient(135deg,var(--dwarn-soft) 0 5px,color-mix(in srgb,var(--dwarn) 18%,var(--dwarn-soft)) 5px 6px);border:1px solid color-mix(in srgb,var(--dwarn) 60%,transparent);color:var(--dwarn)}
+#dv .cell.missing .dvic{color:var(--dwarn)}
+#dv .cell.off{background:transparent;border-color:transparent;color:var(--dmuted);font-weight:500}
+#dv .cell.off .dvic{color:var(--dline)}
+#dv .cell.sel{box-shadow:0 0 0 2px var(--dink);z-index:2}
+#dv .cell .dvbadge{position:absolute;top:1px;right:2px;font:600 9.5px var(--dmono);color:var(--dwarn);background:var(--dwarn-soft);border-radius:4px;padding:0 3px;line-height:13px}
+#dv .cell .shp{width:9px;height:9px;fill:var(--tc);stroke:none}
+#dv .cell.load{font-size:11.5px}
+#dv .we-col{background:color-mix(in srgb,var(--dcrit) 4%,transparent)}
+#dv .bal{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:3px;padding:0 6px;font:600 12px var(--dmono)}
+#dv .bal i{display:block;height:4px;border-radius:2px;background:var(--tc);min-width:2px}
+#dv .bal small{font:500 10.5px var(--dmono);color:var(--dmuted)}
+#dv .legend{display:flex;flex-wrap:wrap;gap:4px 14px;padding:0 14px 10px;font-size:12px;color:var(--dink-2)}
+#dv .legend span{display:inline-flex;align-items:center;gap:6px}
+#dv .legend i{width:16px;height:12px;border-radius:4px;display:inline-block}
+#dv .legend svg{width:10px;height:10px;fill:var(--dink-2)}
+#dv .mapp{display:flex;flex-direction:column;min-height:420px}
+#dv .mapp .pane-h{flex-wrap:wrap}
+#dv .chips{display:flex;flex-wrap:wrap;gap:5px}
+#dv .chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:1px 10px;border:1px solid var(--dline);border-radius:7px;background:var(--dpanel);font-size:12.5px;font-weight:500}
+#dv .chip i{width:8px;height:8px;border-radius:2px;background:var(--tc)}
+#dv .chip[aria-pressed="false"]{opacity:.45}
+#dv .chip[aria-pressed="true"]{background:var(--dtint)}
+#dv #dvMap{flex:1;min-height:360px;border-radius:0 0 var(--dr-md) var(--dr-md);background:var(--dtint-2)}
+#dv .leaflet-container{font-family:var(--dfont)}
+#dv.dv-dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.55)}
+#dv .stopm{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;color:var(--don-ink);font:600 12px var(--dmono);border:2px solid var(--dpanel);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+#dv .stopm.dim{opacity:.4;transform:scale(.8)}
+#dv .stopm.bk{background:#fff!important;color:#444;border:2px dashed #666}
+#dv .stopm.bk svg{width:12px;height:12px;stroke:#444;fill:none;stroke-width:2.2}
+#dv .zone{font:600 11px var(--dfont);color:#5a6770;letter-spacing:.02em;text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap}
+#dv .leaflet-container path.draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw .7s var(--dease) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+#dv .detail{display:flex;flex-direction:column;min-height:420px;max-height:600px;position:relative}
+#dv .dh2{padding:12px 14px 10px;border-bottom:1px solid var(--dline-2)}
+#dv .dh2 .row1{display:flex;align-items:center;gap:8px}
+#dv .dh2 .tdot{width:12px;height:12px;border-radius:4px;background:var(--tc)}
+#dv .dh2 h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
+#dv .dh2 .date{font-size:12.5px;color:var(--dmuted);margin-top:1px}
+#dv .dvp{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:0 9px;border-radius:6px;line-height:21px}
+#dv .dvp.ok{background:var(--dok-soft);color:var(--dok)}
+#dv .dvp.big{background:var(--dtint-2);color:var(--dink)}
+#dv .dvp.missing{background:var(--dwarn-soft);color:var(--dwarn)}
+#dv .dvp.off{background:var(--dtint-2);color:var(--dmuted)}
+#dv .dvp.over{background:var(--dcrit-soft);color:var(--dcrit)}
+#dv .dvp .dvic{width:12px;height:12px;stroke-width:2.4}
+#dv .acts{display:flex;align-items:center;gap:0;margin-left:auto}
+#dv .tl{padding:10px 14px 12px;border-bottom:1px solid var(--dline-2)}
+#dv .tlbar{position:relative;height:26px;border-radius:6px;background:var(--dtint-2);overflow:hidden}
+#dv .tlbar .sg{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font:600 11.5px var(--dmono);color:var(--don-ink)}
+#dv .tlbar .sg.visit{background:var(--tc);border-right:2px solid var(--dpanel)}
+#dv .tlbar .sg.travel{background:repeating-linear-gradient(135deg,transparent 0 3px,var(--dline) 3px 4px)}
+#dv .tlbar .sg.lunch{background:var(--dline-2);color:var(--dmuted);font:500 10.5px var(--dfont)}
+#dv .tlbar .over{position:absolute;top:0;bottom:0;right:0;background:var(--dcrit-soft)}
+#dv .tlbar .endm{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--dink);opacity:.55}
+#dv .tlticks{position:relative;height:16px;margin-top:3px;font:500 10.5px var(--dmono);color:var(--dmuted)}
+#dv .tlticks span{position:absolute;transform:translateX(-50%)}
+#dv .tlsum{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12.5px;color:var(--dink-2)}
+#dv .tlsum b{font-family:var(--dmono)}
+#dv .crew{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:7px 14px;font-size:12.5px;color:var(--dink-2);border-bottom:1px solid var(--dline-2)}
+#dv .crew button.lnk{border:none;background:none;color:var(--dink);font-weight:600;font-size:12.5px;padding:2px 0;text-decoration:underline;text-underline-offset:3px}
+#dv .crewedit{display:flex;flex-wrap:wrap;gap:5px;padding:8px 14px 10px;border-bottom:1px solid var(--dline-2);background:var(--dtint)}
+#dv .mchip{min-height:28px;padding:1px 10px;border:1px solid var(--dline);border-radius:7px;background:var(--dpanel);font-size:12.5px}
+#dv .mchip[aria-pressed="false"]{background:var(--dwarn-soft);color:var(--dwarn);border-color:transparent;text-decoration:line-through}
+#dv .stops{list-style:none;margin:0;padding:2px 8px;display:flex;flex-direction:column;flex:1;overflow:auto}
+#dv .dvstop{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 6px;border-top:1px solid var(--dline-2)}
+#dv .dvstop:first-child{border-top:none}
+#dv .fresh .dvstop{animation:rise .42s var(--dease) both;animation-delay:calc(var(--i,0) * 55ms)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#dv .no{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--tc);color:var(--don-ink);font:600 12px var(--dmono);margin-top:1px}
+#dv .dvstop.bk .no{background:transparent;color:var(--dmuted);box-shadow:inset 0 0 0 1px var(--dline)}
+#dv .dvstop .nm{font-weight:600;font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+#dv .dvstop .r1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#dv .dvstop .meta{font-size:12.5px;color:var(--dmuted);margin-top:2px}
+#dv .dvstop .meta .dvm{color:var(--dink-2)}
+#dv .dvmode{font-size:11.5px;font-weight:600;padding:0 7px;border-radius:5px;line-height:19px}
+#dv .dvmode.good{background:var(--dok-soft);color:var(--dok)}
+#dv .dvmode.warn{background:var(--dwarn-soft);color:var(--dwarn)}
+#dv .dvmode.crit{background:var(--dcrit-soft);color:var(--dcrit)}
+#dv .dvmode.none{background:var(--dtint-2);color:var(--dink-2)}
+#dv .sicos{display:flex}
+#dv .dfoot{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;padding:9px 14px;border-top:1px solid var(--dline);font-size:12.5px;color:var(--dink-2)}
+#dv .dfoot b{font-family:var(--dmono);color:var(--dink)}
+#dv .modes{padding:0 14px 10px;font-size:12px;color:var(--dmuted)}
+#dv .daytable{width:100%;border-collapse:collapse;font-size:13px}
+#dv .daytable td{padding:8px 8px;border-top:1px solid var(--dline-2);vertical-align:middle}
+#dv .daytable tr:first-child td{border-top:none}
+#dv .daytable tbody tr{cursor:pointer}
+#dv .daytable tbody tr:hover{background:var(--dtint)}
+#dv .nowrap{white-space:nowrap}
+#dv .pop.in{list-style:none;background:var(--dtint);margin:0 8px 8px 42px;padding:10px 12px;border-radius:var(--dr-md);border:1px solid var(--dline)}
+#dv .pop h4{font-size:13px;font-weight:700;margin-bottom:4px}
+#dv .dvalt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--dline-2);border-radius:var(--dr-sm);background:var(--dpanel);margin-top:6px}
+#dv .dvalt:hover{border-color:var(--dink)}
+#dv .dvalt small{display:block;color:var(--dmuted);font-size:12px}
+#dv .delta{font:600 12px var(--dmono)}
+#dv .delta.up{color:var(--dwarn)}
+#dv .delta.dn{color:var(--dok)}
+#dv .toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--dink);color:var(--don-ink);padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:var(--dpop);transition:opacity .22s var(--dease),transform .22s var(--dease);z-index:90;max-width:92vw;display:flex;align-items:center;gap:14px}
+#dv .toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#dv .toast button{border:none;background:none;color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;padding:2px}
+#dv .scrim{position:fixed;inset:0;background:rgba(6,12,16,.5);opacity:0;pointer-events:none;transition:opacity .2s var(--dease);z-index:60}
+#dv .scrim.show{opacity:1;pointer-events:auto}
+#dv .sheet{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--dpanel);z-index:70;transform:translateX(104%);transition:transform .28s var(--dease);display:flex;flex-direction:column;box-shadow:var(--dpop);visibility:hidden}
+#dv .sheet.show{transform:none;visibility:visible}
+#dv .sheet header,#dv .dlg header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--dline)}
+#dv .sheet header h2,#dv .dlg header h2{font-size:17px;font-weight:700;flex:1}
+#dv .sbody{flex:1;overflow:auto;padding:10px 14px 24px}
+#dv .acc{border-top:1px solid var(--dline-2);padding:8px 4px}
+#dv .acc:first-child{border-top:none}
+#dv .acc summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600;padding:6px 4px}
+#dv .acc summary::-webkit-details-marker{display:none}
+#dv .wds{display:flex;gap:4px;margin:4px 4px 8px}
+#dv .wds button{width:38px;height:32px;border:1px solid var(--dline);border-radius:6px;background:var(--dtint);font-size:12.5px;font-weight:600}
+#dv .wds button[aria-pressed="true"]{background:var(--dink);border-color:var(--dink);color:var(--don-ink)}
+#dv .mem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border-radius:6px;font-size:13px}
+#dv .mem:hover{background:var(--dtint)}
+#dv .mem label{display:flex;align-items:center;gap:8px;cursor:pointer}
+#dv .mem input{width:16px;height:16px}
+#dv .dlg{position:fixed;left:50%;top:50%;transform:translate(-50%,-46%);opacity:0;pointer-events:none;width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);background:var(--dpanel);border:1px solid var(--dline);border-radius:14px;box-shadow:var(--dpop);z-index:70;display:flex;flex-direction:column;transition:opacity .2s var(--dease),transform .22s var(--dease);visibility:hidden}
+#dv .dlg.show{opacity:1;transform:translate(-50%,-50%);pointer-events:auto;visibility:visible}
+#dv .dbody{padding:4px 16px 8px;overflow:auto}
+#dv .fs{border:none;margin:0;padding:12px 0;border-bottom:1px solid var(--dline-2);min-width:0}
+#dv .fs legend{font-size:12.5px;font-weight:700;color:var(--dink-2);padding:0;margin-bottom:8px;float:left;width:100%}
+#dv .fs legend+*{clear:both}
+#dv .opt{display:flex;align-items:center;gap:8px;min-height:34px;cursor:pointer;font-size:13.5px}
+#dv .opt input{width:17px;height:17px}
+#dv .dlg footer{padding:12px 16px 16px;border-top:1px solid var(--dline)}
+#dv .pv{font-size:13px;padding:8px 12px;border-radius:8px;background:var(--dtint-2);color:var(--dink);margin-bottom:10px}
+#dv .pv.bad{background:var(--dwarn-soft);color:var(--dwarn)}
+#dv .dlg footer .dvb{width:100%;justify-content:center;min-height:44px}
+#dv select,#dv input[type=date]{min-height:34px;border:1px solid var(--dline);border-radius:6px;background:var(--dtint);padding:2px 10px}
+#dv .pal{position:fixed;left:50%;top:12vh;transform:translate(-50%,-10px);width:min(600px,calc(100vw - 24px));background:var(--dpanel);border:1px solid var(--dline);border-radius:14px;box-shadow:var(--dpop);z-index:75;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .16s var(--dease),transform .2s var(--dease)}
+#dv .pal.show{opacity:1;pointer-events:auto;visibility:visible;transform:translate(-50%,0)}
+#dv .pal .qrow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--dline-2)}
+#dv .pal input{flex:1;border:none;background:none;outline:none;font-size:16px;min-height:28px;padding:0}
+#dv .pal ul{list-style:none;margin:0;padding:6px;max-height:min(52vh,420px);overflow:auto}
+#dv .pal li button{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;padding:8px 10px;border:none;background:none;border-radius:8px}
+#dv .pal li button[aria-selected="true"]{background:var(--dtint-2)}
+#dv .pal .grp{padding:8px 10px 3px;font-size:12px;font-weight:700;color:var(--dmuted)}
+#dv .pal small{color:var(--dmuted);font-size:12.5px}
+#dv .pal .ft{display:flex;gap:14px;padding:8px 14px;border-top:1px solid var(--dline-2);font-size:12px;color:var(--dmuted)}
+@media (max-width:640px){#dv .top h1{font-size:16px}
+#dv .top .seg{display:none}
+#dv .top .dvb .lbl{display:none}
+#dv .pane-h .hint{display:none}
+#dv .find{min-width:0;flex:1}
+#dv .find .kbd{display:none}
+#dv .mx{grid-template-columns:120px repeat(var(--n,14),minmax(48px,1fr)) 70px;min-width:calc(120px + var(--n,14) * 52px + 70px)}
+#dv .dlg{top:auto;bottom:0;left:0;right:0;width:100%;transform:translateY(20px);border-radius:14px 14px 0 0}
+#dv .dlg.show{transform:none}}
+@media (prefers-reduced-motion:reduce){#dv *{transition:none!important;animation:none!important}
+#dv .leaflet-container path.draw{stroke-dasharray:none;stroke-dashoffset:0}}
+#sec-drs .section-scroll{padding:0}
+#dv{min-height:100%;position:relative;background:var(--dground);color:var(--dink);font:14px/1.5 var(--dfont)}
+#dv .dvtop{top:0}
+#dv .dvsheet{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--dpanel);z-index:1190;transform:translateX(104%);transition:transform .28s var(--dease);display:flex;flex-direction:column;box-shadow:var(--dpop);visibility:hidden}
+#dv .dvsheet.show{transform:none;visibility:visible}
+#dv .dvsheet header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--dline)}
+#dv .dvsheet header h2{font-size:17px;font-weight:700;flex:1}
+#dv .dvsheet .sbody{flex:1;overflow:auto;padding:10px 14px 24px}
+#dv .dvsheet .card{box-shadow:none;margin:0;padding:12px 4px}
+#dv .dvscrim{position:fixed;inset:0;background:rgba(6,12,16,.5);opacity:0;pointer-events:none;transition:opacity .2s var(--dease);z-index:1180}
+#dv .dvscrim.show{opacity:1;pointer-events:auto}
+#dv .pal{z-index:1195}
+#dv .mb-status{margin:0;padding:6px clamp(14px,2.2vw,32px) 0;min-height:22px;font-size:12.5px;color:var(--dmuted)}
+#dv .dvic{width:16px;height:16px}
+#dv .dvic.lg{width:18px;height:18px}
+@media (max-width:640px){#dv .find>span:not(.kbd){display:none} #dv .find{flex:0 0 auto;min-width:0;padding:0 10px} #dv .top .sp{flex:1}}
+</style>
+
   </head>
 
   <body>
@@ -1265,17 +1560,66 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       <!-- ===== Section 4: DRS month board (PBH / CM / ADMIN) ===== -->
       <section class="app-section mgr-only" id="sec-drs">
         <div class="section-scroll">
-          <div class="mb-top">
-            <h2>จัดแผนให้ DRS</h2>
-            <span class="mb-sp"></span>
-            <button type="button" class="btn" id="mbRefresh">รีเฟรช</button>
-            <button type="button" class="btn primary" id="mbGenOpen">สร้างแผน…</button>
-          </div>
-          <div class="mb-status" id="mbStatus" role="status" aria-live="polite"></div>
-          <div class="mb-sum" id="mbSum"></div>
-          <div class="mb-layout">
-            <div>
-              <div class="card" id="mbPat">
+          <div class="dv" id="dv">
+            <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="dvi-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="dvi-star" viewBox="0 0 24 24"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/></symbol>
+  <symbol id="dvi-alert" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+  <symbol id="dvi-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="dvi-route" viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2-8-8-2z"/></symbol>
+  <symbol id="dvi-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="dvi-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+  <symbol id="dvi-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="dvi-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="dvi-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="dvi-unlock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="dvi-swap" viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+  <symbol id="dvi-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+  <symbol id="dvi-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="dvi-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="dvi-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></symbol>
+  <symbol id="dvi-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="dvi-gen" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
+  <symbol id="dvi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="dvi-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol>
+  <symbol id="dvi-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="dvi-corner" viewBox="0 0 24 24"><path d="M9 10 4 15l5 5"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></symbol>
+</svg>
+            <header class="top dvtop" id="dvTop">
+              <h1>จัดแผน DRS</h1>
+              <button type="button" class="find" id="dvFind" aria-label="ค้นหาทีม วัน หรือสถานที่"><svg class="dvic"><use href="#dvi-search"/></svg><span>ค้นหาทีม วัน หรือสถานที่…</span><span class="kbd">/</span></button>
+              <span class="sp"></span>
+              <div class="seg" role="group" aria-label="ช่วงเวลา"><button type="button" aria-pressed="true" data-span="14">14 วัน</button><button type="button" aria-pressed="false" data-span="7">7 วัน</button></div>
+              <button type="button" class="dvb quiet" id="mbRefresh" aria-label="รีเฟรชข้อมูลจากเซิร์ฟเวอร์"><svg class="dvic"><use href="#dvi-refresh"/></svg><span class="lbl">รีเฟรช</span></button>
+              <button type="button" class="dvb quiet" id="dvSetupOpen" aria-label="ทีมและวันทำงาน"><svg class="dvic"><use href="#dvi-sliders"/></svg><span class="lbl">ทีมและวันทำงาน</span></button>
+              <button type="button" class="dvb primary" id="mbGenOpen" aria-label="สร้างแผน"><svg class="dvic"><use href="#dvi-gen"/></svg><span class="lbl">สร้างแผน…</span></button>
+            </header>
+            <div class="mb-status" id="mbStatus" role="status" aria-live="polite"></div>
+            <main class="board" id="dvBoard">
+              <section class="rowA">
+                <aside class="pane attn" aria-label="พรุ่งนี้และสิ่งที่ต้องดูแล">
+                  <div class="tmw" id="dvTmw"></div>
+                  <div class="pane-h" style="border-top:none"><h2>ต้องดูแล</h2><span class="dvsub" id="dvAttnCount"></span></div>
+                  <ul class="al" id="dvAttn"></ul>
+                </aside>
+                <section class="pane mx-wrap" aria-labelledby="dvMxH">
+                  <div class="pane-h"><h2 id="dvMxH">แผนรายทีม</h2><span class="dvsub hint" id="dvMxSub"></span><span class="sp"></span>
+                    <div class="seg" id="dvLens" role="group" aria-label="มุมมองของตาราง"><button type="button" data-lens="status" aria-pressed="true">สถานะ</button><button type="button" data-lens="area" aria-pressed="false">พื้นที่</button><button type="button" data-lens="load" aria-pressed="false">ภาระ</button></div></div>
+                  <div class="mx-scroll"><div class="mx" id="dvMx" role="group" aria-label="ตารางทีมและวัน"></div></div>
+                  <div class="legend" id="dvLegend" aria-hidden="true"></div>
+                </section>
+              </section>
+              <section class="rowB">
+                <section class="pane mapp" aria-labelledby="dvMapH">
+                  <div class="pane-h"><h2 id="dvMapH">แผนที่</h2><span class="dvsub" id="dvMapSub"></span><span class="sp"></span><div class="chips" id="dvChips"></div></div>
+                  <div id="dvMap" role="img" aria-label="แผนที่เส้นทางของทีมในวันที่เลือก"></div>
+                </section>
+                <section class="pane detail" id="dvDetail" aria-live="polite"></section>
+              </section>
+            </main>
+            <aside class="dvsheet" id="dvSetup" role="dialog" aria-modal="true" aria-labelledby="dvSetupH" aria-hidden="true">
+              <header><h2 id="dvSetupH">ทีมและวันทำงาน</h2><button type="button" class="ib" data-dvclose aria-label="ปิด"><svg class="dvic lg"><use href="#dvi-x"/></svg></button></header>
+              <div class="sbody"><div class="card" id="mbPat">
                 <div class="mb-step"><i>1</i><h3>คนและวันทำงาน</h3></div>
                 <p class="mb-hint">เลือกหลายคน (หรือทั้งทีม) แล้วตั้งวันทำงานหรือสั่งสร้างแผนในครั้งเดียว แถบ 14 วันของแต่ละคนบอกว่าวันไหนทำงานและมีแผนหรือยัง กดช่องเพื่อไปที่วันนั้น กดชื่อเพื่อดูแผนของคนนั้น</p>
                 <div class="mb-ptools">
@@ -1288,25 +1632,14 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
                   <div class="mb-pscroll" id="mbPeople"></div>
                 </div>
                 <div class="mb-bulk" id="mbBulk" hidden></div>
-              </div>
-              <div class="card" id="mbCal">
-                <div class="mb-step"><i>2</i><h3>ปฏิทินของเดือนนี้</h3></div>
-                <p class="mb-hint">แต่ละวันบอกจำนวนคนที่ทำงานและคนที่มีแผนแล้ว กดวันเพื่อดูรายละเอียดทางขวา · สร้างแผนล่วงหน้าได้ไม่เกิน 14 วัน (จนถึง <b id="mbHorizon"></b>) เพื่อไม่ให้สถานที่ถูกจองไว้นานเกินไป</p>
-                <div class="mb-mhead">
-                  <div class="mb-mnav" role="group" aria-label="เดือน">
-                    <button type="button" class="mb-ib" id="mbPrev" aria-label="เดือนก่อน"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-                    <b id="mbMonth"></b>
-                    <button type="button" class="mb-ib" id="mbNext" aria-label="เดือนถัดไป"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-                  </div>
-                  <button type="button" class="btn" id="mbToday">วันนี้</button>
-                  <div class="mb-meter"><small><span>สถานที่ที่ถูกจองอยู่</span><b id="mbMtxt"></b></small><div class="mb-bar"><i id="mbMbar"></i></div></div>
-                </div>
-                <div class="mb-grid" id="mbDows" role="presentation"></div>
-                <div class="mb-grid" id="mbGrid" role="grid" aria-label="ปฏิทิน DRS"></div>
-                <div class="mb-legend"><span class="mb-pill none">ยังไม่ครบ</span><span class="mb-pill ok">ครบทุกคน</span><span class="mb-pill big">หมู่บ้านใหญ่</span><span><i class="ovr"></i> ปรับเฉพาะวันนั้น</span></div>
-              </div>
+              </div></div>
+            </aside>
+            <div class="pal" id="dvPal" role="dialog" aria-modal="true" aria-label="ค้นหา" aria-hidden="true">
+              <div class="qrow"><svg class="dvic lg"><use href="#dvi-search"/></svg><input id="dvPalQ" type="text" placeholder="พิมพ์ชื่อทีม วัน (เช่น พฤ 15) หรือชื่อหมู่บ้าน" autocomplete="off" aria-label="ค้นหา"><span class="kbd">Esc</span></div>
+              <ul id="dvPalR" role="listbox"></ul>
+              <div class="ft"><span><span class="kbd">↑</span> <span class="kbd">↓</span> เลือก</span><span><span class="kbd">Enter</span> ไปที่</span><span>พิมพ์ชื่อหมู่บ้านเพื่อดูว่าทีมไหนไป</span></div>
             </div>
-            <aside class="mb-sideWrap"><div class="card" id="mbSide" aria-live="polite"></div></aside>
+            <div class="dvscrim" id="dvScrim"></div>
           </div>
         </div>
         <div class="mb-scrim" id="mbScrim"></div>
@@ -1463,6 +1796,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         document.querySelectorAll(".section-nav a").forEach((x) => x.classList.toggle("active", x === a));
         document.querySelectorAll(".app-section").forEach((s) => s.classList.toggle("active", s.id === "sec-" + a.dataset.sec));
         if (a.dataset.sec === "search" && map) setTimeout(() => map.invalidateSize(), 50);
+        if (a.dataset.sec === "drs" && typeof dvOnShow === "function") dvOnShow();
       });
 
       /* ===== modal ===== */
@@ -3334,16 +3668,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const mbUnplanned = (e) => { for (let i = 0; i < MB_HORIZON; i++) if (mbPState(e, mbKeyPlus(i)) === "none") return true; return false; };
 
       /* ── rendering ── */
-      function renderBoardSum() {
-        const tk = mbTodayKey(); let full = 0, miss = 0;
-        for (let i = 0; i < MB_HORIZON; i++) { const k = mbKeyPlus(i), st = mbStatus(k); if (st === "off") continue; if (st === "ok" || st === "big") full++; else miss++; }
-        const users = (STATE.drsUsers || []).length, held = mbHeld();
-        document.getElementById("mbSum").innerHTML =
-          `<button type="button" class="mb-tile" data-f="today"><small>ทำงานวันนี้</small><b>${mbCrew(tk).length}<em>/ ${users} คน</em></b></button>` +
-          `<div class="mb-tile"><small>วันที่ครบแล้ว (14 วัน)</small><b>${full}<em>วัน</em></b></div>` +
-          `<button type="button" class="mb-tile${miss ? " warn" : ""}" data-f="missing"><small>วันที่ยังไม่ครบ</small><b>${miss}<em>วัน</em></b></button>` +
-          `<div class="mb-tile"><small>สถานที่ที่ถูกจอง</small><b>${held.toLocaleString()}<em>แห่ง</em></b></div>`;
-      }
       function mbShown() {
         const q = MB.q.trim().toLowerCase();
         return (STATE.drsUsers || []).filter((e) => {
@@ -3397,94 +3721,361 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         el.innerHTML = h;
       }
       const MB_PRESETS = [["จ–ศ", [1, 2, 3, 4, 5]], ["อ–ส", [2, 3, 4, 5, 6]], ["ส–อา", [6, 7]], ["จ–ส", [1, 2, 3, 4, 5, 6]], ["ทุกวัน", [1, 2, 3, 4, 5, 6, 7]], ["ไม่มีวันประจำ", []]];
-      function renderBoardMonth() {
-        document.getElementById("mbMonth").textContent = MB_MONTHS[MB.view.getMonth()] + " " + (MB.view.getFullYear() + 543);
-        document.getElementById("mbHorizon").textContent = mbThDate(mbFrom(mbLastKey()));
-        document.getElementById("mbDows").innerHTML = MB_DOW.map((d) => `<div class="mb-dow">${d}</div>`).join("");
-        const first = new Date(MB.view.getFullYear(), MB.view.getMonth(), 1), lead = mbIso(first) - 1, n = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 0).getDate(), tk = mbTodayKey();
-        let h = "";
-        for (let i = 0; i < lead; i++) h += '<div class="mb-cell out" aria-hidden="true"></div>';
-        for (let d = 1; d <= n; d++) {
-          const dt = new Date(MB.view.getFullYear(), MB.view.getMonth(), d), k = mbKey(dt), crew = mbCrew(k), st = mbStatus(k), txt = mbStatusText(k, st), inH = mbInHorizon(k), have = mbHave(k);
-          const P = (cls, short) => `<span class="mb-pill ${cls}"><span class="full">${txt}</span><span class="short" aria-hidden="true">${short}</span></span>`;
-          const pill = st === "off" ? P("off", "–") : st === "ok" ? P("ok", "✓") : st === "big" ? P("big", "ใหญ่") : P("none", "!");
-          const o = (STATE.rosterOverrides || {})[mbCompact(k)], pct = crew.length ? Math.round(have / crew.length * 100) : 0;
-          h += `<button type="button" class="mb-cell${k === tk ? " today" : ""}${mbPast(k) ? " dim" : ""}" role="gridcell" data-k="${k}" aria-pressed="${k === MB.selected}" tabindex="${k === MB.selected ? 0 : -1}" aria-label="${d} ${MB_MONTHS[dt.getMonth()]} ${crew.length} คนทำงาน ${txt}">` +
-            `<span class="n">${d}</span><span class="mb-cnts">${crew.length ? crew.length + " คน" + (inH ? " · แผน " + have : "") : "—"}</span>` +
-            (crew.length && inH ? `<span class="mb-mini"><i style="width:${pct}%"></i></span>` : "") + pill +
-            (o && (o.add.length || o.remove.length) ? '<i class="ovr" title="ปรับเฉพาะวันนั้น"></i>' : "") + "</button>";
-        }
-        document.getElementById("mbGrid").innerHTML = h;
-        const total = STATE.villages.length + STATE.buildings.length, held = mbHeld(), pc = total ? Math.round(held / total * 100) : 0;
-        document.getElementById("mbMtxt").textContent = held.toLocaleString() + " / " + total.toLocaleString() + " แห่ง (" + pc + "%)";
-        document.getElementById("mbMbar").style.width = pc + "%";
-      }
-      const MB_SVG = (p) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
-      const MB_I_PIN = MB_SVG('<path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'), MB_I_ROUTE = MB_SVG('<path d="m3 11 18-8-8 18-2-8-8-2z"/>'), MB_I_SCRIPT = MB_SVG('<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
-      const mbPlaceUrl = (r) => (r && r.lat != null && r.lng != null ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : null);
-      // Google Maps driving route through the stops (the backup place is not part of the route).
-      function mbRouteBtn(picks, withLabel) {
-        const u = mapsRouteUrl((picks || []).filter((p) => p.slot !== "backup")); if (!u) return "";
-        return `<a class="mb-rt${withLabel ? " lbl" : ""}" href="${u}" target="_blank" rel="noopener" aria-label="เปิดเส้นทางใน Google Maps" title="เปิดเส้นทางใน Google Maps">${MB_I_ROUTE}${withLabel ? "<span>เส้นทาง</span>" : ""}</a>`;
-      }
-      const mbSortPicks = (l) => l.slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0) || String(a.slot).localeCompare(String(b.slot)));
-      // A day's stops as a numbered route: name, mode pill, area/size, distance from the previous stop, map pin + sales script.
-      function mbStopsHtml(picks) {
-        let prev = null, total = 0, h = '<ol class="mb-route">';
-        mbSortPicks(picks).forEach((p, i, arr) => {
-          const r = byId(p.kind, p.refId), md = SCRIPT_MODES[r ? scriptModeOf(r).mode : "explore"], bk = p.slot === "backup";
-          let leg = "";
-          if (!bk && prev && r) { const km = haversineKm(prev, r); if (isFinite(km)) { total += km; leg = ` · ห่างจากจุดก่อน ${km.toFixed(1)} กม.`; } }
-          if (!bk && r) prev = r;
-          const url = mbPlaceUrl(r), nm = escapeHtml(r ? r.name : p.name || "?");
-          h += `<li class="mb-stop${bk ? " backup" : ""}"><span class="mb-no" aria-hidden="true">${bk ? "★" : i + 1}</span><div class="mb-sb"><div class="mb-r1"><span class="mb-nm">${bk ? "สำรอง · " : ""}${nm}</span><span class="mb-mode tone-${md.tone}" title="${escapeHtml(r ? scriptModeOf(r).reason : "")}">${md.th}</span></div>` +
-            (r ? `<span class="mb-loc">${escapeHtml(locOf(r))} · ${whole(hhOf(r))} ${kindOf(r) === "village" ? "ครัวเรือน" : "ยูนิต"}${leg}</span>` : '<span class="mb-loc">ไม่พบในข้อมูลล่าสุด</span>') + "</div>" +
-            (r ? `<div class="mb-icos">${url ? `<a class="mb-ico" href="${url}" target="_blank" rel="noopener" aria-label="เปิด ${nm} ใน Google Maps" title="เปิดใน Google Maps">${MB_I_PIN}</a>` : ""}<button type="button" class="mb-ico" data-script="${p.kind}:${escapeHtml(String(p.refId))}" aria-label="สคริปต์การขาย ${nm}" title="สคริปต์การขาย">${MB_I_SCRIPT}</button></div>` : "") + "</li>";
-        });
-        return h + "</ol>" + (total > 0 ? `<p class="mb-total">รวมประมาณ ${total.toFixed(1)} กม. ระหว่างจุด (เส้นตรง)</p>` : "");
-      }
-      function renderBoardSide() {
-        if (MB.person) return renderBoardPerson();
-        const k = MB.selected, d = mbFrom(k), crew = mbCrew(k), st = mbStatus(k), mk = mbMK(k), dn = mbDay(k), can = mbInHorizon(k) && crew.length > 0, past = mbPast(k);
-        const o = (STATE.rosterOverrides || {})[mbCompact(k)], has = crew.some((e) => drsGet(e, mk, dn).length);
-        let h = `<h3 class="mb-h">${MB_DOW_FULL[mbIso(d) - 1]} ${mbThDate(d)}</h3><p class="mb-sub">${k === mbTodayKey() ? "วันนี้" : past ? "ผ่านมาแล้ว" : mbInHorizon(k) ? "อยู่ในช่วงที่สร้างแผนได้" : "เกิน 14 วัน — ดูและปรับคนทำงานได้ แต่ยังสร้างแผนไม่ได้"} · ทำงาน ${crew.length} คน · มีแผน ${mbHave(k)} คน</p>`;
-        h += `<div class="mb-actions"><button type="button" class="btn primary" id="mbGenDay"${can ? "" : " disabled"}>สร้างแผนวันนี้…</button><button type="button" class="btn" id="mbClrDay"${has && !past ? "" : " disabled"}>ล้างแผนวันนี้</button>` +
-          (o && (o.add.length || o.remove.length) ? '<button type="button" class="btn" id="mbRstDay">กลับเป็นค่าตั้งต้น</button>' : "") + "</div>";
-        h += '<p class="mb-sub" style="margin:0 0 8px">✓ = มีแผนแล้ว · กดชื่อเพื่อเพิ่ม/เอาออกเฉพาะวันนี้</p>';
+      /* ═════════════ จัดแผน DRS: dispatch board (v2) ═════════════
+         The unit on screen is a TEAM on a DAY. A team's plan is read from its members' own picks (they all
+         get the same set when "ไปด้วยกัน" is on). Edits write the same picks to every working member. */
+      const DV = { n: 14, lens: "status", unit: null, day: 0, hidden: new Set(), editCrew: false, swapIdx: -1, fresh: false, pins: {}, map: null, layer: null, units: null, dist: null, palIdx: 0, palList: [], opener: null, freshT: null };
+      const dvEsc = escapeHtml;
+      const DV_DOWS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"], DV_DOWL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+      const dvIco = (n, cls) => `<svg class="dvic${cls ? " " + cls : ""}" aria-hidden="true"><use href="#dvi-${n}"/></svg>`;
+      const DV_SHP = ['<svg class="shp" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4.5"/></svg>', '<svg class="shp" viewBox="0 0 10 10" aria-hidden="true"><polygon points="5,0.6 9.6,9.4 0.4,9.4"/></svg>', '<svg class="shp" viewBox="0 0 10 10" aria-hidden="true"><rect x="0.8" y="0.8" width="8.4" height="8.4" rx="1.2"/></svg>', '<svg class="shp" viewBox="0 0 10 10" aria-hidden="true"><polygon points="5,0.5 9.5,5 5,9.5 0.5,5"/></svg>', '<svg class="shp" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="2"/></svg>'];
+      const dvKey = (d) => mbKeyPlus(d);
+      const dvLbl = (d) => { const x = mbFrom(dvKey(d)); return DV_DOWS[x.getDay()] + " " + x.getDate(); };
+      const dvLong = (d) => { const x = mbFrom(dvKey(d)); return DV_DOWL[x.getDay()] + "ที่ " + x.getDate() + " " + MB_MONTHS[x.getMonth()]; };
+      const dvRange = (a, b) => { const o = []; for (let i = a; i <= b; i++) o.push(i); return o; };
+      const dvHM = (m) => { const h = Math.floor(m / 60), n = Math.round(m % 60); return (h < 10 ? "0" : "") + h + ":" + (n < 10 ? "0" : "") + n; };
+      const dvK = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n));
+      const dvR = (p) => byId(p.kind, p.refId);
+      const dvSort = (l) => l.slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0) || String(a.slot).localeCompare(String(b.slot)));
+      const dvSig = (l) => l.map((p) => p.slot + ":" + p.kind + ":" + p.refId).join("|");
+      const dvMain = (picks) => picks.filter((p) => p.slot !== "backup");
+      const dvHh = (r) => (r ? (hhOf(r) || 0) : 0);
+      const dvKm = (a, b) => { const k = a && b ? haversineKm(a, b) : Infinity; return isFinite(k) ? k : 4; };
+      const dvMapsUrl = (r) => (r && r.lat != null && r.lng != null ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}` : null);
+
+      /* units = teams, plus each person without a team as their own row */
+      function dvUnits() {
+        if (DV.units) return DV.units;
+        const out = []; let ci = 0;
         mbTeams().forEach((t) => {
-          const m = mbMembers(t), w = m.filter((e) => crew.includes(e)), np = w.filter((e) => drsGet(e, mk, dn).length).length;
-          h += `<details class="mb-tm"${(w.length > np && can) || (w.length && mbTeams().length <= 3) || MB.openTeams && MB.openTeams.has(t) ? " open" : ""} data-team="${escapeHtml(t)}"><summary>${escapeHtml(t)}<span class="mb-cnt">${w.length}/${m.length} ทำงาน${w.length ? " · แผน " + np : ""}</span></summary><div class="mb-tbody">`;
-          const shared = mbTeamShared(w, mk, dn), chipOf = (e) => { const on = crew.includes(e); return `<button type="button" class="mb-chip${on && drsGet(e, mk, dn).length ? " planned" : ""}" data-chip="${escapeHtml(e)}" aria-pressed="${on}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e))}</button>`; };
-          if (shared) {
-            h += `<div class="mb-tc"><div class="mb-tchead"><span class="mb-bigtag">${shared.length === 1 ? "หมู่บ้านใหญ่ · " : ""}ทั้งทีมไปด้วยกัน</span><span class="mb-sp"></span>${mbRouteBtn(shared, true)}</div>${mbStopsHtml(shared)}` +
-              `<div class="mb-crewline">${w.slice(0, 5).map(mbAv).join("")}<span>${w.length} คน · ${w.map((e) => escapeHtml(drsLabel(e).split(" ")[0])).join(", ")}</span></div></div>` +
-              `<details class="mb-ed" data-team="${escapeHtml(t)}"${MB.openEd && MB.openEd.has(t) ? " open" : ""}><summary>แก้ไขคนทำงานวันนี้</summary><div class="mb-crewrow">${m.map(chipOf).join("")}</div></details>`;
-          } else {
-            m.forEach((e) => {
-              const on = crew.includes(e), list = mbSortPicks(drsGet(e, mk, dn));
-              h += `<div class="mb-dr">${chipOf(e)}` +
-                (on ? (list.length ? `<div class="mb-inl">${list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ")} ${mbRouteBtn(list, false)} <button type="button" class="mb-link" data-edit="${escapeHtml(e)}"${past ? " disabled" : ""}>แก้ไข</button></div>` : '<span class="mb-sub" style="margin:0 0 0 6px">ยังไม่มีแผน</span>') : "") + "</div>";
-            });
-          }
-          h += "</div></details>";
+          const m = mbMembers(t);
+          if (t === MB_NOTEAM) m.forEach((e) => out.push({ id: "u:" + e, name: drsLabel(e), solo: true, members: [e], ci: ci++ }));
+          else out.push({ id: "t:" + t, name: t, solo: false, team: t, members: m, ci: ci++ });
         });
-        if (!(STATE.drsUsers || []).length) h += '<div class="mb-empty"><b>ยังไม่มี DRS</b></div>';
-        h += '<p class="mb-legend2"><b>โหมดสคริปต์:</b> ป้องกัน = True นำตลาด · โน้มน้าว = คู่แข่งนำไม่ถึง 10 คะแนน · บุก = คู่แข่งนำตั้งแต่ 10 คะแนน · สำรวจ = ยังไม่มีข้อมูลส่วนแบ่งตลาด</p>';
-        document.getElementById("mbSide").innerHTML = h;
+        return (DV.units = out);
       }
-      function renderBoardPerson() {
-        const e = MB.person; let h = `<button type="button" class="mb-link" id="mbBack">← กลับไปดูตามวัน</button><h3 class="mb-h" style="margin-top:6px">${escapeHtml(drsLabel(e))}</h3><p class="mb-sub">${escapeHtml(mbTeamOf(e))} · วันทำงานประจำ ${mbShiftLabel(e)}</p><div class="mb-actions"><button type="button" class="btn primary" id="mbGenPerson">สร้างแผนให้คนนี้…</button></div><table class="mb-list"><thead><tr><th>วัน</th><th>สถานที่</th></tr></thead><tbody>`;
-        for (let i = 0; i < MB_HORIZON; i++) {
-          const k = mbKeyPlus(i), d = mbFrom(k), st = mbPState(e, k), list = drsGet(e, mbMK(k), mbDay(k));
-          h += `<tr data-k="${k}"><td>${MB_DOW[mbIso(d) - 1]} ${d.getDate()}</td><td>` + (st === "off" ? '<span style="color:var(--text-3)">ไม่ทำงาน</span>' : list.length ? mbSortPicks(list).map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ") + " " + mbRouteBtn(list, false) : '<span style="color:var(--st-warn)">ยังไม่สร้าง</span>') + "</td></tr>";
+      const dvUnit = (id) => dvUnits().find((u) => u.id === id);
+      const dvUnitOf = (email) => dvUnits().find((u) => u.members.includes(email));
+      const dvCv = (u) => "--dt" + ((u.ci % 7) + 1);
+      const dvWork = (u, d) => { const s = mbCrewSet(dvKey(d)); return u.members.filter((e) => s.has(e)); };
+      function dvState(u, d) {
+        const w = dvWork(u, d), off = u.members.length - w.length;
+        if (!w.length) return { st: "off", w, off };
+        const k = dvKey(d), mk = mbMK(k), dn = mbDay(k), lists = w.map((e) => dvSort(drsGet(e, mk, dn))), have = lists.filter((l) => l.length).length;
+        if (!have) return { st: "missing", w, off };
+        const s0 = dvSig(lists[0]);
+        if (have === w.length && lists.every((l) => dvSig(l) === s0)) return { st: dvMain(lists[0]).length === 1 ? "big" : "ok", w, off, picks: lists[0] };
+        return { st: have < w.length ? "partial" : "varied", w, off, lists };
+      }
+      function dvDistricts() {
+        if (DV.dist) return DV.dist;
+        const cnt = {}; poolFor("both").forEach((r) => { const a = ampOf(r); if (a) cnt[a] = (cnt[a] || 0) + 1; });
+        const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 4), idx = {}; top.forEach((a, i) => { idx[a] = i; });
+        return (DV.dist = { top, idx });
+      }
+      const dvShape = (r) => { const i = dvDistricts().idx[ampOf(r)]; return DV_SHP[i == null ? 4 : i]; };
+      /* day timeline: 08:30 start, ~22 km/h on a 1.35 road factor, visit time grows with village size, one lunch */
+      function dvSched(picks) {
+        const rs = dvMain(picks).map(dvR).filter(Boolean); let t = 510, lunch = false, travel = 0; const segs = [];
+        rs.forEach((r, i) => {
+          if (i > 0) { const m = Math.max(6, Math.round(dvKm(rs[i - 1], r) * 1.35 / 22 * 60)); segs.push({ k: "travel", s: t, e: t + m }); t += m; travel += m; }
+          if (!lunch && t >= 720) { segs.push({ k: "lunch", s: t, e: t + 60 }); t += 60; lunch = true; }
+          const vm = rs.length === 1 ? 450 : Math.round(Math.max(90, Math.min(210, 60 + (dvHh(r) || 60) * 0.5)) / 5) * 5;
+          segs.push({ k: "visit", i, s: t, e: t + vm }); t += vm;
+        });
+        return { segs, end: t, travel, over: Math.max(0, t - 1050) };
+      }
+      function dvMetrics(u, d) {
+        const s = dvState(u, d); if (!s.picks) return null;
+        const rs = dvMain(s.picks).map(dvR).filter(Boolean); let km = 0; for (let i = 1; i < rs.length; i++) km += dvKm(rs[i - 1], rs[i]);
+        return { hh: rs.reduce((a, r) => a + dvHh(r), 0), km, s: dvSched(s.picks), rs };
+      }
+      const dvCol = (u) => getComputedStyle(document.getElementById("dv")).getPropertyValue(dvCv(u)).trim();
+      const dvIsDark = () => { const r = document.documentElement; return r.dataset.theme === "dark" || (!r.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches); };
+      function dvSyncDark() { const el = document.getElementById("dv"); if (el) el.classList.toggle("dv-dark", dvIsDark()); }
+
+      /* writing plans: the same picks go to every working member of the unit */
+      function dvSetPicks(u, d, picks) { const k = dvKey(d), mk = mbMK(k), dn = mbDay(k); dvWork(u, d).forEach((e) => { drsSet(e, mk, dn, picks.map((p) => ({ ...p }))); queueAssign(e, mk, dn, 0); }); }
+      function dvSnap(u, d) { const k = dvKey(d), mk = mbMK(k), dn = mbDay(k), o = {}; dvWork(u, d).forEach((e) => { o[e] = drsGet(e, mk, dn).map((p) => ({ ...p })); }); return o; }
+      function dvRestore(d, snap) { const k = dvKey(d), mk = mbMK(k), dn = mbDay(k); Object.keys(snap).forEach((e) => { drsSet(e, mk, dn, snap[e]); queueAssign(e, mk, dn, 0); }); }
+      function dvGenUnit(u, d, o) {
+        o = o || {}; const w = dvWork(u, d); if (!w.length) return false;
+        const k = dvKey(d), mk = mbMK(k), dn = mbDay(k), res = buildDrsDayPlans(mk, dn, w, null, { fs: GEN.fs, big: o.keep && o.keep.length ? false : GEN.big, together: GEN.together && !u.solo });
+        if (!res) return false;
+        let picks0 = res.plans[w[0]] || [];
+        if (o.keep && o.keep.length) {
+          const keepRecs = o.keep.map(dvR).filter(Boolean), keys = new Set(keepRecs.map((r) => kindOf(r) + ":" + r.id));
+          const rest = dvMain(picks0).concat(picks0.filter((p) => p.slot === "backup")).map(dvR).filter((r) => r && !keys.has(kindOf(r) + ":" + r.id));
+          picks0 = recsToPicks(keepRecs.concat(rest).slice(0, 4));
         }
-        document.getElementById("mbSide").innerHTML = h + "</tbody></table>";
+        w.forEach((e) => { drsSet(e, mk, dn, (o.keep && o.keep.length ? picks0 : res.plans[e] || []).map((p) => ({ ...p }))); queueAssign(e, mk, dn, 0); });
+        return true;
       }
+      const dvPinKey = (u, d) => u.id + "|" + dvKey(d);
+      const dvPins = (u, d) => DV.pins[dvPinKey(u, d)] || (DV.pins[dvPinKey(u, d)] = new Set());
+      const dvFree = () => genFree([]).free;
+
+      /* ── tomorrow + attention ── */
+      function dvTomorrow() {
+        const us = dvUnits(), work = us.filter((u) => dvState(u, 1).st !== "off"), miss = work.filter((u) => ["missing", "partial"].includes(dvState(u, 1).st));
+        let txt, cls = "ok"; if (!us.length) txt = "ยังไม่มี DRS ในรายชื่อผู้ใช้"; else if (!work.length) txt = "พรุ่งนี้ไม่มีทีมทำงาน"; else if (!miss.length) txt = "พรุ่งนี้ทุกทีมมีแผนแล้ว"; else { txt = "พรุ่งนี้ " + miss.slice(0, 3).map((u) => u.name).join(", ") + (miss.length > 3 ? " และอีก " + (miss.length - 3) + " ทีม" : "") + " ยังไม่มีแผน"; cls = "warn"; }
+        let pl = 0, tot = 0; us.forEach((u) => { for (let d = 0; d < DV.n; d++) { const s = dvState(u, d).st; if (s === "off") continue; tot++; if (s !== "missing" && s !== "partial") pl++; } });
+        const chips = us.slice(0, 16).map((u) => { const s = dvState(u, 1).st, c = s === "missing" || s === "partial" ? "missing" : s === "off" ? "off" : "ok"; return `<button type="button" class="tc ${c}" data-tc="${dvEsc(u.id)}"><i style="background:var(${dvCv(u)})"></i>${dvEsc(u.solo ? u.name.split(" ")[0] : u.name.replace("ทีม ", ""))}${dvIco(c === "missing" ? "alert" : c === "off" ? "minus" : "check")}</button>`; }).join("") + (us.length > 16 ? `<span class="dvsub">+${us.length - 16}</span>` : "");
+        document.getElementById("dvTmw").innerHTML = `<p class="tms ${cls}">${dvEsc(txt)}</p><p class="tmd">${dvLong(1)} · ทำงาน ${work.length} ทีม · ครบ ${tot ? Math.round(pl / tot * 100) : 100}% ใน ${DV.n} วัน</p><div class="tmc">${chips}</div>`;
+      }
+      function dvAttention() {
+        const items = [], us = dvUnits();
+        us.forEach((u) => {
+          const miss = []; for (let d = 0; d < DV.n; d++) if (["missing", "partial"].includes(dvState(u, d).st)) miss.push(d);
+          let i = 0; while (i < miss.length) { let j = i; while (j + 1 < miss.length && miss[j + 1] === miss[j] + 1) j++; const a = miss[i], b = miss[j];
+            items.push({ lv: "crit", ic: "alert", t: u.name + " · " + (a === b ? dvLbl(a) : dvLbl(a) + " ถึง " + dvLbl(b)) + " ยังไม่มีแผน", s: a === b ? "" : (b - a + 1) + " วัน", unit: u.id, day: a, fix: { unit: u.id, days: dvRange(a, b) } }); i = j + 1; }
+        });
+        let ov = 0; us.forEach((u) => { for (let d = 0; d < DV.n && ov < 2; d++) { const m = dvMetrics(u, d); if (m && m.s.over > 0) { ov++; items.push({ lv: "warn", ic: "clock", t: u.name + " · " + dvLbl(d) + " น่าจะเสร็จ " + dvHM(m.s.end), s: "เกินเวลาเลิกงาน ~" + m.s.over + " นาที ลองสลับสถานที่", unit: u.id, day: d }); } } });
+        let lv = 0; us.filter((u) => !u.solo).forEach((u) => { for (let d = 0; d < DV.n && lv < 2; d++) { const c = dvState(u, d); if (c.st !== "off" && c.off > 0) { lv++; items.push({ lv: "warn", ic: "users", t: u.name + " · " + dvLbl(d) + " ลา " + c.off + " คน", s: "ทำงาน " + (u.members.length - c.off) + "/" + u.members.length + " คน", unit: u.id, day: d }); } } });
+        let near = 0; for (let d = 0; d < DV.n && near < 1; d++) { const ms = us.map((u) => ({ u, m: dvMetrics(u, d) })).filter((x) => x.m); for (let a = 0; a < ms.length && near < 1; a++) for (let b = a + 1; b < ms.length && near < 1; b++) { let best = 9; ms[a].m.rs.forEach((x) => ms[b].m.rs.forEach((y) => { best = Math.min(best, dvKm(x, y)); })); if (best < 0.9) { near++; items.push({ lv: "info", ic: "pin", t: ms[a].u.name + " กับ " + ms[b].u.name + " ไปใกล้กัน · " + dvLbl(d), s: "ห่างกันแค่ " + best.toFixed(1) + " กม.", unit: ms[a].u.id, day: d }); } } }
+        const free = dvFree(); if (free < 90) items.push({ lv: "info", ic: "alert", t: "สถานที่ว่างเหลือ " + free + " แห่ง", s: "พอสำหรับประมาณ " + Math.floor(free / 4) + " ทีม-วัน", open: true });
+        return items;
+      }
+      function dvRenderAttn() {
+        const it = dvAttention(), el = document.getElementById("dvAttn"); DV.attn = it; document.getElementById("dvAttnCount").textContent = it.length ? it.length + " รายการ" : "";
+        if (!it.length) { el.innerHTML = '<li style="display:block"><div class="dve"><b>ไม่มีอะไรต้องแก้</b>ทุกทีมมีแผนครบในช่วงนี้</div></li>'; return; }
+        el.innerHTML = it.slice(0, 7).map((x, k) => `<li><span class="gl ${x.lv}">${dvIco(x.ic)}</span><button type="button" class="tx" data-attn="${k}">${dvEsc(x.t)}${x.s ? "<small>" + dvEsc(x.s) + "</small>" : ""}</button>` + (x.fix ? `<button type="button" class="dvb sm" data-fix="${k}">สร้าง</button>` : x.open ? '<button type="button" class="dvb sm" data-gen="1">ดู</button>' : "") + "</li>").join("");
+      }
+
+      /* ── matrix, three lenses ── */
+      function dvRenderMatrix() {
+        const n = DV.n, us = dvUnits(), lens = DV.lens, tots = {}; let maxTot = 1;
+        us.forEach((u) => { let hh = 0, st = 0; for (let d = 0; d < n; d++) { const m = dvMetrics(u, d); if (m) { hh += m.hh; st += m.rs.length; } } tots[u.id] = { hh, st }; maxTot = Math.max(maxTot, hh); });
+        let h = '<div class="corner">ทีม</div>';
+        for (let d = 0; d < n; d++) { const x = mbFrom(dvKey(d)), we = x.getDay() === 0 || x.getDay() === 6; h += `<button type="button" class="dh${we ? " we" : ""}${d === 0 ? " today" : ""}" data-day="${d}" aria-pressed="${!DV.unit && DV.day === d}" aria-label="${dvLong(d)} ทุกทีม"><span>${DV_DOWS[x.getDay()]}</span><b>${x.getDate()}</b></button>`; }
+        h += `<div class="balh">รวม ${n} วัน</div>`;
+        us.forEach((u) => {
+          h += `<button type="button" class="tm" style="--tc:var(${dvCv(u)})" data-unit="${dvEsc(u.id)}" aria-pressed="${DV.unit === u.id}"><i class="dvdot"></i><span><span class="nm">${dvEsc(u.name)}</span><span class="ct">${u.solo ? "รายบุคคล" : u.members.length + " คน"}</span></span></button>`;
+          for (let d = 0; d < n; d++) {
+            const c = dvState(u, d), m = dvMetrics(u, d), on = DV.unit === u.id && DV.day === d; let inner = "", cls = c.st === "partial" ? "missing partial" : c.st === "varied" ? "ok varied" : c.st, style = "--tc:var(" + dvCv(u) + ")";
+            const nstops = c.picks ? dvMain(c.picks).length : 0;
+            const label = u.name + " " + dvLong(d) + " " + ({ ok: "มีแผน " + nstops + " จุด", big: "หมู่บ้านใหญ่ จุดเดียว", missing: "ยังไม่มีแผน", partial: "มีแผนบางคน", varied: "แต่ละคนแผนไม่เหมือนกัน", off: "ไม่มีคนทำงาน" })[c.st] + (c.off && c.st !== "off" ? " ลา " + c.off + " คน" : "");
+            if (c.st === "missing" || c.st === "partial") inner = dvIco("alert");
+            else if (c.st === "off") inner = dvIco("minus");
+            else if (c.st === "varied") inner = dvIco("users");
+            else if (lens === "status") inner = dvIco(c.st === "big" ? "star" : "check") + "<span>" + nstops + "</span>";
+            else if (lens === "area") inner = m.rs.map(dvShape).join("");
+            else { cls += " load"; style += ";background:color-mix(in srgb,var(" + dvCv(u) + ") " + Math.round(8 + Math.min(1, m.hh / 1000) * 52) + "%,var(--dpanel))"; inner = "<span>" + dvK(m.hh) + "</span>"; }
+            const tip = c.picks ? dvMain(c.picks).map((p) => { const r = dvR(p); return r ? r.name : p.name; }).join(" · ") : label;
+            h += `<button type="button" class="cell ${cls}${on ? " sel" : ""}" style="${style}" data-cu="${dvEsc(u.id)}" data-cd="${d}" tabindex="${on ? 0 : -1}" aria-label="${dvEsc(label)}" aria-current="${on}" title="${dvEsc(tip)}">${inner}${c.off && c.st !== "off" ? `<span class="dvbadge">-${c.off}</span>` : ""}</button>`;
+          }
+          const t = tots[u.id]; h += `<div class="bal" style="--tc:var(${dvCv(u)})"><span>${dvK(t.hh)}</span><i style="width:${Math.max(4, Math.round(t.hh / maxTot * 100))}%"></i><small>${t.st} จุด</small></div>`;
+        });
+        const mx = document.getElementById("dvMx"); mx.style.setProperty("--n", n); mx.innerHTML = us.length ? h : '<div class="dve" style="grid-column:1/-1"><b>ยังไม่มี DRS</b>เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users แล้วกดรีเฟรช</div>';
+        document.getElementById("dvMxSub").textContent = dvLong(0) + " · " + n + " วัน";
+        const ds = dvDistricts().top;
+        document.getElementById("dvLegend").innerHTML = { status: `<span><i style="background:color-mix(in srgb,var(--dt1) 14%,var(--dpanel));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dt1) 40%,transparent)"></i>มีแผน (สีตามทีม)</span><span>${dvIco("star")} หมู่บ้านใหญ่ ทั้งทีมที่เดียว</span><span><i style="background:repeating-linear-gradient(135deg,var(--dwarn-soft) 0 3px,var(--dwarn) 3px 4px)"></i>ยังไม่มีแผน</span><span>${dvIco("users")} แต่ละคนแผนไม่เหมือนกัน</span><span><b class="dvm" style="color:var(--dwarn)">-2</b> คนลา</span>`,
+          area: ds.map((a, i) => `<span>${DV_SHP[i]} ${dvEsc(a)}</span>`).join("") + `<span>${DV_SHP[4]} อื่น ๆ</span><span class="dvsub">1 รูป = 1 จุด · รูปเดียวกันทั้งแถว = ไปโซนเดียว</span>`,
+          load: '<span><i style="background:color-mix(in srgb,var(--dt1) 12%,var(--dpanel))"></i>น้อย</span><span><i style="background:color-mix(in srgb,var(--dt1) 34%,var(--dpanel))"></i></span><span><i style="background:color-mix(in srgb,var(--dt1) 56%,var(--dpanel))"></i>มาก</span><span class="dvsub">ตัวเลข = ครัวเรือนรวมของวันนั้น · คอลัมน์ขวา = รวมทั้งช่วง</span>' }[lens];
+      }
+
+      /* ── map ── */
+      function dvInitMap() {
+        if (DV.map || !window.L) return;
+        const el = document.getElementById("dvMap"); if (!el.offsetParent) return;
+        DV.map = L.map("dvMap", { zoomControl: true }).setView([13.85, 100.45], 11);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(DV.map);
+        DV.layer = L.layerGroup().addTo(DV.map);
+      }
+      function dvRenderChips() { document.getElementById("dvChips").innerHTML = dvUnits().filter((u) => !u.solo).map((u) => `<button type="button" class="chip" style="--tc:var(${dvCv(u)})" data-vis="${dvEsc(u.id)}" aria-pressed="${!DV.hidden.has(u.id)}"><i></i>${dvEsc(u.name.replace("ทีม ", ""))}</button>`).join(""); }
+      function dvRenderMap(animate) {
+        document.getElementById("dvMapSub").textContent = dvLong(DV.day);
+        dvInitMap(); if (!DV.map) return;
+        DV.layer.clearLayers(); const pts = [], mine = [];
+        dvUnits().forEach((u) => {
+          if (!u.solo && DV.hidden.has(u.id)) return;
+          const m = dvMetrics(u, DV.day); if (!m) return;
+          const dim = DV.unit && DV.unit !== u.id, col = dvCol(u), seq = m.rs, bk = dvState(u, DV.day).picks.filter((p) => p.slot === "backup").map(dvR).filter(Boolean)[0];
+          if (seq.length > 1) { const pl = L.polyline(seq.map((x) => [x.lat, x.lng]), { color: col, weight: dim ? 2 : 4, opacity: dim ? 0.3 : 0.9, lineCap: "round" }).addTo(DV.layer);
+            if (animate && !dim && pl.getElement && pl.getElement()) { const el = pl.getElement(), len = el.getTotalLength ? el.getTotalLength() : 0; if (len) { el.style.setProperty("--len", len); el.classList.add("draw"); } } }
+          seq.forEach((x, i) => {
+            if (x.lat == null || x.lng == null) return;
+            L.marker([x.lat, x.lng], { icon: L.divIcon({ className: "", html: `<div class="stopm${dim ? " dim" : ""}" style="background:${col}">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }), title: u.name + " · " + x.name, keyboard: true }).on("click", () => dvSelect(u.id, DV.day)).addTo(DV.layer);
+            pts.push([x.lat, x.lng]); if (DV.unit === u.id) mine.push([x.lat, x.lng]);
+          });
+          if (bk && bk.lat != null) L.marker([bk.lat, bk.lng], { icon: L.divIcon({ className: "", html: `<div class="stopm bk${dim ? " dim" : ""}"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>`, iconSize: [24, 24], iconAnchor: [12, 12] }), title: "สำรอง · " + bk.name }).addTo(DV.layer);
+        });
+        const use = mine.length ? mine : pts; if (use.length) DV.map.fitBounds(L.latLngBounds(use).pad(0.3), { maxZoom: 15, animate: true });
+      }
+
+      /* ── detail panel ── */
+      const dvPill = (st) => ({ ok: `<span class="dvp ok">${dvIco("check")}มีแผนครบ</span>`, big: `<span class="dvp big">${dvIco("star")}หมู่บ้านใหญ่</span>`, missing: `<span class="dvp missing">${dvIco("alert")}ยังไม่มีแผน</span>`, partial: `<span class="dvp missing">${dvIco("alert")}มีแผนบางคน</span>`, varied: `<span class="dvp big">${dvIco("users")}แผนแยกรายคน</span>`, off: '<span class="dvp off">ไม่ทำงาน</span>' })[st];
+      function dvTimeline(picks) {
+        const s = dvSched(picks), pc = (m) => Math.max(0, Math.min(100, (m - 480) / 660 * 100));
+        let h = `<div class="tl"><div class="tlbar" role="img" aria-label="ไทม์ไลน์ของวัน เสร็จประมาณ ${dvHM(s.end)}"><div class="over" style="left:${pc(1050)}%"></div>`;
+        s.segs.forEach((g) => { const l = pc(g.s); h += `<div class="sg ${g.k}" style="left:${l}%;width:${pc(g.e) - l}%">${g.k === "visit" ? g.i + 1 : g.k === "lunch" ? "พัก" : ""}</div>`; });
+        h += `<div class="endm" style="left:${pc(1050)}%" title="เลิกงาน 17:30"></div></div><div class="tlticks">${[540, 720, 900, 1080].map((m) => `<span style="left:${pc(m)}%">${dvHM(m)}</span>`).join("")}</div>`;
+        return h + `<div class="tlsum"><span>${dvIco("clock")} เสร็จประมาณ <b>${dvHM(s.end)}</b></span><span>เดินทาง <b>${s.travel}</b> นาที</span>` + (s.over > 0 ? `<span class="dvp over">${dvIco("alert")}เกินเวลา ~${s.over} นาที</span>` : `<span class="dvp ok">${dvIco("check")}ทันเวลา</span>`) + "</div></div>";
+      }
+      function dvAlts(u, d, i, picks) {
+        const k = dvKey(d), mk = mbMK(k), dn = mbDay(k), main = dvMain(picks), prev = dvR(main[Math.max(0, i - 1)]), keys = picks.map((p) => p.kind + ":" + p.refId), oldRs = main.map(dvR).filter(Boolean);
+        const km = (rs) => { let t = 0; for (let j = 1; j < rs.length; j++) t += dvKm(rs[j - 1], rs[j]); return t; }, old = km(oldRs);
+        return candidatesForDay(mk, dn, keys, null, dvWork(u, d), GEN.fs).filter((r) => r.lat != null).sort((a, b) => dvKm(prev, a) - dvKm(prev, b)).slice(0, 3).map((r) => { const rs = oldRs.slice(); rs[i] = r; return { r, dk: km(rs) - old }; });
+      }
+      function dvRenderDetail() {
+        const el = document.getElementById("dvDetail"), d = DV.day; el.classList.toggle("fresh", DV.fresh);
+        if (!DV.unit) {
+          const rows = dvUnits().map((u) => { const c = dvState(u, d), m = dvMetrics(u, d), first = c.picks ? (() => { const mn = dvMain(c.picks), r = dvR(mn[0]); return (r ? r.name : mn[0].name) + (mn.length > 1 ? " +" + (mn.length - 1) : ""); })() : "";
+            return `<tr data-pick="${dvEsc(u.id)}"><td class="nowrap"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(${dvCv(u)});margin-right:8px"></i><b>${dvEsc(u.name)}</b></td><td>${dvPill(c.st)}</td><td class="dvsub">${dvEsc(first)}</td><td class="dvm dvsub nowrap">${m ? dvHM(m.s.end) : ""}</td></tr>`; }).join("");
+          el.innerHTML = `<div class="dh2"><div class="row1"><h2>ทุกทีม</h2></div><div class="date">${dvLong(d)}</div></div><div style="padding:4px 8px;overflow:auto"><table class="daytable"><tbody>${rows}</tbody></table></div><p class="modes" style="margin-top:auto">กดแถวเพื่อดูแผนของทีมนั้น · เวลาในคอลัมน์ขวา = ประมาณเวลาเสร็จงาน</p>`;
+          return;
+        }
+        const u = dvUnit(DV.unit); if (!u) { el.innerHTML = ""; return; }
+        const c = dvState(u, d), picks = c.picks, k = dvKey(d), mk = mbMK(k), dn = mbDay(k), offNames = u.members.filter((e) => !c.w.includes(e) && dvTeamWorks(u, d, e));
+        el.style.setProperty("--tc", "var(" + dvCv(u) + ")");
+        let h = `<div class="dh2"><div class="row1"><i class="tdot"></i><h2>${dvEsc(u.name)}</h2>${dvPill(c.st)}<div class="acts">`;
+        if (picks) h += `<a class="ib" href="${mapsRouteUrl(dvMain(picks))}" target="_blank" rel="noopener" aria-label="เปิดเส้นทางใน Google Maps" title="เปิดเส้นทางใน Google Maps">${dvIco("route", "lg")}</a>`;
+        if (picks || c.st === "varied" || c.st === "partial") h += `<button type="button" class="ib" data-act="regen" aria-label="สร้างแผนวันนี้ใหม่ (คงสถานที่ที่ปักหมุดไว้)" title="สร้างใหม่ (คงที่ปักหมุด)">${dvIco("refresh", "lg")}</button><button type="button" class="ib" data-act="clear" aria-label="ล้างแผนวันนี้" title="ล้างแผนวันนี้">${dvIco("trash", "lg")}</button>`;
+        h += `</div></div><div class="date">${dvLong(d)}</div></div>`;
+        if (picks) h += dvTimeline(picks);
+        if (c.st !== "off" || offNames.length) {
+          h += `<div class="crew"><span>${dvIco("users")} ทำงาน <b class="dvm">${c.w.length}/${u.members.length}</b> คน${offNames.length ? " · ลา: " + dvEsc(offNames.slice(0, 3).map(drsLabel).join(", ")) + (offNames.length > 3 ? " +" + (offNames.length - 3) : "") : ""}</span>` + (u.solo ? "" : `<button type="button" class="lnk" data-act="editcrew" aria-expanded="${DV.editCrew}">แก้ไขคนทำงานวันนี้</button>`) + "</div>";
+          if (DV.editCrew && !u.solo) h += '<div class="crewedit">' + u.members.map((e) => `<button type="button" class="mchip" data-mem="${dvEsc(e)}" aria-pressed="${c.w.includes(e)}">${dvEsc(drsLabel(e))}</button>`).join("") + "</div>";
+        }
+        if (c.st === "off") h += `<div class="dve" style="margin:auto"><b>ไม่มีคนทำงานวันนี้</b>${dvTeamWorksAny(u, d) ? "ทุกคนในทีมลา" : "นอกวันทำงานประจำของทีม"}<br><br><button type="button" class="dvb" data-act="addday">${dvIco("check")} ให้ทีมนี้ทำงานวันนี้</button></div>`;
+        else if (c.st === "missing") h += `<div class="dve" style="margin:auto"><b>ยังไม่มีแผน</b>ทีมนี้ทำงาน ${c.w.length} คนในวันนี้<br><br><button type="button" class="dvb primary" data-act="gen">${dvIco("gen")} สร้างแผนวันนี้</button></div>`;
+        else if (c.st === "partial" || c.st === "varied") h += `<div class="dve" style="margin:auto"><b>${c.st === "partial" ? "บางคนยังไม่มีแผน" : "แต่ละคนไปคนละที่"}</b>${c.st === "partial" ? "กดเพื่อสร้างให้ทั้งทีมไปด้วยกัน" : "กดเพื่อให้ทั้งทีมไปด้วยกัน (ใช้ชุดสถานที่เดียว)"}<br><br><button type="button" class="dvb primary" data-act="gen">${dvIco("gen")} สร้างให้ทั้งทีม</button></div>`;
+        else {
+          const pins = dvPins(u, d);
+          h += '<ol class="stops">' + picks.map((p, i) => {
+            const r = dvR(p), bk = p.slot === "backup", mi = dvMain(picks).indexOf(p), nm = r ? r.name : p.name || "?", md = SCRIPT_MODES[r ? scriptModeOf(r).mode : "explore"], key = p.kind + ":" + p.refId, pin = pins.has(key);
+            const leg = !bk && mi > 0 && r && dvR(dvMain(picks)[mi - 1]) ? dvKm(dvR(dvMain(picks)[mi - 1]), r) : null, url = dvMapsUrl(r);
+            let s = `<li class="dvstop${bk ? " bk" : ""}" style="--i:${i}"><span class="no" aria-hidden="true">${bk ? dvIco("bookmark") : mi + 1}</span><div><div class="r1"><span class="nm">${bk ? "สำรอง · " : ""}${dvEsc(nm)}</span><span class="dvmode ${md.tone}" title="${dvEsc(r ? scriptModeOf(r).reason : "")}">${md.th}</span></div><div class="meta">${r ? dvEsc(locOf(r)) + ' · <span class="dvm">' + whole(hhOf(r)) + "</span> " + (kindOf(r) === "village" ? "ครัวเรือน" : "ยูนิต") : "ไม่พบในข้อมูลล่าสุด"}${leg != null ? ' · ห่างจากจุดก่อน <span class="dvm">' + leg.toFixed(1) + "</span> กม." : ""}</div></div><div class="sicos">` +
+              (bk ? "" : `<button type="button" class="ib" data-pin="${dvEsc(key)}" aria-pressed="${pin}" aria-label="${pin ? "ยกเลิกปักหมุด" : "ปักหมุด"} ${dvEsc(nm)} ไว้เมื่อสร้างใหม่" title="${pin ? "ปักหมุดไว้ (คงไว้เมื่อสร้างใหม่ ในรอบที่เปิดหน้านี้)" : "ปักหมุดไว้เมื่อสร้างใหม่"}">${dvIco(pin ? "lock" : "unlock")}</button><button type="button" class="ib" data-swap="${mi}" aria-label="เปลี่ยนสถานที่ ${dvEsc(nm)}" title="เปลี่ยนสถานที่">${dvIco("swap")}</button>`) +
+              (url ? `<a class="ib" href="${url}" target="_blank" rel="noopener" aria-label="เปิด ${dvEsc(nm)} ใน Google Maps" title="เปิดใน Google Maps">${dvIco("pin")}</a>` : "") + (r ? `<button type="button" class="ib" data-script="${dvEsc(key)}" aria-label="สคริปต์การขาย ${dvEsc(nm)}" title="สคริปต์การขาย">${dvIco("msg")}</button>` : "") + "</div></li>";
+            if (DV.swapIdx === mi && !bk) s += `<li class="pop in"><h4>เปลี่ยนเป็น (ใกล้จุดก่อนหน้าที่สุด)</h4>${dvAlts(u, d, mi, picks).map((a) => `<button type="button" class="dvalt" data-alt="${dvEsc(kindOf(a.r) + ":" + a.r.id)}"><span>${dvEsc(a.r.name)}<small>${dvEsc(locOf(a.r))} · ${whole(hhOf(a.r))} ${kindOf(a.r) === "village" ? "ครัวเรือน" : "ยูนิต"}</small></span><span class="delta ${a.dk > 0.05 ? "up" : "dn"}">${a.dk >= 0 ? "+" : ""}${a.dk.toFixed(1)} กม.</span></button>`).join("") || '<p class="dvsub">ไม่มีทางเลือกที่ว่าง</p>'}</li>`;
+            return s;
+          }).join("") + "</ol>";
+          const m = dvMetrics(u, d);
+          h += `<div class="dfoot"><span>${m.rs.length} จุด</span><span>รวม <b>${m.km.toFixed(1)}</b> กม. (เส้นตรง)</span><span><b>${m.hh.toLocaleString()}</b> ครัวเรือน</span></div><p class="modes" style="padding-top:8px">ป้องกัน = True นำตลาด · โน้มน้าว = คู่แข่งนำไม่ถึง 10 คะแนน · บุก = คู่แข่งนำตั้งแต่ 10 คะแนน · สำรวจ = ยังไม่มีข้อมูล</p>`;
+        }
+        el.innerHTML = h;
+      }
+      // is this member scheduled to work (ignoring leave)? lets us tell "everyone on leave" from "not a work day"
+      const dvBaseWorks = (e, d) => (STATE.roster[mbIso(mbFrom(dvKey(d)))] || []).includes(e);
+      const dvTeamWorks = (u, d, e) => { const o = (STATE.rosterOverrides || {})[mbCompact(dvKey(d))]; return dvBaseWorks(e, d) || (o && o.add.includes(e)); };
+      const dvTeamWorksAny = (u, d) => u.members.some((e) => dvTeamWorks(u, d, e));
+
+      /* ── render + select ── */
+      function dvEnsureSel() {
+        const us = dvUnits(); if (DV.day >= DV.n) DV.day = 0;
+        if (DV.unit && !us.some((u) => u.id === DV.unit)) DV.unit = null;
+        if (!DV.unit && !DV.picked0) { DV.picked0 = true; outer: for (let d = 0; d < DV.n; d++) for (const u of us) { const s = dvState(u, d).st; if (s === "ok" || s === "big") { DV.unit = u.id; DV.day = d; break outer; } } }
+      }
+      function dvRender(animate) {
+        if (!isMgr() || !document.getElementById("dv")) return;
+        const had = mbCache; mbCache = { set: {}, st: {} }; DV.units = null;
+        try { dvEnsureSel(); dvTomorrow(); dvRenderAttn(); dvRenderMatrix(); dvRenderChips(); dvRenderDetail(); dvRenderMap(animate); } finally { mbCache = had; }
+      }
+      function dvSelect(uid, d) { DV.unit = uid; DV.day = d; DV.swapIdx = -1; DV.editCrew = false; DV.fresh = true; dvRender(true); clearTimeout(DV.freshT); DV.freshT = setTimeout(() => { DV.fresh = false; document.getElementById("dvDetail").classList.remove("fresh"); }, 900); }
+      function dvOnShow() { dvSyncDark(); dvRender(true); if (DV.map) setTimeout(() => { DV.map.invalidateSize(); dvRenderMap(); }, 60); else setTimeout(() => { dvInitMap(); if (DV.map) { DV.map.invalidateSize(); dvRenderMap(true); } }, 80); }
+
+      /* ── actions ── */
+      document.getElementById("dvDetail").addEventListener("click", (e) => {
+        const b = e.target.closest("button, tr[data-pick]"); if (!b) return;
+        if (b.dataset.pick) return dvSelect(b.dataset.pick, DV.day);
+        const u = DV.unit && dvUnit(DV.unit), d = DV.day; if (!u) return;
+        const k = dvKey(d), mk = mbMK(k), dn = mbDay(k), c = dvState(u, d), act = b.dataset.act;
+        if (act === "editcrew") { DV.editCrew = !DV.editCrew; return dvRender(); }
+        if (b.dataset.mem) { const em = b.dataset.mem; mbSetWorks(k, em, !mbCrewSet(k).has(em)); mbQueueOverride(k, [em]); return dvRender(); }
+        if (act === "gen") { const snap = dvSnap(u, d), ok = dvGenUnit(u, d); dvRender(true); return mbToast(ok ? "สร้างแผนแล้ว" : "ไม่มีสถานที่ว่างเหลือที่ตรงเงื่อนไข ลองปรับตัวกรองที่ปุ่ม “สร้างแผน…”", 8000, ok ? { label: "เลิกทำ", fn: () => { dvRestoreEmpty(u, d, snap); dvRender(); } } : null); }
+        if (act === "addday") { u.members.forEach((e) => mbSetWorks(k, e, true)); mbQueueOverride(k, u.members); return dvRender(); }
+        if (act === "clear") { const snap = dvSnap(u, d); dvWork(u, d).forEach((e) => { drsSet(e, mk, dn, []); queueAssign(e, mk, dn, 0); }); dvRender(); return mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน", 8000, { label: "เลิกทำ", fn: () => { dvRestore(d, snap); dvRender(); mbToast("คืนแผนแล้ว (ถ้าสถานที่ถูกคนอื่นจองไปแล้ว ระบบจะเลือกแห่งอื่นแทนให้)", 5000); } }); }
+        if (act === "regen") { const snap = dvSnap(u, d), pins = dvPins(u, d), keep = c.picks ? dvMain(c.picks).filter((p) => pins.has(p.kind + ":" + p.refId)) : []; dvGenUnit(u, d, { keep }); dvRender(true); return mbToast("สร้างใหม่แล้ว" + (keep.length ? " · คงที่ปักหมุด " + keep.length + " แห่ง" : ""), 8000, { label: "เลิกทำ", fn: () => { dvRestoreEmpty(u, d, snap); dvRender(); } }); }
+        if (b.dataset.pin) { const s = dvPins(u, d); s.has(b.dataset.pin) ? s.delete(b.dataset.pin) : s.add(b.dataset.pin); return dvRender(); }
+        if (b.dataset.swap != null) { DV.swapIdx = DV.swapIdx === +b.dataset.swap ? -1 : +b.dataset.swap; return dvRender(); }
+        if (b.dataset.alt) { const [kd, id] = b.dataset.alt.split(":"), r = byId(kd, id), snap = dvSnap(u, d), np = c.picks.map((p) => ({ ...p })), main = dvMain(np); const tgt = main[DV.swapIdx]; if (!tgt || !r) return; tgt.kind = kindOf(r); tgt.refId = r.id; tgt.name = r.name || ""; dvPins(u, d).add(kindOf(r) + ":" + r.id); DV.swapIdx = -1; dvSetPicks(u, d, np); dvRender(); return mbToast("เปลี่ยนสถานที่แล้ว", 8000, { label: "เลิกทำ", fn: () => { dvRestoreEmpty(u, d, snap); dvRender(); } }); }
+      });
+      function dvRestoreEmpty(u, d, snap) { dvRestore(d, snap); }
+      document.getElementById("dvMx").addEventListener("click", (e) => {
+        const c = e.target.closest(".cell"); if (c) return dvSelect(c.dataset.cu, +c.dataset.cd);
+        const dh = e.target.closest(".dh"); if (dh) return dvSelect(null, +dh.dataset.day);
+        const tm = e.target.closest(".tm"); if (tm) return dvSelect(tm.dataset.unit, DV.day);
+      });
+      document.getElementById("dvMx").addEventListener("keydown", (e) => {
+        const c = e.target.closest(".cell"); if (!c) return; const k = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[e.key]; if (!k) return; e.preventDefault();
+        const us = dvUnits(), ti = us.findIndex((u) => u.id === c.dataset.cu) + k[0], d = +c.dataset.cd + k[1]; if (ti < 0 || ti >= us.length || d < 0 || d >= DV.n) return;
+        dvSelect(us[ti].id, d); const n = [...document.querySelectorAll("#dvMx .cell")].find((x) => x.dataset.cu === us[ti].id && +x.dataset.cd === d); if (n) n.focus();
+      });
+      document.getElementById("dvLens").addEventListener("click", (e) => { const b = e.target.closest("[data-lens]"); if (!b) return; DV.lens = b.dataset.lens; document.querySelectorAll("#dvLens button").forEach((x) => x.setAttribute("aria-pressed", x === b)); dvRender(); });
+      document.getElementById("dvTmw").addEventListener("click", (e) => { const b = e.target.closest("[data-tc]"); if (b) dvSelect(b.dataset.tc, 1); });
+      document.getElementById("dvAttn").addEventListener("click", (e) => {
+        const f = e.target.closest("[data-fix]"), a = e.target.closest("[data-attn]"), g = e.target.closest("[data-gen]");
+        if (g) return openGen();
+        if (f) {
+          const x = DV.attn[+f.dataset.fix].fix, u = dvUnit(x.unit); if (!u) return; const snaps = x.days.map((d) => [d, dvSnap(u, d)]); let made = 0, short = 0;
+          mbCache = { set: {}, st: {} }; try { x.days.forEach((d) => { if (dvGenUnit(u, d)) made++; else short++; }); } finally { mbCache = null; }
+          dvRender(true); return mbToast("สร้างแผนให้ " + u.name + " " + made + " วัน" + (short ? " · ไม่มีสถานที่พอ " + short + " วัน" : ""), 8000, { label: "เลิกทำ", fn: () => { snaps.forEach(([d, s]) => { dvWork(u, d).forEach((em) => { const k = dvKey(d); drsSet(em, mbMK(k), mbDay(k), s[em] || []); queueAssign(em, mbMK(k), mbDay(k), 0); }); }); dvRender(); } });
+        }
+        if (a) { const it = DV.attn[+a.dataset.attn]; dvSelect(it.unit, it.day); }
+      });
+      document.getElementById("dvChips").addEventListener("click", (e) => { const b = e.target.closest("[data-vis]"); if (!b) return; const id = b.dataset.vis; DV.hidden.has(id) ? DV.hidden.delete(id) : DV.hidden.add(id); dvRenderChips(); dvRenderMap(); });
+      document.getElementById("dvTop").addEventListener("click", (e) => {
+        const r = e.target.closest("[data-span]"); if (r) { DV.n = +r.dataset.span; document.querySelectorAll("#dvTop [data-span]").forEach((x) => x.setAttribute("aria-pressed", x === r)); dvRender(); return; }
+        if (e.target.closest("#dvSetupOpen")) { dvOverlay("dvSetup", true); return; }
+        if (e.target.closest("#dvFind")) { dvPalOpen(); return; }
+      });
+      new MutationObserver(() => { dvSyncDark(); dvRenderMap(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { dvSyncDark(); dvRenderMap(); });
+
+      /* setup sheet (people list + bulk shifts) and command palette */
+      function dvOverlay(id, open) {
+        const el = document.getElementById(id), sc = document.getElementById("dvScrim");
+        if (open) { DV.opener = document.activeElement; if (id === "dvSetup") renderBoard(); sc.classList.add("show"); el.classList.add("show"); el.setAttribute("aria-hidden", "false"); const f = el.querySelector(id === "dvPal" ? "#dvPalQ" : "[data-dvclose]"); if (f) f.focus(); }
+        else { sc.classList.remove("show"); el.classList.remove("show"); el.setAttribute("aria-hidden", "true"); if (DV.opener && DV.opener.focus) try { DV.opener.focus(); } catch (er) { /* gone */ } }
+      }
+      const dvCloseAll = () => { ["dvSetup", "dvPal"].forEach((id) => { const el = document.getElementById(id); if (el.classList.contains("show")) dvOverlay(id, false); }); };
+      document.getElementById("dvScrim").addEventListener("click", dvCloseAll);
+      document.getElementById("dv").addEventListener("click", (e) => { if (e.target.closest("[data-dvclose]")) dvCloseAll(); });
+      function dvUsage(kind, id) { const o = []; dvUnits().forEach((u) => { for (let d = 0; d < DV.n; d++) { const c = dvState(u, d); if (!c.picks) continue; const i = dvMain(c.picks).findIndex((p) => p.kind === kind && String(p.refId) === String(id)); if (i >= 0) o.push({ u, d, i }); else if (c.picks.some((p) => p.slot === "backup" && p.kind === kind && String(p.refId) === String(id))) o.push({ u, d, i: -1 }); } }); return o; }
+      function dvPalItems(q) {
+        q = q.trim().toLowerCase(); const out = [];
+        dvUnits().forEach((u) => { if (!q || u.name.toLowerCase().includes(q)) out.push({ g: "ทีม", ic: "users", t: u.name, s: u.solo ? "รายบุคคล" : u.members.length + " คน", run: () => dvSelect(u.id, DV.day) }); });
+        if (q) dvRange(0, DV.n - 1).forEach((d) => { if (dvLbl(d).toLowerCase().includes(q) || dvLong(d).includes(q)) out.push({ g: "วัน", ic: "clock", t: dvLong(d), s: "ดูทุกทีมในวันนั้น", run: () => dvSelect(null, d) }); });
+        if (q.length >= 2) poolFor("both").filter((r) => (r.name || "").toLowerCase().includes(q)).slice(0, 8).forEach((r) => {
+          const kd = kindOf(r), us = dvUsage(kd, r.id);
+          if (!us.length) out.push({ g: "สถานที่", ic: "pin", t: r.name, s: isClaimedByOther(r) ? "ถูกจองโดยคนอื่น" : "ว่าง ยังไม่ถูกจัด", run: () => mbToast(r.name + (isClaimedByOther(r) ? " ถูกจองโดยคนอื่น" : " ยังว่างอยู่")) });
+          else us.forEach((x) => out.push({ g: "สถานที่", ic: "pin", t: r.name, s: x.u.name + " · " + dvLbl(x.d) + (x.i >= 0 ? " · จุดที่ " + (x.i + 1) : " · สำรอง"), run: () => dvSelect(x.u.id, x.d) }));
+        });
+        return out;
+      }
+      function dvPalRender() {
+        mbCache = { set: {}, st: {} }; DV.units = null;
+        try { DV.palList = dvPalItems(document.getElementById("dvPalQ").value); } finally { mbCache = null; }
+        DV.palIdx = Math.min(DV.palIdx, Math.max(0, DV.palList.length - 1));
+        const el = document.getElementById("dvPalR");
+        if (!DV.palList.length) { el.innerHTML = '<li><div class="dve"><b>ไม่พบ</b>ลองพิมพ์ชื่อทีม วัน เช่น “พฤ 15” หรือชื่อหมู่บ้าน</div></li>'; return; }
+        let h = "", lg = ""; DV.palList.forEach((x, i) => { if (x.g !== lg) { h += `<li class="grp">${x.g}</li>`; lg = x.g; } h += `<li><button type="button" role="option" data-pi="${i}" aria-selected="${i === DV.palIdx}">${dvIco(x.ic)}<span>${dvEsc(x.t)}</span><small>${dvEsc(x.s)}</small></button></li>`; });
+        el.innerHTML = h; const s = el.querySelector('[aria-selected="true"]'); if (s) s.scrollIntoView({ block: "nearest" });
+      }
+      function dvPalOpen() { document.getElementById("dvPalQ").value = ""; DV.palIdx = 0; dvOverlay("dvPal", true); dvPalRender(); }
+      function dvPalRun(i) { const x = DV.palList[i]; if (!x) return; dvCloseAll(); x.run(); }
+      document.getElementById("dvPalQ").addEventListener("input", () => { DV.palIdx = 0; dvPalRender(); });
+      document.getElementById("dvPalR").addEventListener("click", (e) => { const b = e.target.closest("[data-pi]"); if (b) dvPalRun(+b.dataset.pi); });
+      document.getElementById("dvPalQ").addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") { e.preventDefault(); DV.palIdx = Math.min(DV.palList.length - 1, DV.palIdx + 1); dvPalRender(); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); DV.palIdx = Math.max(0, DV.palIdx - 1); dvPalRender(); }
+        else if (e.key === "Enter") { e.preventDefault(); dvPalRun(DV.palIdx); }
+      });
+      document.addEventListener("keydown", (e) => {
+        const active = document.getElementById("sec-drs").classList.contains("active"); if (!active) return;
+        if (e.key === "Escape") { if (DV.swapIdx >= 0) { DV.swapIdx = -1; dvRender(); } dvCloseAll(); return; }
+        const typing = /input|select|textarea/i.test(e.target.tagName || "");
+        if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")) { e.preventDefault(); dvPalOpen(); }
+      });
+
       function renderBoard() {
         if (!document.getElementById("sec-drs") || !isMgr()) return;
-        mbEnsure(); mbCache = { set: {}, st: {} };
-        try { renderBoardSum(); renderBoardPeople(); renderBoardBulk(); renderBoardMonth(); renderBoardSide(); } finally { mbCache = null; }
+        mbEnsure(); dvRender();
+        mbCache = { set: {}, st: {} };
+        try { renderBoardPeople(); renderBoardBulk(); } finally { mbCache = null; }
       }
+
       function renderDrsView() { renderBoard(); } // old name, still called from the calendar / day editor
 
       /* ── saving: weekly pattern for many people, one-date changes per person ── */
@@ -3613,7 +4204,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       }
 
       /* ── events ── */
-      function mbSelectDay(k) { MB.person = null; MB.selected = k; const d = mbFrom(k); MB.view = new Date(d.getFullYear(), d.getMonth(), 1); renderBoard(); }
       const mbSec = document.getElementById("sec-drs");
       mbSec.addEventListener("input", (e) => { if (e.target.id === "mbQ") { MB.q = e.target.value; mbCache = { set: {}, st: {} }; try { renderBoardPeople(); } finally { mbCache = null; } } });
       mbSec.addEventListener("change", (e) => {
@@ -3637,12 +4227,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       mbSec.addEventListener("click", async (e) => {
         const t = e.target, $c = (sel) => t.closest(sel);
         const fold = $c("[data-fold]"); if (fold) { MB.closed[fold.dataset.fold] = !MB.closed[fold.dataset.fold]; renderBoard(); return; }
-        const tile = $c(".mb-tile[data-f]"); if (tile) { MB.filter = tile.dataset.f; document.querySelectorAll("#mbPf button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.f === MB.filter)); renderBoard(); document.getElementById("mbPat").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
         const pf = $c("#mbPf button"); if (pf) { MB.filter = pf.dataset.f; document.querySelectorAll("#mbPf button").forEach((b) => b.setAttribute("aria-pressed", b === pf)); renderBoard(); return; }
         if ($c("#mbSelAll")) { const l = mbShown(), all = l.every((x) => MB.picked.has(x)); l.forEach((x) => { all ? MB.picked.delete(x) : MB.picked.add(x); }); renderBoard(); return; }
-        const pn = $c("[data-person]"); if (pn) { MB.person = pn.dataset.person; renderBoard(); document.getElementById("mbSide").scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
-        if ($c("#mbBack")) { MB.person = null; renderBoard(); return; }
-        if ($c("#mbGenPerson")) { openGen({ person: true }); return; }
+        const pn = $c("[data-person]"); if (pn) { const u = dvUnitOf(pn.dataset.person); dvCloseAll(); if (u) dvSelect(u.id, 0); return; }
         // bulk bar
         const pc = $c("[data-preset]"); if (pc) { MB.shiftSel = new Set(MB_PRESETS[+pc.dataset.preset][1]); renderBoardBulk(); return; }
         const wd = $c("[data-wd]"); if (wd) { const w = +wd.dataset.wd; MB.shiftSel.has(w) ? MB.shiftSel.delete(w) : MB.shiftSel.add(w); renderBoardBulk(); return; }
@@ -3665,30 +4252,9 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             mbToast(`${a === "applyOff" ? "หยุด" : a === "applyOn" ? "ทำงานเพิ่ม" : "ยกเลิกการปรับ"}วันที่ ${mbThDate(mbFrom(k))} · ${emails.length} คน`); return;
           }
         }
-        // calendar + side panel
-        const sc = $c(".mb-sc[data-k]"); if (sc) { mbSelectDay(sc.dataset.k); return; }
-        const cell = $c(".mb-cell[data-k]");
-        if (cell) { MB.person = null; MB.selected = cell.dataset.k; renderBoard(); const c2 = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c2) c2.focus(); if (window.innerWidth <= 1100) document.getElementById("mbSide").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-        const chip = $c("[data-chip]");
-        if (chip && !chip.disabled) {
-          const em = chip.dataset.chip, k = MB.selected, open = new Set([...document.querySelectorAll("#mbSide details.mb-tm[open]")].map((x) => x.dataset.team)); MB.openTeams = open; MB.openEd = new Set([...document.querySelectorAll("#mbSide details.mb-ed[open]")].map((x) => x.dataset.team));
-          mbSetWorks(k, em, !mbCrewSet(k).has(em)); mbQueueOverride(k, [em]); renderBoard(); return;
-        }
-        const row = $c("#mbSide tr[data-k]"); if (row) { mbSelectDay(row.dataset.k); return; }
+        const sc = $c(".mb-sc[data-k]");
+        if (sc) { const row = sc.closest(".mb-prow"), em = row && row.querySelector("[data-person]") && row.querySelector("[data-person]").dataset.person, u = em && dvUnitOf(em); dvCloseAll(); if (u) dvSelect(u.id, Math.round((mbFrom(sc.dataset.k) - mbToday()) / 86400000)); return; }
         const scr = $c("[data-script]"); if (scr) { const [kd, id] = scr.dataset.script.split(":"); const r = byId(kd, id); if (r) openModal(r, "script"); return; }
-        const ed = $c("[data-edit]"); if (ed) { openDayEditor(mbMK(MB.selected), mbDay(MB.selected), ed.dataset.edit); return; }
-        if ($c("#mbGenDay")) { openGen({ day: Math.round((mbFrom(MB.selected) - mbToday()) / 86400000) }); return; }
-        if ($c("#mbClrDay")) {
-          const mk = mbMK(MB.selected), dn = mbDay(MB.selected), snap = {};
-          mbCrew(MB.selected).forEach((em) => { const l = drsGet(em, mk, dn); if (l.length) { snap[em] = l.map((p) => ({ ...p })); drsSet(em, mk, dn, []); queueAssign(em, mk, dn, 0); } });
-          renderBoard();
-          mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน", 8000, { label: "เลิกทำ", fn: () => { Object.keys(snap).forEach((em) => { drsSet(em, mk, dn, snap[em]); queueAssign(em, mk, dn, 0); }); renderBoard(); mbToast("คืนแผนแล้ว (ถ้าสถานที่ถูกคนอื่นจองไปแล้ว ระบบจะเลือกแห่งอื่นแทนให้)", 5000); } });
-          return;
-        }
-        if ($c("#mbRstDay")) { delete STATE.rosterOverrides[mbCompact(MB.selected)]; mbResetDay(MB.selected); renderBoard(); return; }
-        if ($c("#mbPrev")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() - 1, 1); renderBoard(); return; }
-        if ($c("#mbNext")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 1); renderBoard(); return; }
-        if ($c("#mbToday")) { const td = mbToday(); MB.view = new Date(td.getFullYear(), td.getMonth(), 1); MB.selected = mbTodayKey(); MB.person = null; renderBoard(); return; }
         if ($c("#mbGenOpen")) { openGen(); return; }
         if ($c("#mbRefresh")) {
           const b = $c("#mbRefresh"); b.disabled = true;
@@ -3706,13 +4272,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const gm = $c("[data-gtam]"); if (gm) { const v = gm.dataset.gtam; GEN.fs.tams.has(v) ? GEN.fs.tams.delete(v) : GEN.fs.tams.add(v); renderGen(); return; }
       });
       document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.getElementById("mbDrawer").classList.contains("show")) closeGen(); });
-      // arrow keys move around the month
-      document.getElementById("mbGrid").addEventListener("keydown", (e) => {
-        const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]; if (!step) return;
-        e.preventDefault(); const d = mbFrom(MB.selected); d.setDate(d.getDate() + step);
-        if (d.getMonth() !== MB.view.getMonth() || d.getFullYear() !== MB.view.getFullYear()) MB.view = new Date(d.getFullYear(), d.getMonth(), 1);
-        MB.person = null; MB.selected = mbKey(d); renderBoard(); const c = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c) c.focus();
-      });
 
       // Saving what a manager assigns: one request for everything changed, debounced.
       const pendingAssign = {};
