@@ -42,7 +42,7 @@
  * assigned to them (today + tomorrow, read-only).
  * No role -> DRS (the most restricted).
  * "Users" -- who's allowed to view the dashboard: an email allow-list plus
- *   optional role and name columns (the name is what managers see for a DRS). Created automatically (with a sample row) the first time anyone
+ *   optional role, name and team columns (the name is what managers see for a DRS; the team groups DRS on the month board). Created automatically (with a sample row) the first time anyone
  *   signs in, same as every other project in this Dashboard.
  *
  * ── Auth ───────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@
  *                                      instead (not a person signing in).
  *   saveCalendarTheme                -> any allow-listed signed-in viewer.
  *   saveCalendarDays                 -> PBH / CM / ADMIN only (their own "2 วัน" view).
- *   assignDrsDays / saveDrsRoster / saveDrsOverride -> PBH / CM / ADMIN only: assign a DRS's
+ *   assignDrsDays / saveDrsRoster / saveDrsOverride / saveDrsPattern / mergeDrsOverride -> PBH / CM / ADMIN only: assign a DRS's
  *                                      days (today .. 13 days ahead) and say who works when.
  *   (a DRS can no longer build or save any plan -- they only receive what a manager assigned)
  *   saveCalendarMonth / ...Slot / clearCalendarMonth -> PBH / CM / ADMIN only.
@@ -293,6 +293,8 @@ function doPost(e) {
       body.action === "assignDrsDays" ||
       body.action === "saveDrsRoster" ||
       body.action === "saveDrsOverride" ||
+      body.action === "saveDrsPattern" ||
+      body.action === "mergeDrsOverride" ||
       body.action === "saveCalendarMonth" ||
       body.action === "clearCalendarMonth" ||
       body.action === "saveCalendarSlot" ||
@@ -314,6 +316,10 @@ function doPost(e) {
         return jsonResponse_(saveDrsRoster_(body.weekday, body.emails || [], emailC));
       if (body.action === "saveDrsOverride")
         return jsonResponse_(saveDrsOverride_(body.date, body.add || [], body.remove || [], emailC));
+      if (body.action === "saveDrsPattern")
+        return jsonResponse_(saveDrsPattern_(body.emails || [], body.weekdays || [], emailC));
+      if (body.action === "mergeDrsOverride")
+        return jsonResponse_(mergeDrsOverride_(body.date, body.add || [], body.remove || [], emailC, body.clear || []));
       if (body.action === "saveCalendarMonth")
         return jsonResponse_(
           saveCalendarMonth_(
@@ -390,11 +396,12 @@ function readUsers_() {
   var sheet = ss.getSheetByName("Users");
   if (!sheet) {
     sheet = ss.insertSheet("Users");
-    sheet.appendRow(["email", "role", "name", "note"]);
+    sheet.appendRow(["email", "role", "name", "team", "note"]);
     sheet.appendRow([
       "example@gmail.com",
       "DRS",
       "ชื่อตัวอย่าง",
+      "ทีม A",
       "sample row -- role is PBH, CM, ADMIN or DRS; replace with your team, then delete this",
     ]);
     sheet.setFrozenRows(1);
@@ -407,7 +414,8 @@ function readUsers_() {
   });
   var emailCol = header.indexOf("email"),
     roleCol = header.indexOf("role"),
-    nameCol = Math.max(header.indexOf("name"), header.indexOf("ชื่อ")); // optional display name
+    nameCol = Math.max(header.indexOf("name"), header.indexOf("ชื่อ")), // optional display name
+    teamCol = Math.max(header.indexOf("team"), header.indexOf("ทีม")); // optional team (grouping only)
   if (emailCol === -1) return [];
   var out = [];
   for (var i = 1; i < data.length; i++) {
@@ -419,6 +427,7 @@ function readUsers_() {
       email: em,
       role: MANAGER_ROLES.indexOf(role) !== -1 ? role : "DRS",
       name: nameCol === -1 ? "" : String(data[i][nameCol]).trim(),
+      team: teamCol === -1 ? "" : String(data[i][teamCol]).trim(),
     });
   }
   return out;
@@ -503,8 +512,11 @@ function myData_(idToken) {
     };
     extra.drsUsers = drs;
     extra.drsNames = {};
+    extra.drsTeams = {};
     readUsers_().forEach(function (u) {
-      if (u.role === "DRS" && u.name) extra.drsNames[u.email] = u.name;
+      if (u.role !== "DRS") return;
+      if (u.name) extra.drsNames[u.email] = u.name;
+      if (u.team) extra.drsTeams[u.email] = u.team;
     });
     var rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DrsRoster");
     var rv = rosterSheet ? rosterSheet.getDataRange().getValues() : [];
@@ -531,6 +543,7 @@ function myData_(idToken) {
   };
   if (extra.drsUsers) res.drsUsers = extra.drsUsers;
   if (extra.drsNames) res.drsNames = extra.drsNames;
+  if (extra.drsTeams) res.drsTeams = extra.drsTeams;
   return res;
 }
 
@@ -1220,6 +1233,74 @@ function saveDrsOverride_(date, add, remove, actor) {
   lock.waitLock(20000);
   try {
     var rows = dropPastOverrides_(readRoster_()).filter(function (r) { return !(isOverrideRow_(r) && String(r[4]) === d); });
+    var now = new Date().toISOString();
+    a.forEach(function (em) { rows.push(["0", em, actor, now, d, "add"]); });
+    rm.forEach(function (em) { rows.push(["0", em, actor, now, d, "remove"]); });
+    writeRoster_(rows);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, date: d, add: a, remove: rm };
+}
+
+// Replaces the weekly pattern of MANY DRS at once: each of these emails works exactly these weekdays
+// (1 = Monday .. 7 = Sunday; an empty list = no regular workdays). Other DRS are untouched.
+function saveDrsPattern_(emails, weekdays, actor) {
+  var days = [];
+  (weekdays || []).forEach(function (w) {
+    var n = Number(w);
+    if (n >= 1 && n <= 7 && n === Math.floor(n) && days.indexOf(n) === -1) days.push(n);
+  });
+  var drs = drsEmailSet_(), chosen = [];
+  (emails || []).forEach(function (e) {
+    var em = String(e).toLowerCase();
+    if (drs[em] && chosen.indexOf(em) === -1) chosen.push(em);
+  });
+  if (!chosen.length) return { ok: false, error: "no_drs" };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = dropPastOverrides_(readRoster_()).filter(function (r) {
+      return isOverrideRow_(r) || chosen.indexOf(String(r[1]).toLowerCase()) === -1;
+    });
+    var now = new Date().toISOString();
+    chosen.forEach(function (em) {
+      days.forEach(function (wd) { rows.push([String(wd), em, actor, now, "", ""]); });
+    });
+    writeRoster_(rows);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, emails: chosen, weekdays: days };
+}
+
+// Like saveDrsOverride_ but only touches the DRS it is given: those in `add` / `remove` get their
+// change for this date replaced (those in `clear` just lose their change), everyone else's change for the date is kept.
+function mergeDrsOverride_(date, add, remove, actor, clear) {
+  var d = String(date || "");
+  if (!/^\d{8}$/.test(d)) return { ok: false, error: "bad_date" };
+  var today = Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyyMMdd");
+  var last = Utilities.formatDate(new Date(Date.now() + 120 * 86400000), CALENDAR_TZ, "yyyyMMdd");
+  if (d < today || d > last) return { ok: false, error: "date_out_of_range" };
+  var drs = drsEmailSet_();
+  function clean(list) {
+    var out = [];
+    (list || []).forEach(function (e) {
+      var em = String(e).toLowerCase();
+      if (drs[em] && out.indexOf(em) === -1) out.push(em);
+    });
+    return out;
+  }
+  var a = clean(add), rm = clean(remove).filter(function (e) { return a.indexOf(e) === -1; });
+  var cl = clean(clear);
+  var touched = a.concat(rm, cl);
+  if (!touched.length) return { ok: true, date: d, add: [], remove: [] };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = dropPastOverrides_(readRoster_()).filter(function (r) {
+      return !(isOverrideRow_(r) && String(r[4]) === d && touched.indexOf(String(r[1]).toLowerCase()) !== -1);
+    });
     var now = new Date().toISOString();
     a.forEach(function (em) { rows.push(["0", em, actor, now, d, "add"]); });
     rm.forEach(function (em) { rows.push(["0", em, actor, now, d, "remove"]); });

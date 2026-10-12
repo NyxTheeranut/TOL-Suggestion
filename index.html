@@ -965,6 +965,91 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         .mb-cell { min-height: 70px; padding: 5px; } .mb-cell .mb-crew .mb-av { width: 18px; height: 18px; font-size: 9.5px; } .mb-pill { font-size: 10.5px; padding: 0 5px; }
         .mb-dot { width: 34px; height: 34px; } .mb-hint, .mb-mhead { margin-left: 0; }
       }
+      /* ── Month board v2: built for ~50 DRS ── */
+      .mb-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; max-width: 1380px; margin: 0 auto 16px; }
+      @media (max-width: 760px) { .mb-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      .mb-tile { background: var(--panel); border: none; border-radius: 14px; box-shadow: var(--shadow, 0 1px 0 rgba(16,61,56,.05), 0 10px 28px -14px rgba(16,61,56,.22)); padding: 12px 16px; text-align: left; display: flex; flex-direction: column; color: var(--ink); transition: all .16s var(--ease); }
+      button.mb-tile:hover { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, var(--line)); }
+      .mb-tile small { font-size: 12.5px; color: var(--text-3); }
+      .mb-tile b { font: 600 26px/1.2 var(--font-head); font-variant-numeric: tabular-nums; }
+      .mb-tile b em { font: 500 13px var(--font-body, inherit); font-style: normal; color: var(--text-3); margin-left: 4px; }
+      .mb-tile.warn b { color: var(--st-warn); }
+      .mb-ptools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; }
+      .mb-search { flex: 1 1 200px; min-height: 40px; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 6px 12px; font: inherit; color: var(--ink); }
+      .mb-people { border-radius: 14px; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+      .mb-pscroll { max-height: 520px; overflow: auto; }
+      .mb-tg { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-weight: 600; font-size: 13.5px; }
+      .mb-cnt { margin-left: auto; font: 500 12.5px "IBM Plex Mono", monospace; color: var(--text-3); }
+      .mb-fold { border: none; background: transparent; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--text-3); }
+      .mb-fold svg { transition: transform .16s var(--ease); }
+      .mb-tg.closed .mb-fold svg { transform: rotate(-90deg); }
+      .mb-prow, .mb-sthead { display: grid; grid-template-columns: auto minmax(120px, 1.1fr) 92px minmax(0, 1.6fr); align-items: center; gap: 10px; padding: 5px 12px; }
+      .mb-prow { border-bottom: 1px solid var(--line-2); }
+      .mb-prow:hover { background: var(--panel-2); }
+      .mb-prow.sel { background: var(--accent-soft); }
+      .mb-pn { border: none; background: none; padding: 4px 0; text-align: left; font: inherit; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+      .mb-pn:hover { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+      .mb-shift { font: 500 12.5px "IBM Plex Mono", monospace; color: var(--text-2); white-space: nowrap; }
+      .mb-shift.none { color: var(--st-warn); }
+      .mb-cb { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+      .mb-strip, .mb-days { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 2px; }
+      .mb-sc { height: 22px; min-width: 0; border: none; border-radius: 5px; padding: 0; background: var(--line-2); position: relative; }
+      .mb-sc.off { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+      .mb-sc.none { background: var(--st-warn-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--st-warn) 40%, transparent); }
+      .mb-sc.ok { background: var(--st-good); }
+      .mb-sc.big { background: var(--accent); }
+      .mb-sc:hover { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 2; }
+      .mb-sc.today::after { content: ""; position: absolute; left: 50%; bottom: -5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--ink); }
+      .mb-sthead { font-size: 11.5px; color: var(--text-3); border-bottom: 1px solid var(--line); background: var(--panel); }
+      .mb-days { text-align: center; font-family: "IBM Plex Mono", monospace; }
+      .mb-days i { font-style: normal; } .mb-days i.we { color: var(--st-crit); }
+      .mb-bulk { position: sticky; bottom: 10px; z-index: 5; margin: 12px 0 0; background: var(--ink); color: var(--panel); border-radius: 14px; padding: 10px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; box-shadow: 0 18px 36px -16px rgba(0, 0, 0, .55); }
+      .mb-bulk[hidden] { display: none; }
+      .mb-bulk > b { font-size: 14px; margin-right: 4px; }
+      .mb-bulk > .btn { background: rgba(255, 255, 255, .12); color: inherit; border-color: rgba(255, 255, 255, .2); min-height: 36px; padding: 4px 12px; }
+      .mb-bulk > .btn:hover { background: rgba(255, 255, 255, .2); }
+      .mb-bulk > .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+      .mb-pop { margin-top: 6px; background: var(--panel); color: var(--ink); border-radius: 12px; padding: 12px 14px; flex-basis: 100%; }
+      .mb-pop h4 { margin: 0 0 8px; font-size: 13.5px; }
+      .mb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .mb-pc { min-height: 36px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); font-size: 13px; font-weight: 500; color: var(--ink); transition: all .16s var(--ease); }
+      .mb-pc:hover { border-color: var(--accent); }
+      .mb-pc[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+      .mb-wd .mb-pc { width: 44px; padding: 3px 0; text-align: center; }
+      .mb-prow2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--text-3); }
+      .mb-prow2 input[type=date], .mb-fs select, .mb-prow2 select { min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); padding: 2px 10px; font: inherit; color: var(--ink); }
+      .mb-cell .mb-cnts { font: 500 11.5px "IBM Plex Mono", monospace; color: var(--text-2); font-variant-numeric: tabular-nums; }
+      .mb-mini { height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
+      .mb-mini i { display: block; height: 100%; background: var(--st-good); }
+      .mb-tm { border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 8px; background: var(--panel-2); }
+      .mb-tm > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-weight: 600; font-size: 13.5px; }
+      .mb-tm > summary::-webkit-details-marker { display: none; }
+      .mb-tbody { padding: 2px 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+      .mb-dr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+      .mb-dr .mb-chip { min-height: 32px; padding: 2px 10px 2px 4px; font-size: 12.5px; }
+      .mb-dr .mb-chip .mb-av { width: 22px; height: 22px; font-size: 10px; }
+      .mb-chip.planned::after { content: "✓"; color: var(--st-good); font-weight: 700; margin-left: 2px; }
+      .mb-pd { flex-basis: 100%; margin: 0 0 4px 8px; }
+      .mb-pd > summary { font-size: 12.5px; font-weight: 600; color: var(--accent-ink); cursor: pointer; padding: 2px 0; }
+      .mb-scrim { position: fixed; inset: 0; background: rgba(10, 20, 19, .45); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); z-index: 1190; }
+      .mb-scrim.show { opacity: 1; pointer-events: auto; }
+      .mb-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--panel); z-index: 1195; transform: translateX(102%); transition: transform .26s var(--ease); display: flex; flex-direction: column; box-shadow: -24px 0 48px -24px rgba(0, 0, 0, .4); visibility: hidden; }
+      .mb-drawer.show { transform: none; visibility: visible; }
+      .mb-drawer header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+      .mb-drawer header h3 { font-size: 19px; font-weight: 600; flex: 1; }
+      .mb-dbody { flex: 1; overflow: auto; padding: 6px 20px 20px; }
+      .mb-fs { border: none; margin: 0; padding: 14px 0; border-bottom: 1px solid var(--line-2); min-width: 0; }
+      .mb-fs legend { font: 600 13px var(--font-head); padding: 0; margin-bottom: 8px; float: left; width: 100%; }
+      .mb-fs legend + * { clear: both; }
+      .mb-sub2 { font-size: 12.5px; color: var(--text-3); margin: 6px 0 0; }
+      .mb-ln { display: flex; align-items: center; gap: 8px; min-height: 34px; font-size: 13.5px; cursor: pointer; }
+      .mb-ln input { accent-color: var(--accent); width: 18px; height: 18px; }
+      .mb-drawer footer { border-top: 1px solid var(--line); padding: 12px 20px 16px; background: var(--panel); }
+      .mb-drawer footer .btn { width: 100%; min-height: 46px; font-size: 15px; }
+      .mb-pv { font-size: 13.5px; border-radius: 10px; padding: 9px 12px; margin-bottom: 10px; background: var(--accent-soft); color: var(--accent-ink); }
+      .mb-pv.bad { background: var(--st-warn-soft); color: var(--st-warn); }
+      @media (prefers-reduced-motion: reduce) { .mb-drawer, .mb-scrim { transition: none; } }
+      @media (max-width: 640px) { .mb-prow { grid-template-columns: auto minmax(0, 1fr) 78px; } .mb-prow .mb-strip { grid-column: 1 / -1; } .mb-sthead { display: none; } .mb-pscroll { max-height: none; } }
     </style>
   </head>
 
@@ -1155,43 +1240,54 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         <div class="section-scroll">
           <div class="mb-top">
             <h2>จัดแผนให้ DRS</h2>
-            <div class="mb-mnav" role="group" aria-label="เดือน">
-              <button type="button" class="mb-ib" id="mbPrev" aria-label="เดือนก่อน"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-              <b id="mbMonth"></b>
-              <button type="button" class="mb-ib" id="mbNext" aria-label="เดือนถัดไป"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-            </div>
-            <button type="button" class="btn" id="mbToday">วันนี้</button>
             <span class="mb-sp"></span>
-            <div class="mb-seg" role="group" aria-label="มุมมอง"><button type="button" id="mbVDay" aria-pressed="true">ตามวัน</button><button type="button" id="mbVDrs" aria-pressed="false">ตาม DRS</button></div>
             <button type="button" class="btn" id="mbRefresh">รีเฟรช</button>
-            <button type="button" class="btn primary" id="mbGenAll"></button>
+            <button type="button" class="btn primary" id="mbGenOpen">สร้างแผน…</button>
           </div>
           <div class="mb-status" id="mbStatus" role="status" aria-live="polite"></div>
+          <div class="mb-sum" id="mbSum"></div>
           <div class="mb-layout">
             <div>
               <div class="card" id="mbPat">
-                <div class="mb-step"><i>1</i><h3>ใครทำงานวันไหน</h3></div>
-                <p class="mb-hint">กดจุดเพื่อเลือกวันทำงานประจำสัปดาห์ของแต่ละคน ใช้เป็นค่าตั้งต้นของทุกสัปดาห์ ถ้าวันไหนต่างไปให้กดวันนั้นในปฏิทินแล้วปรับเฉพาะวัน</p>
-                <div class="mb-pattern"><table class="mb-ptable" id="mbTable"></table></div>
+                <div class="mb-step"><i>1</i><h3>คนและวันทำงาน</h3></div>
+                <p class="mb-hint">เลือกหลายคน (หรือทั้งทีม) แล้วตั้งวันทำงานหรือสั่งสร้างแผนในครั้งเดียว แถบ 14 วันของแต่ละคนบอกว่าวันไหนทำงานและมีแผนหรือยัง กดช่องเพื่อไปที่วันนั้น กดชื่อเพื่อดูแผนของคนนั้น</p>
+                <div class="mb-ptools">
+                  <input class="mb-search" id="mbQ" type="search" placeholder="ค้นหาชื่อ หรือทีม" aria-label="ค้นหา DRS">
+                  <div class="mb-seg" id="mbPf" role="group" aria-label="กรองรายชื่อ"><button type="button" data-f="all" aria-pressed="true">ทุกคน</button><button type="button" data-f="today" aria-pressed="false">ทำงานวันนี้</button><button type="button" data-f="missing" aria-pressed="false">ยังไม่มีแผน</button></div>
+                  <button type="button" class="btn" id="mbSelAll">เลือก/ไม่เลือกทั้งหมด</button>
+                </div>
+                <div class="mb-people">
+                  <div class="mb-sthead" id="mbHead"><span style="width:20px"></span><span>ชื่อ</span><span>วันทำงาน</span><div class="mb-days" id="mbHeadDays"></div></div>
+                  <div class="mb-pscroll" id="mbPeople"></div>
+                </div>
+                <div class="mb-bulk" id="mbBulk" hidden></div>
               </div>
               <div class="card" id="mbCal">
                 <div class="mb-step"><i>2</i><h3>ปฏิทินของเดือนนี้</h3></div>
-                <p class="mb-hint">เลือกวันเพื่อดูและแก้ไขทางขวา · สร้างแผนล่วงหน้าได้ไม่เกิน 14 วัน (จนถึง <b id="mbHorizon"></b>) เพื่อไม่ให้สถานที่ถูกจองไว้นานเกินไป · <span id="mbFilters"></span> <button type="button" class="mb-link" id="mbFilterGo">เปลี่ยนตัวกรอง</button></p>
-                <div class="mb-mhead"><div class="mb-meter"><small><span>สถานที่ที่ถูกจองอยู่</span><b id="mbMtxt"></b></small><div class="mb-bar"><i id="mbMbar"></i></div></div></div>
+                <p class="mb-hint">แต่ละวันบอกจำนวนคนที่ทำงานและคนที่มีแผนแล้ว กดวันเพื่อดูรายละเอียดทางขวา · สร้างแผนล่วงหน้าได้ไม่เกิน 14 วัน (จนถึง <b id="mbHorizon"></b>) เพื่อไม่ให้สถานที่ถูกจองไว้นานเกินไป</p>
+                <div class="mb-mhead">
+                  <div class="mb-mnav" role="group" aria-label="เดือน">
+                    <button type="button" class="mb-ib" id="mbPrev" aria-label="เดือนก่อน"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+                    <b id="mbMonth"></b>
+                    <button type="button" class="mb-ib" id="mbNext" aria-label="เดือนถัดไป"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                  </div>
+                  <button type="button" class="btn" id="mbToday">วันนี้</button>
+                  <div class="mb-meter"><small><span>สถานที่ที่ถูกจองอยู่</span><b id="mbMtxt"></b></small><div class="mb-bar"><i id="mbMbar"></i></div></div>
+                </div>
                 <div class="mb-grid" id="mbDows" role="presentation"></div>
                 <div class="mb-grid" id="mbGrid" role="grid" aria-label="ปฏิทิน DRS"></div>
-                <div class="mb-legend"><span class="mb-pill none">ยังไม่สร้าง</span><span class="mb-pill ok">สร้างแล้ว</span><span class="mb-pill big">หมู่บ้านใหญ่</span><span><i class="ovr"></i> ปรับเฉพาะวันนั้น</span></div>
-              </div>
-              <div class="card" id="mbDrsView" hidden>
-                <div class="mb-step"><i>3</i><h3 id="mbDrsTitle">ตาม DRS</h3></div>
-                <p class="mb-hint">แผนทั้งเดือนของ DRS แต่ละคน กดแถวเพื่อไปที่วันนั้น</p>
-                <div class="mb-seg" id="mbDrsPick" role="group" aria-label="เลือก DRS" style="margin:0 0 12px 34px"></div>
-                <div style="overflow-x:auto"><table class="mb-list" id="mbList"></table></div>
+                <div class="mb-legend"><span class="mb-pill none">ยังไม่ครบ</span><span class="mb-pill ok">ครบทุกคน</span><span class="mb-pill big">หมู่บ้านใหญ่</span><span><i class="ovr"></i> ปรับเฉพาะวันนั้น</span></div>
               </div>
             </div>
             <aside class="mb-sideWrap"><div class="card" id="mbSide" aria-live="polite"></div></aside>
           </div>
         </div>
+        <div class="mb-scrim" id="mbScrim"></div>
+        <aside class="mb-drawer" id="mbDrawer" role="dialog" aria-modal="true" aria-labelledby="mbDTitle" aria-hidden="true">
+          <header><h3 id="mbDTitle">สร้างแผน</h3><button type="button" class="mb-ib" id="mbDClose" aria-label="ปิด"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></header>
+          <div class="mb-dbody" id="mbDBody"></div>
+          <footer><div class="mb-pv" id="mbPv"></div><button type="button" class="btn primary" id="mbGoGen">สร้างแผน</button></footer>
+        </aside>
       </section>
       <div class="mb-toast" id="mbToast" role="status"></div>
     </div>
@@ -1265,6 +1361,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         role: "DRS",                       // "PBH" / "CM" / "ADMIN" (monthly calendar) or "DRS" (two-day calendar) -- from the Users tab
         drsUsers: [], drsPlan: [],         // managers only: every DRS and their two-day plans (raw rows)
         drsNames: {},                      // managers only: DRS email -> display name (from the Users tab's name column)
+        drsTeams: {},                      // managers only: DRS email -> team (Users tab's team column; groups people on the month board)
         drsPlanMap: {},                    // managers only: email -> monthKey -> day -> picks (what is shown and edited)
         roster: {},                        // managers only: ISO weekday (1=Mon..7=Sun) -> [DRS emails who work that day]
         rosterOverrides: {},               // managers only: "YYYYMMDD" -> {add:[emails], remove:[emails]} one-date changes to the weekly roster
@@ -2486,12 +2583,13 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       // Same "ignore a facet for counting purposes" trick as searchPool --
       // used both to build the pool that actually gets ranked and to count
       // the calendar's own amphur-pill/district-grid options.
-      function calAreaPool(ignore, tagsOverride) {
+      function calAreaPool(ignore, tagsOverride, fs) {
         ignore = ignore || new Set();
-        const tagSet = tagsOverride || calState.tags;
-        return poolFor(calState.kind).filter((r) => {
-          if (!ignore.has("amp") && calState.amps.size && !calState.amps.has(ampOf(r))) return false;
-          if (!ignore.has("tam") && calState.tams.size && !calState.tams.has(tamOf(r))) return false;
+        const f = fs || calState; // fs: the month board's own filters; the Calendar tab's calState otherwise
+        const tagSet = tagsOverride || f.tags;
+        return poolFor(f.kind).filter((r) => {
+          if (!ignore.has("amp") && f.amps.size && !f.amps.has(ampOf(r))) return false;
+          if (!ignore.has("tam") && f.tams.size && !f.tams.has(tamOf(r))) return false;
           if (!ignore.has("tags") && tagSet.size && ![...tagSet].every((k) => calHasTag(r, k))) return false;
           // Buildings have no "status" (ปิด/เปิด/...) field at all -- the
           // status filter only ever narrows villages, so picking a specific
@@ -2499,7 +2597,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           // building (which would otherwise fail a raw r.status === value
           // check since r.status is undefined for them).
           if (kindOf(r) === "building") return !r.closed;
-          if (calState.status !== "all") return r.status === calState.status;
+          if (f.status !== "all") return r.status === f.status;
           return !r.closed;
         });
       }
@@ -2610,8 +2708,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 
       function renderCalAreaFilter() { refreshCalFacets(); }
 
-      function rankedPoolForCalendar(tagsOverride) {
-        return calAreaPool(null, tagsOverride).slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
+      function rankedPoolForCalendar(tagsOverride, fs) {
+        return calAreaPool(null, tagsOverride, fs).slice().sort((a, b) => (b.autoScore || 0) - (a.autoScore || 0));
       }
 
       // Everything already planned on the OTHER day(s) of the window.
@@ -2695,10 +2793,10 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const DAY_TRAVEL_RADIUS_KM = 6;
       // Ranked candidates for one day: the calendar's filters, minus anything on
       // the other day and anything another rep currently holds.
-      function candidatesForDay(monthKey, day, excludeExtra, tagsOverride, exceptDrs) {
+      function candidatesForDay(monthKey, day, excludeExtra, tagsOverride, exceptDrs, fs) {
         const used = usedIdsInWindow(monthKey, day, exceptDrs);
         (excludeExtra || []).forEach((k) => used.add(k));
-        return rankedPoolForCalendar(tagsOverride).filter((r) => !used.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r));
+        return rankedPoolForCalendar(tagsOverride, fs).filter((r) => !used.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r));
       }
       // One day's set: the best candidate, then the 3 nearest to it (within the travel radius when possible).
       function pickSetFrom(candidates) {
@@ -2718,11 +2816,13 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       }
       // Plans one day for several DRS at once. If the top place is big enough, the whole day
       // is that single place for everyone; otherwise each DRS gets their own set of places.
-      function buildDrsDayPlans(monthKey, day, emails, tagsOverride) {
-        const pool = candidatesForDay(monthKey, day, [], tagsOverride, emails);
+      // opts: {fs: place filters (default = the Calendar tab's), big: false turns the big-village rule off}
+      function buildDrsDayPlans(monthKey, day, emails, tagsOverride, opts) {
+        opts = opts || {};
+        const pool = candidatesForDay(monthKey, day, [], tagsOverride, emails, opts.fs);
         if (!pool.length) return null;
         const anchor = pool[0], out = {};
-        if ((hhOf(anchor) || 0) >= bigVillageThreshold(emails.length)) {
+        if (opts.big !== false && (hhOf(anchor) || 0) >= bigVillageThreshold(emails.length)) {
           emails.forEach((em) => { out[em] = recsToPicks([anchor]); });
           return { plans: out, big: true, village: anchor };
         }
@@ -3099,7 +3199,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const MB_COLORS = ["#0f7a70", "#3d6fd0", "#a8407f", "#b07206", "#7647c4", "#1b8bb0", "#c25a16", "#4f5f78"];
       const MB_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
       const MB_X = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-      const MB = { view: null, selected: null, mode: "day", drs: null };
+      const MB = { view: null, selected: null, person: null, picked: new Set(), filter: "all", q: "", closed: {}, pop: null, shiftSel: new Set([1, 2, 3, 4, 5]), offDate: "", opener: null };
       const mbPad = (n) => (n < 10 ? "0" + n : "" + n);
       const mbKey = (d) => d.getFullYear() + "-" + mbPad(d.getMonth() + 1) + "-" + mbPad(d.getDate());
       const mbFrom = (k) => { const p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); };
@@ -3109,15 +3209,23 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       const mbDay = (k) => +k.slice(8, 10);
       function mbToday() { const [y, m, d] = calDateFmt.format(new Date()).split("-").map(Number); return new Date(y, m - 1, d); } // Bangkok's today
       const mbTodayKey = () => mbKey(mbToday());
-      function mbLastKey() { const d = mbToday(); d.setDate(d.getDate() + MB_HORIZON - 1); return mbKey(d); }
+      function mbKeyPlus(n) { const d = mbToday(); d.setDate(d.getDate() + n); return mbKey(d); }
+      const mbLastKey = () => mbKeyPlus(MB_HORIZON - 1);
       const mbInHorizon = (k) => k >= mbTodayKey() && k <= mbLastKey();
       const mbPast = (k) => k < mbTodayKey();
       const mbThDate = (d) => d.getDate() + " " + MB_MONTHS[d.getMonth()];
       const mbColor = (email) => MB_COLORS[Math.max(0, (STATE.drsUsers || []).indexOf(email)) % MB_COLORS.length];
       const mbAv = (email) => `<span class="mb-av" style="background:${mbColor(email)}" title="${escapeHtml(drsLabel(email))}">${escapeHtml(drsLabel(email).split(" ")[0].slice(0, 2))}</span>`;
+      const MB_NOTEAM = "ไม่มีทีม";
+      const mbTeamOf = (e) => (STATE.drsTeams && STATE.drsTeams[e]) || MB_NOTEAM;
+      function mbTeams() {
+        const seen = []; (STATE.drsUsers || []).forEach((e) => { const t = mbTeamOf(e); if (!seen.includes(t)) seen.push(t); });
+        return seen.sort((a, b) => (a === MB_NOTEAM ? 1 : b === MB_NOTEAM ? -1 : a.localeCompare(b, "th", { numeric: true })));
+      }
+      const mbMembers = (team) => (STATE.drsUsers || []).filter((e) => mbTeamOf(e) === team).sort((a, b) => drsLabel(a).localeCompare(drsLabel(b), "th"));
       function mbEnsure() {
         if (MB.view) return;
-        const t = mbToday(); MB.view = new Date(t.getFullYear(), t.getMonth(), 1); MB.selected = mbTodayKey(); MB.drs = (STATE.drsUsers || [])[0] || null;
+        const t = mbToday(); MB.view = new Date(t.getFullYear(), t.getMonth(), 1); MB.selected = mbTodayKey();
       }
       function mbBuildOverrides(rows) {
         const out = {};
@@ -3129,31 +3237,34 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         });
         return out;
       }
-      // Who works a date: the weekly pattern, minus anyone removed that date, plus anyone added.
-      function mbCrew(k) {
+      // While a render is running these are memoised (50 people x 14 days would otherwise recompute them thousands of times).
+      let mbCache = null;
+      function mbCrewSet(k) {
+        if (mbCache && mbCache.set[k]) return mbCache.set[k];
         const base = new Set(STATE.roster[mbIso(mbFrom(k))] || []), o = (STATE.rosterOverrides || {})[mbCompact(k)] || { add: [], remove: [] };
-        return (STATE.drsUsers || []).filter((e) => (base.has(e) && !o.remove.includes(e)) || o.add.includes(e));
+        const s = new Set((STATE.drsUsers || []).filter((e) => (base.has(e) && !o.remove.includes(e)) || o.add.includes(e)));
+        if (mbCache) mbCache.set[k] = s;
+        return s;
       }
+      const mbCrew = (k) => (STATE.drsUsers || []).filter((e) => mbCrewSet(k).has(e)); // a DRS works a date: the weekly pattern, minus anyone removed that date, plus anyone added
       function mbStatus(k) {
-        const crew = mbCrew(k); if (!crew.length) return "off";
-        const mk = mbMK(k), d = mbDay(k), have = crew.filter((e) => drsGet(e, mk, d).length);
-        if (!have.length) return "none";
-        if (have.length < crew.length) return "missing";
-        if (crew.every((e) => drsGet(e, mk, d).length === 1) && new Set(crew.map((e) => { const p = drsGet(e, mk, d)[0]; return p.kind + ":" + p.refId; })).size === 1) return "big";
-        return "ok";
+        if (mbCache && mbCache.st[k]) return mbCache.st[k];
+        const crew = mbCrew(k); let st;
+        if (!crew.length) st = "off";
+        else {
+          const mk = mbMK(k), d = mbDay(k), have = crew.filter((e) => drsGet(e, mk, d).length);
+          if (!have.length) st = "none";
+          else if (have.length < crew.length) st = "missing";
+          else if (crew.every((e) => drsGet(e, mk, d).length === 1) && new Set(crew.map((e) => { const p = drsGet(e, mk, d)[0]; return p.kind + ":" + p.refId; })).size === 1) st = "big";
+          else st = "ok";
+        }
+        if (mbCache) mbCache.st[k] = st;
+        return st;
       }
-      function mbStatusText(k, st) { return st === "off" ? "ไม่มีคนทำงาน" : st === "none" ? (mbInHorizon(k) ? "ยังไม่สร้าง" : mbPast(k) ? "ไม่มีแผน" : "เกิน 14 วัน") : st === "missing" ? "ขาดบางคน" : st === "big" ? "หมู่บ้านใหญ่" : "สร้างแล้ว"; }
-      function mbGenerate(k) {
-        const crew = mbCrew(k); if (!crew.length || !mbInHorizon(k)) return false;
-        const mk = mbMK(k), d = mbDay(k), res = buildDrsDayPlans(mk, d, crew, calState.tags);
-        if (!res) return false;
-        crew.forEach((e) => { drsSet(e, mk, d, res.plans[e]); queueAssign(e, mk, d, 0); });
-        return true;
-      }
-      function mbPending() {
-        const out = [], d = mbToday();
-        for (let i = 0; i < MB_HORIZON; i++, d.setDate(d.getDate() + 1)) { const k = mbKey(d), s = mbStatus(k); if (s === "none" || s === "missing") out.push(k); }
-        return out;
+      function mbHave(k) { const mk = mbMK(k), d = mbDay(k); return mbCrew(k).filter((e) => drsGet(e, mk, d).length).length; }
+      function mbStatusText(k, st) {
+        const miss = mbCrew(k).length - mbHave(k);
+        return st === "off" ? "ไม่มีคนทำงาน" : st === "none" ? (mbInHorizon(k) ? "ยังไม่สร้าง" : mbPast(k) ? "ไม่มีแผน" : "เกิน 14 วัน") : st === "missing" ? "ขาด " + miss : st === "big" ? "หมู่บ้านใหญ่" : "ครบ";
       }
       function mbHeld() {
         const s = new Set(), add = (list) => list.forEach((p) => s.add(p.kind + ":" + p.refId));
@@ -3162,43 +3273,105 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         return s.size;
       }
       let mbToastTimer;
-      function mbToast(msg) { const t = document.getElementById("mbToast"); t.textContent = msg; t.classList.add("show"); clearTimeout(mbToastTimer); mbToastTimer = setTimeout(() => t.classList.remove("show"), 2800); }
-
-      function renderBoardTable() {
-        const users = STATE.drsUsers || [];
-        document.getElementById("mbTable").innerHTML = users.length
-          ? "<thead><tr><th>DRS</th>" + MB_DOW.map((d) => `<th>${d}</th>`).join("") + "<th></th></tr></thead><tbody>" + users.map((e) => {
-            const days = [1, 2, 3, 4, 5, 6, 7].filter((wd) => (STATE.roster[wd] || []).includes(e));
-            return `<tr><td><span class="mb-who">${mbAv(e)}${escapeHtml(drsLabel(e))}</span></td>` + [1, 2, 3, 4, 5, 6, 7].map((wd) =>
-              `<td><button type="button" class="mb-dot" role="switch" aria-checked="${days.includes(wd)}" data-e="${escapeHtml(e)}" data-w="${wd}" aria-label="${escapeHtml(drsLabel(e))} ${MB_DOW_FULL[wd - 1]}">${MB_CHECK}</button></td>`).join("") + `<td>${days.length} วัน/สัปดาห์</td></tr>`;
-          }).join("") + "</tbody>"
-          : `<tbody><tr><td class="mb-empty"><b>ยังไม่มี DRS ในรายชื่อผู้ใช้</b>เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users แล้วกดรีเฟรช</td></tr></tbody>`;
+      function mbToast(msg) { const t = document.getElementById("mbToast"); t.textContent = msg; t.classList.add("show"); clearTimeout(mbToastTimer); mbToastTimer = setTimeout(() => t.classList.remove("show"), 3600); }
+      const MB_DOW_SHORT = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
+      function mbPersonDays(e) { return [1, 2, 3, 4, 5, 6, 7].filter((wd) => (STATE.roster[wd] || []).includes(e)); }
+      function mbShiftLabel(e) {
+        const s = mbPersonDays(e); if (!s.length) return "ยังไม่ได้ตั้ง"; if (s.length === 7) return "ทุกวัน";
+        const run = s.every((v, i) => i === 0 || v === s[i - 1] + 1);
+        return run && s.length > 2 ? MB_DOW_SHORT[s[0] - 1] + "–" + MB_DOW_SHORT[s[s.length - 1] - 1] : s.map((v) => MB_DOW_SHORT[v - 1]).join(", ");
       }
+      // one person on one date: off / none (works, no plan) / ok / big
+      function mbPState(e, k) {
+        if (!mbCrewSet(k).has(e)) return "off";
+        if (!drsGet(e, mbMK(k), mbDay(k)).length) return "none";
+        return mbStatus(k) === "big" ? "big" : "ok";
+      }
+      const mbUnplanned = (e) => { for (let i = 0; i < MB_HORIZON; i++) if (mbPState(e, mbKeyPlus(i)) === "none") return true; return false; };
+
+      /* ── rendering ── */
+      function renderBoardSum() {
+        const tk = mbTodayKey(); let full = 0, miss = 0;
+        for (let i = 0; i < MB_HORIZON; i++) { const k = mbKeyPlus(i), st = mbStatus(k); if (st === "off") continue; if (st === "ok" || st === "big") full++; else miss++; }
+        const users = (STATE.drsUsers || []).length, held = mbHeld();
+        document.getElementById("mbSum").innerHTML =
+          `<button type="button" class="mb-tile" data-f="today"><small>ทำงานวันนี้</small><b>${mbCrew(tk).length}<em>/ ${users} คน</em></b></button>` +
+          `<div class="mb-tile"><small>วันที่ครบแล้ว (14 วัน)</small><b>${full}<em>วัน</em></b></div>` +
+          `<button type="button" class="mb-tile${miss ? " warn" : ""}" data-f="missing"><small>วันที่ยังไม่ครบ</small><b>${miss}<em>วัน</em></b></button>` +
+          `<div class="mb-tile"><small>สถานที่ที่ถูกจอง</small><b>${held.toLocaleString()}<em>แห่ง</em></b></div>`;
+      }
+      function mbShown() {
+        const q = MB.q.trim().toLowerCase();
+        return (STATE.drsUsers || []).filter((e) => {
+          if (q && drsLabel(e).toLowerCase().indexOf(q) < 0 && mbTeamOf(e).toLowerCase().indexOf(q) < 0) return false;
+          if (MB.filter === "today") return mbCrewSet(mbTodayKey()).has(e);
+          if (MB.filter === "missing") return mbUnplanned(e);
+          return true;
+        });
+      }
+      function renderBoardPeople() {
+        const box = document.getElementById("mbPeople"), users = STATE.drsUsers || [];
+        const head = document.getElementById("mbHead"); head.hidden = !users.length;
+        document.getElementById("mbHeadDays").innerHTML = Array.from({ length: MB_HORIZON }, (_, i) => { const d = mbFrom(mbKeyPlus(i)); return `<i class="${mbIso(d) > 5 ? "we" : ""}">${d.getDate()}</i>`; }).join("");
+        if (!users.length) { box.innerHTML = '<div class="mb-empty"><b>ยังไม่มี DRS ในรายชื่อผู้ใช้</b>เพิ่มแถวที่มี role เป็น DRS ในแท็บ Users แล้วกดรีเฟรช</div>'; return; }
+        const shown = mbShown(); if (!shown.length) { box.innerHTML = '<div class="mb-empty"><b>ไม่พบรายชื่อ</b>ลองเปลี่ยนคำค้นหาหรือตัวกรอง</div>'; return; }
+        const keys = Array.from({ length: MB_HORIZON }, (_, i) => mbKeyPlus(i)), LBL = { off: "ไม่ทำงาน", none: "ทำงาน ยังไม่มีแผน", ok: "มีแผนแล้ว", big: "หมู่บ้านใหญ่" };
+        let h = "";
+        mbTeams().forEach((t) => {
+          const m = shown.filter((e) => mbTeamOf(e) === t); if (!m.length) return;
+          const nSel = m.filter((e) => MB.picked.has(e)).length, closed = MB.closed[t];
+          const ok = mbMembers(t).filter((e) => mbPersonDays(e).length && !mbUnplanned(e)).length;
+          h += `<div class="mb-tg${closed ? " closed" : ""}"><input type="checkbox" class="mb-cb" data-team="${escapeHtml(t)}" aria-label="เลือกทั้งทีม ${escapeHtml(t)}"${nSel === m.length ? " checked" : ""} data-some="${nSel && nSel < m.length ? 1 : 0}">` +
+            `<button type="button" class="mb-fold" data-fold="${escapeHtml(t)}" aria-expanded="${!closed}" aria-label="ย่อหรือขยาย ${escapeHtml(t)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>${escapeHtml(t)}<span class="mb-cnt">${m.length} คน · แผนครบ ${ok}</span></div>`;
+          if (closed) return;
+          m.forEach((e) => {
+            const nm = escapeHtml(drsLabel(e)), sl = mbShiftLabel(e);
+            h += `<div class="mb-prow${MB.picked.has(e) ? " sel" : ""}"><input type="checkbox" class="mb-cb" data-e="${escapeHtml(e)}" aria-label="เลือก ${nm}"${MB.picked.has(e) ? " checked" : ""}>` +
+              `<button type="button" class="mb-pn" data-person="${escapeHtml(e)}" title="ดูแผนของ ${nm}">${nm}</button><span class="mb-shift${mbPersonDays(e).length ? "" : " none"}">${sl}</span><div class="mb-strip">` +
+              keys.map((k, i) => { const st = mbPState(e, k), d = mbFrom(k); return `<button type="button" class="mb-sc ${st}${i === 0 ? " today" : ""}" data-k="${k}" title="${mbThDate(d)} · ${LBL[st]}" aria-label="${nm} ${mbThDate(d)} ${LBL[st]}"></button>`; }).join("") + "</div></div>";
+          });
+        });
+        box.innerHTML = h;
+        box.querySelectorAll(".mb-cb[data-team]").forEach((c) => { c.indeterminate = c.dataset.some === "1"; });
+      }
+      function renderBoardBulk() {
+        const n = MB.picked.size, el = document.getElementById("mbBulk");
+        if (!n) { el.hidden = true; MB.pop = null; return; }
+        el.hidden = false;
+        let h = `<b>เลือกแล้ว ${n} คน</b><button type="button" class="btn" data-a="shift">ตั้งวันทำงาน</button><button type="button" class="btn" data-a="off">หยุดวันที่…</button><button type="button" class="btn primary" data-a="gen">สร้างแผนให้คนที่เลือก</button><span class="mb-sp"></span><button type="button" class="btn" data-a="clear">ยกเลิกการเลือก</button>`;
+        if (MB.pop === "shift") {
+          const cur = [...MB.shiftSel].sort().join();
+          h += `<div class="mb-pop"><h4>วันทำงานประจำสัปดาห์ของ ${n} คน</h4><div class="mb-chips">` +
+            MB_PRESETS.map((p, i) => `<button type="button" class="mb-pc" data-preset="${i}" aria-pressed="${p[1].join() === cur}">${p[0]}</button>`).join("") +
+            `</div><div class="mb-prow2"><span>หรือเลือกเอง</span><div class="mb-chips mb-wd">` + [1, 2, 3, 4, 5, 6, 7].map((w) => `<button type="button" class="mb-pc" data-wd="${w}" aria-pressed="${MB.shiftSel.has(w)}">${MB_DOW_SHORT[w - 1]}</button>`).join("") +
+            `</div></div><div class="mb-prow2"><button type="button" class="btn primary" data-a="applyShift">ใช้กับ ${n} คน</button><span>แทนที่ตารางประจำเดิมของคนที่เลือก (ไม่กระทบวันที่ปรับเฉพาะวัน)</span></div></div>`;
+        } else if (MB.pop === "off") {
+          h += `<div class="mb-pop"><h4>หยุดเฉพาะวัน (ลา / ติดงานอื่น)</h4><div class="mb-prow2"><input type="date" id="mbOffDate" min="${mbTodayKey()}" max="${mbKeyPlus(120)}" value="${MB.offDate}" aria-label="วันที่หยุด"><button type="button" class="btn primary" data-a="applyOff">ให้ ${n} คนหยุดวันนี้</button></div><p class="mb-sub" style="margin:8px 0 0">ไม่กระทบวันอื่นและตารางประจำ · แผนของวันนั้นที่สร้างไว้ให้คนเหล่านี้จะถูกล้าง</p></div>`;
+        }
+        el.innerHTML = h;
+      }
+      const MB_PRESETS = [["จ–ศ", [1, 2, 3, 4, 5]], ["อ–ส", [2, 3, 4, 5, 6]], ["ส–อา", [6, 7]], ["จ–ส", [1, 2, 3, 4, 5, 6]], ["ทุกวัน", [1, 2, 3, 4, 5, 6, 7]], ["ไม่มีวันประจำ", []]];
       function renderBoardMonth() {
         document.getElementById("mbMonth").textContent = MB_MONTHS[MB.view.getMonth()] + " " + (MB.view.getFullYear() + 543);
-        const last = mbFrom(mbLastKey());
-        document.getElementById("mbHorizon").textContent = mbThDate(last);
-        const f = [calState.kind === "village" ? "หมู่บ้าน" : calState.kind === "building" ? "อาคาร" : "หมู่บ้าน + อาคาร", calState.tags.size ? calState.tags.size + " แท็ก" : "ไม่เลือกแท็ก", calState.amps.size + calState.tams.size ? "เลือกบางพื้นที่" : "ทุกพื้นที่"];
-        document.getElementById("mbFilters").textContent = "ตัวกรองสถานที่ (จากแท็บปฏิทิน): " + f.join(" · ") + ".";
+        document.getElementById("mbHorizon").textContent = mbThDate(mbFrom(mbLastKey()));
         document.getElementById("mbDows").innerHTML = MB_DOW.map((d) => `<div class="mb-dow">${d}</div>`).join("");
         const first = new Date(MB.view.getFullYear(), MB.view.getMonth(), 1), lead = mbIso(first) - 1, n = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 0).getDate(), tk = mbTodayKey();
         let h = "";
         for (let i = 0; i < lead; i++) h += '<div class="mb-cell out" aria-hidden="true"></div>';
         for (let d = 1; d <= n; d++) {
-          const dt = new Date(MB.view.getFullYear(), MB.view.getMonth(), d), k = mbKey(dt), crew = mbCrew(k), st = mbStatus(k), txt = mbStatusText(k, st);
+          const dt = new Date(MB.view.getFullYear(), MB.view.getMonth(), d), k = mbKey(dt), crew = mbCrew(k), st = mbStatus(k), txt = mbStatusText(k, st), inH = mbInHorizon(k), have = mbHave(k);
           const P = (cls, short) => `<span class="mb-pill ${cls}"><span class="full">${txt}</span><span class="short" aria-hidden="true">${short}</span></span>`;
           const pill = st === "off" ? P("off", "–") : st === "ok" ? P("ok", "✓") : st === "big" ? P("big", "ใหญ่") : P("none", "!");
-          const o = (STATE.rosterOverrides || {})[mbCompact(k)];
+          const o = (STATE.rosterOverrides || {})[mbCompact(k)], pct = crew.length ? Math.round(have / crew.length * 100) : 0;
           h += `<button type="button" class="mb-cell${k === tk ? " today" : ""}${mbPast(k) ? " dim" : ""}" role="gridcell" data-k="${k}" aria-pressed="${k === MB.selected}" tabindex="${k === MB.selected ? 0 : -1}" aria-label="${d} ${MB_MONTHS[dt.getMonth()]} ${crew.length} คนทำงาน ${txt}">` +
-            `<span class="n">${d}</span><span class="mb-crew">${crew.slice(0, 3).map(mbAv).join("")}${crew.length > 3 ? `<span class="more">+${crew.length - 3}</span>` : ""}</span>${pill}` +
+            `<span class="n">${d}</span><span class="mb-cnts">${crew.length ? crew.length + " คน" + (inH ? " · แผน " + have : "") : "—"}</span>` +
+            (crew.length && inH ? `<span class="mb-mini"><i style="width:${pct}%"></i></span>` : "") + pill +
             (o && (o.add.length || o.remove.length) ? '<i class="ovr" title="ปรับเฉพาะวันนั้น"></i>' : "") + "</button>";
         }
         document.getElementById("mbGrid").innerHTML = h;
-        const held = mbHeld(), total = STATE.villages.length + STATE.buildings.length, pc = total ? Math.round(held / total * 100) : 0;
-        document.getElementById("mbMtxt").textContent = held + " / " + total + " แห่ง (" + pc + "%)";
+        const total = STATE.villages.length + STATE.buildings.length, held = mbHeld(), pc = total ? Math.round(held / total * 100) : 0;
+        document.getElementById("mbMtxt").textContent = held.toLocaleString() + " / " + total.toLocaleString() + " แห่ง (" + pc + "%)";
         document.getElementById("mbMbar").style.width = pc + "%";
-        const pend = mbPending(), btn = document.getElementById("mbGenAll");
-        btn.textContent = pend.length ? "สร้างแผนที่ยังขาด (" + pend.length + " วัน)" : "สร้างครบแล้ว"; btn.disabled = !pend.length;
       }
       function mbPlaceHtml(email, p) {
         const r = byId(p.kind, p.refId), md = SCRIPT_MODES[r ? scriptModeOf(r).mode : "explore"], nm = r ? r.name : (p.name || "?");
@@ -3207,125 +3380,250 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           (r ? `<span class="mb-loc">${escapeHtml(locOf(r))} · ${whole(hhOf(r))} ${kindOf(r) === "village" ? "ครัวเรือน" : "ยูนิต"}</span><button type="button" class="mb-link" data-script="${p.kind}:${escapeHtml(String(p.refId))}" style="align-self:flex-start">สคริปต์การขาย</button>` : '<span class="mb-loc">ไม่พบในข้อมูลล่าสุด</span>') + "</div>";
       }
       function renderBoardSide() {
+        if (MB.person) return renderBoardPerson();
         const k = MB.selected, d = mbFrom(k), crew = mbCrew(k), st = mbStatus(k), mk = mbMK(k), dn = mbDay(k), can = mbInHorizon(k) && crew.length > 0, past = mbPast(k);
-        const has = (STATE.drsUsers || []).some((e) => drsGet(e, mk, dn).length), o = (STATE.rosterOverrides || {})[mbCompact(k)];
-        let h = `<h3 class="mb-h">${MB_DOW_FULL[mbIso(d) - 1]} ${mbThDate(d)}</h3><p class="mb-sub">${k === mbTodayKey() ? "วันนี้" : past ? "ผ่านมาแล้ว" : mbInHorizon(k) ? "อยู่ในช่วงที่สร้างแผนได้" : "เกิน 14 วัน — ดูและปรับคนทำงานได้ แต่ยังสร้างแผนไม่ได้"}</p>`;
-        h += `<div style="font-size:13px;font-weight:600;margin-bottom:2px">ใครทำงานวันนี้ <span style="color:var(--text-3);font-weight:500">(กดเพื่อเพิ่ม/เอาออกเฉพาะวันนี้)</span></div><div class="mb-crewrow">` +
-          ((STATE.drsUsers || []).map((e) => `<button type="button" class="mb-chip" data-chip="${escapeHtml(e)}" aria-pressed="${crew.includes(e)}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e).split(" ")[0])}</button>`).join("") || '<span class="mb-sub">ยังไม่มี DRS</span>') + "</div>";
-        h += `<div class="mb-actions"><button type="button" class="btn primary" id="mbGenDay"${can ? "" : " disabled"}>${st === "ok" || st === "big" ? "สร้างวันนี้ใหม่" : "สร้างแผนวันนี้"}</button><button type="button" class="btn" id="mbClrDay"${has ? "" : " disabled"}>ล้างวันนี้</button>` +
+        const o = (STATE.rosterOverrides || {})[mbCompact(k)], has = crew.some((e) => drsGet(e, mk, dn).length);
+        let h = `<h3 class="mb-h">${MB_DOW_FULL[mbIso(d) - 1]} ${mbThDate(d)}</h3><p class="mb-sub">${k === mbTodayKey() ? "วันนี้" : past ? "ผ่านมาแล้ว" : mbInHorizon(k) ? "อยู่ในช่วงที่สร้างแผนได้" : "เกิน 14 วัน — ดูและปรับคนทำงานได้ แต่ยังสร้างแผนไม่ได้"} · ทำงาน ${crew.length} คน · มีแผน ${mbHave(k)} คน</p>`;
+        h += `<div class="mb-actions"><button type="button" class="btn primary" id="mbGenDay"${can ? "" : " disabled"}>สร้างแผนวันนี้…</button><button type="button" class="btn" id="mbClrDay"${has && !past ? "" : " disabled"}>ล้างแผนวันนี้</button>` +
           (o && (o.add.length || o.remove.length) ? '<button type="button" class="btn" id="mbRstDay">กลับเป็นค่าตั้งต้น</button>' : "") + "</div>";
-        if (!crew.length) h += '<div class="mb-empty"><b>ไม่มีใครทำงานวันนี้</b>เลือกคนทำงานด้านบนก่อน แล้วค่อยสร้างแผน</div>';
-        else if (!has) h += `<div class="mb-empty"><b>ยังไม่มีแผน</b>${can ? "กด “สร้างแผนวันนี้” ระบบจะแบ่งสถานที่ให้ " + crew.length + " คน" : "วันนี้ยังสร้างไม่ได้"}</div>`;
-        else {
-          if (st === "big") { const p0 = drsGet(crew[0], mk, dn)[0], r0 = byId(p0.kind, p0.refId); h += `<div class="mb-note">วันหมู่บ้านใหญ่ — ทุกคนไปที่เดียวกัน${r0 ? ` (${whole(hhOf(r0))} ${kindOf(r0) === "village" ? "ครัวเรือน" : "ยูนิต"}; ตั้งแต่ ${bigVillageThreshold(crew.length)} ขึ้นไปจะใช้ทั้งวัน)` : ""}</div>`; }
-          crew.forEach((e) => {
-            const list = drsGet(e, mk, dn).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
-            h += `<div class="mb-drsbox"><h4>${mbAv(e)}${escapeHtml(drsLabel(e))}<span class="mb-sp"></span><button type="button" class="btn" data-edit="${escapeHtml(e)}" style="min-height:34px;padding:2px 12px"${past ? " disabled" : ""}>แก้ไข</button></h4>` +
-              (list.length ? list.map((p) => mbPlaceHtml(e, p)).join("") : '<div class="mb-sub" style="margin:0">ยังไม่มีแผนของคนนี้ — กด “สร้างแผนวันนี้” เพื่อเติม</div>') + "</div>";
+        if (st === "big") { const p0 = drsGet(crew[0], mk, dn)[0], r0 = byId(p0.kind, p0.refId); h += `<div class="mb-note">วันหมู่บ้านใหญ่ — ทุกคนไปที่เดียวกัน${r0 ? ` (${whole(hhOf(r0))} ${kindOf(r0) === "village" ? "ครัวเรือน" : "ยูนิต"})` : ""}</div>`; }
+        h += '<p class="mb-sub" style="margin:0 0 8px">กดชื่อเพื่อเพิ่ม/เอาออกเฉพาะวันนี้ · ✓ = มีแผนแล้ว · กด “ดูแผน” เพื่อดูสถานที่</p>';
+        mbTeams().forEach((t) => {
+          const m = mbMembers(t), w = m.filter((e) => crew.includes(e)), np = w.filter((e) => drsGet(e, mk, dn).length).length;
+          h += `<details class="mb-tm"${(w.length > np && can) || MB.openTeams && MB.openTeams.has(t) ? " open" : ""} data-team="${escapeHtml(t)}"><summary>${escapeHtml(t)}<span class="mb-cnt">${w.length}/${m.length} ทำงาน${w.length ? " · แผน " + np : ""}</span></summary><div class="mb-tbody">`;
+          m.forEach((e) => {
+            const on = crew.includes(e), list = drsGet(e, mk, dn).slice().sort((a, b) => (a.slot === "backup" ? 1 : 0) - (b.slot === "backup" ? 1 : 0));
+            h += `<div class="mb-dr"><button type="button" class="mb-chip${on && list.length ? " planned" : ""}" data-chip="${escapeHtml(e)}" aria-pressed="${on}"${past ? " disabled" : ""}>${mbAv(e)}${escapeHtml(drsLabel(e))}</button>` +
+              (on ? (list.length ? `<details class="mb-pd"><summary>ดูแผน (${list.length})</summary>${list.map((p) => mbPlaceHtml(e, p)).join("")}<button type="button" class="btn" data-edit="${escapeHtml(e)}" style="min-height:32px;padding:2px 12px"${past ? " disabled" : ""}>แก้ไข</button></details>` : '<span class="mb-sub" style="margin:0 0 0 6px">ยังไม่มีแผน</span>') : "") + "</div>";
           });
-        }
+          h += "</div></details>";
+        });
+        if (!(STATE.drsUsers || []).length) h += '<div class="mb-empty"><b>ยังไม่มี DRS</b></div>';
         document.getElementById("mbSide").innerHTML = h;
       }
-      function renderBoardDrs() {
-        const users = STATE.drsUsers || []; if (!MB.drs || !users.includes(MB.drs)) MB.drs = users[0] || null;
-        document.getElementById("mbDrsPick").innerHTML = users.map((e) => `<button type="button" data-p="${escapeHtml(e)}" aria-pressed="${e === MB.drs}">${escapeHtml(drsLabel(e).split(" ")[0])}</button>`).join("");
-        document.getElementById("mbDrsTitle").textContent = MB.drs ? "แผนของ " + drsLabel(MB.drs) : "ตาม DRS";
-        let rows = "<thead><tr><th>วัน</th><th>สถานที่</th></tr></thead><tbody>", any = false;
-        const n = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 0).getDate();
-        for (let d = 1; d <= n && MB.drs; d++) {
-          const dt = new Date(MB.view.getFullYear(), MB.view.getMonth(), d), k = mbKey(dt);
-          if (!mbCrew(k).includes(MB.drs)) continue;
-          any = true; const list = drsGet(MB.drs, mbMK(k), d);
-          rows += `<tr data-k="${k}" class="${k === MB.selected ? "sel" : ""}"><td>${MB_DOW[mbIso(dt) - 1]} ${d}</td><td>` + (list.length ? list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ") : `<span style="color:var(--text-3)">${mbInHorizon(k) ? "ยังไม่สร้าง" : mbPast(k) ? "—" : "เกิน 14 วัน"}</span>`) + "</td></tr>";
+      function renderBoardPerson() {
+        const e = MB.person; let h = `<button type="button" class="mb-link" id="mbBack">← กลับไปดูตามวัน</button><h3 class="mb-h" style="margin-top:6px">${escapeHtml(drsLabel(e))}</h3><p class="mb-sub">${escapeHtml(mbTeamOf(e))} · วันทำงานประจำ ${mbShiftLabel(e)}</p><div class="mb-actions"><button type="button" class="btn primary" id="mbGenPerson">สร้างแผนให้คนนี้…</button></div><table class="mb-list"><thead><tr><th>วัน</th><th>สถานที่</th></tr></thead><tbody>`;
+        for (let i = 0; i < MB_HORIZON; i++) {
+          const k = mbKeyPlus(i), d = mbFrom(k), st = mbPState(e, k), list = drsGet(e, mbMK(k), mbDay(k));
+          h += `<tr data-k="${k}"><td>${MB_DOW[mbIso(d) - 1]} ${d.getDate()}</td><td>` + (st === "off" ? '<span style="color:var(--text-3)">ไม่ทำงาน</span>' : list.length ? list.map((p) => (p.slot === "backup" ? "★ " : "") + escapeHtml(byId(p.kind, p.refId) ? byId(p.kind, p.refId).name : p.name || "?")).join(" · ") : '<span style="color:var(--st-warn)">ยังไม่สร้าง</span>') + "</td></tr>";
         }
-        document.getElementById("mbList").innerHTML = rows + (any ? "" : '<tr><td colspan="2" class="mb-empty">คนนี้ไม่ได้ทำงานเดือนนี้</td></tr>') + "</tbody>";
+        document.getElementById("mbSide").innerHTML = h + "</tbody></table>";
       }
       function renderBoard() {
         if (!document.getElementById("sec-drs") || !isMgr()) return;
-        mbEnsure();
-        document.getElementById("mbCal").hidden = MB.mode !== "day"; document.getElementById("mbDrsView").hidden = MB.mode !== "drs";
-        document.getElementById("mbVDay").setAttribute("aria-pressed", MB.mode === "day"); document.getElementById("mbVDrs").setAttribute("aria-pressed", MB.mode === "drs");
-        renderBoardTable(); renderBoardMonth(); renderBoardSide(); if (MB.mode === "drs") renderBoardDrs();
+        mbEnsure(); mbCache = { set: {}, st: {} };
+        try { renderBoardSum(); renderBoardPeople(); renderBoardBulk(); renderBoardMonth(); renderBoardSide(); } finally { mbCache = null; }
       }
       function renderDrsView() { renderBoard(); } // old name, still called from the calendar / day editor
 
-      // saving the roster: pattern per weekday, one-date changes per date (debounced)
-      const mbTimers = {};
-      function mbSaveRoster(wd) {
+      /* ── saving: weekly pattern for many people, one-date changes per person ── */
+      async function mbSavePattern(emails, days) {
         if (!STATE.idToken) return;
-        clearTimeout(mbTimers["w" + wd]);
-        mbTimers["w" + wd] = setTimeout(async () => {
-          try { await api("saveDrsRoster", { weekday: wd, emails: STATE.roster[wd] || [] }); setCalStatus("บันทึกวันทำงานแล้ว ✓", false); }
-          catch (e) { setCalStatus("บันทึกวันทำงานไม่สำเร็จ: " + e.message, true); }
-        }, 600);
+        try { await api("saveDrsPattern", { emails, weekdays: days }); setCalStatus("บันทึกวันทำงานแล้ว ✓", false); }
+        catch (e) { setCalStatus("บันทึกวันทำงานไม่สำเร็จ: " + e.message, true); mbToast("บันทึกวันทำงานไม่สำเร็จ: " + e.message); }
       }
-      function mbSaveOverride(k) {
+      const mbOvPending = {}, mbOvTimers = {};
+      function mbQueueOverride(k, emails, delay) {
         if (!STATE.idToken) return;
-        clearTimeout(mbTimers["d" + k]);
-        mbTimers["d" + k] = setTimeout(async () => {
+        const set = mbOvPending[k] = mbOvPending[k] || new Set(); emails.forEach((e) => set.add(e));
+        clearTimeout(mbOvTimers[k]);
+        mbOvTimers[k] = setTimeout(async () => {
+          const em = [...mbOvPending[k]]; delete mbOvPending[k];
           const o = (STATE.rosterOverrides || {})[mbCompact(k)] || { add: [], remove: [] };
-          try { await api("saveDrsOverride", { date: mbCompact(k), add: o.add, remove: o.remove }); setCalStatus("บันทึกการปรับวันที่ " + mbDay(k) + " แล้ว ✓", false); }
-          catch (e) { setCalStatus("บันทึกการปรับวันไม่สำเร็จ: " + e.message, true); }
-        }, 600);
+          try {
+            await api("mergeDrsOverride", { date: mbCompact(k), add: em.filter((e) => o.add.includes(e)), remove: em.filter((e) => o.remove.includes(e)), clear: em.filter((e) => !o.add.includes(e) && !o.remove.includes(e)) });
+            setCalStatus("บันทึกการปรับวันที่ " + mbDay(k) + " แล้ว ✓", false);
+          } catch (e) { setCalStatus("บันทึกการปรับวันไม่สำเร็จ: " + e.message, true); mbToast("บันทึกการปรับวันไม่สำเร็จ: " + e.message); }
+        }, delay == null ? 600 : delay);
       }
-      function mbToggleCrew(k, email) {
-        const comp = mbCompact(k), base = (STATE.roster[mbIso(mbFrom(k))] || []).includes(email), on = mbCrew(k).includes(email);
+      function mbResetDay(k) {
+        if (!STATE.idToken) return;
+        api("saveDrsOverride", { date: mbCompact(k), add: [], remove: [] }).then(() => setCalStatus("บันทึกแล้ว ✓", false)).catch((e) => setCalStatus("บันทึกไม่สำเร็จ: " + e.message, true));
+      }
+      // Set one person's state for one date (true = works). Returns nothing; the caller re-renders.
+      function mbSetWorks(k, email, want) {
+        const comp = mbCompact(k), base = (STATE.roster[mbIso(mbFrom(k))] || []).includes(email);
         if (!STATE.rosterOverrides) STATE.rosterOverrides = {};
         const o = STATE.rosterOverrides[comp] = STATE.rosterOverrides[comp] || { add: [], remove: [] };
         const rm = (a, v) => { const i = a.indexOf(v); if (i !== -1) a.splice(i, 1); };
-        if (on) {
-          rm(o.add, email); if (base && !o.remove.includes(email)) o.remove.push(email);
-          const mk = mbMK(k), d = mbDay(k);
-          if (drsGet(email, mk, d).length) { drsSet(email, mk, d, []); queueAssign(email, mk, d, 0); } // they no longer work that day: free their places
-        } else { rm(o.remove, email); if (!base && !o.add.includes(email)) o.add.push(email); }
+        rm(o.add, email); rm(o.remove, email);
+        if (want && !base) o.add.push(email);
+        if (!want && base) o.remove.push(email);
         if (!o.add.length && !o.remove.length) delete STATE.rosterOverrides[comp];
-        mbSaveOverride(k);
+        if (!want) { const mk = mbMK(k), d = mbDay(k); if (drsGet(email, mk, d).length) { drsSet(email, mk, d, []); queueAssign(email, mk, d, 0); } } // no longer works that day: free their places
       }
-      document.getElementById("sec-drs").addEventListener("click", async (e) => {
+
+      /* ── generate drawer ── */
+      const MB_GEN_KEY = "tolMbGen";
+      const GEN = { from: 0, to: 6, who: "working", teams: new Set(), mode: "missing", big: true, fs: { kind: "both", status: "all", tags: new Set(), amps: new Set(), tams: new Set() } };
+      try { const sv = JSON.parse(localStorage.getItem(MB_GEN_KEY) || "null"); if (sv) { GEN.big = sv.big !== false; if (sv.fs) { GEN.fs.kind = sv.fs.kind || "both"; GEN.fs.status = sv.fs.status || "all"; GEN.fs.tags = new Set(sv.fs.tags || []); GEN.fs.amps = new Set(sv.fs.amps || []); GEN.fs.tams = new Set(sv.fs.tams || []); } } } catch (e) { /* storage blocked */ }
+      function genSave() { try { localStorage.setItem(MB_GEN_KEY, JSON.stringify({ big: GEN.big, fs: { kind: GEN.fs.kind, status: GEN.fs.status, tags: [...GEN.fs.tags], amps: [...GEN.fs.amps], tams: [...GEN.fs.tams] } })); } catch (e) { /* storage blocked */ } }
+      function genTargets() {
+        const days = []; for (let n = GEN.from; n <= GEN.to; n++) days.push(mbKeyPlus(n));
+        const people = (STATE.drsUsers || []).filter((e) => GEN.who === "picked" ? MB.picked.has(e) : GEN.who === "person" ? e === MB.person : GEN.who === "teams" ? GEN.teams.has(mbTeamOf(e)) : true);
+        const pairs = [];
+        days.forEach((k) => { const mk = mbMK(k), d = mbDay(k); people.forEach((e) => { if (!mbCrewSet(k).has(e)) return; if (GEN.mode === "missing" && drsGet(e, mk, d).length) return; pairs.push([k, e]); }); });
+        return { days, people, pairs };
+      }
+      // Places the filters allow that nobody holds (places held by the pairs being redone count as free).
+      function genFree(pairs) {
+        const redo = new Set(GEN.mode === "redo" ? pairs.map((p) => p[1] + "|" + mbMK(p[0]) + "|" + mbDay(p[0])) : []), used = new Set();
+        Object.values(STATE.calendarPlan).forEach((mo) => Object.values(mo).forEach((l) => l.forEach((p) => used.add(p.kind + ":" + p.refId))));
+        Object.keys(STATE.drsPlanMap).forEach((em) => Object.keys(STATE.drsPlanMap[em]).forEach((mk) => Object.keys(STATE.drsPlanMap[em][mk]).forEach((d) => { if (redo.has(em + "|" + mk + "|" + d)) return; STATE.drsPlanMap[em][mk][d].forEach((p) => used.add(p.kind + ":" + p.refId)); })));
+        const all = calAreaPool(null, null, GEN.fs);
+        return { match: all.length, free: all.filter((r) => !used.has(kindOf(r) + ":" + r.id) && !isClaimedByOther(r)).length };
+      }
+      function genChips(items, sel, attr) { return '<div class="mb-chips">' + items.map(([v, l]) => `<button type="button" class="mb-pc" ${attr}="${escapeHtml(String(v))}" aria-pressed="${sel.has(v)}">${escapeHtml(l)}</button>`).join("") + "</div>"; }
+      function genDayOpts(sel) { let h = ""; for (let n = 0; n < MB_HORIZON; n++) h += `<option value="${n}"${n === sel ? " selected" : ""}>${n === 0 ? "วันนี้ " : ""}${mbThDate(mbFrom(mbKeyPlus(n)))}</option>`; return h; }
+      function renderGen() {
+        const fs = GEN.fs, villages = STATE.villages, statuses = [...new Set(villages.map((r) => r.status).filter(Boolean))].sort();
+        const amps = [...new Set(poolFor(fs.kind).map(ampOf).filter(Boolean))].sort((a, b) => a.localeCompare(b, "th"));
+        const tams = [...new Set(poolFor(fs.kind).filter((r) => !fs.amps.size || fs.amps.has(ampOf(r))).map(tamOf).filter(Boolean))].sort((a, b) => a.localeCompare(b, "th"));
+        const teams = mbTeams(), nPick = MB.picked.size;
+        const rng = [["tomorrow", "พรุ่งนี้", 1, 1], ["week", "7 วัน", 0, 6], ["all", "ครบ 14 วัน", 0, 13]];
+        document.getElementById("mbDBody").innerHTML =
+          `<fieldset class="mb-fs"><legend>1 · วันที่</legend><div class="mb-chips" style="margin-bottom:8px">${rng.map((r) => `<button type="button" class="mb-pc" data-range="${r[0]}" aria-pressed="${GEN.from === r[2] && GEN.to === r[3]}">${r[1]}</button>`).join("")}</div>` +
+          `<div class="mb-prow2"><label for="mbGFrom">ตั้งแต่</label><select id="mbGFrom">${genDayOpts(GEN.from)}</select><label for="mbGTo">ถึง</label><select id="mbGTo">${genDayOpts(GEN.to)}</select></div><p class="mb-sub2">สร้างล่วงหน้าได้สูงสุด 14 วัน (วันนี้ + 13)</p></fieldset>` +
+          `<fieldset class="mb-fs"><legend>2 · ใคร</legend>` +
+          `<label class="mb-ln"><input type="radio" name="mbgw" value="working"${GEN.who === "working" ? " checked" : ""}>ทุกคนที่ทำงานในวันนั้น (${(STATE.drsUsers || []).length} คน)</label>` +
+          (teams.length > 1 ? `<label class="mb-ln"><input type="radio" name="mbgw" value="teams"${GEN.who === "teams" ? " checked" : ""}>เฉพาะบางทีม</label>` + (GEN.who === "teams" ? '<div style="margin:2px 0 6px 26px">' + genChips(teams.map((t) => [t, t]), GEN.teams, "data-gteam") + "</div>" : "") : "") +
+          `<label class="mb-ln"><input type="radio" name="mbgw" value="picked"${GEN.who === "picked" ? " checked" : ""}${nPick ? "" : " disabled"}>คนที่เลือกไว้ในรายชื่อ (${nPick} คน)</label>` +
+          (MB.person ? `<label class="mb-ln"><input type="radio" name="mbgw" value="person"${GEN.who === "person" ? " checked" : ""}>เฉพาะ ${escapeHtml(drsLabel(MB.person))}</label>` : "") + "</fieldset>" +
+          `<fieldset class="mb-fs"><legend>3 · สร้างแบบ</legend><label class="mb-ln"><input type="radio" name="mbgm" value="missing"${GEN.mode === "missing" ? " checked" : ""}>เฉพาะคนที่ยังไม่มีแผน</label><label class="mb-ln"><input type="radio" name="mbgm" value="redo"${GEN.mode === "redo" ? " checked" : ""}>สร้างใหม่ทับแผนเดิม (ปล่อยสถานที่เดิมคืน)</label></fieldset>` +
+          `<fieldset class="mb-fs"><legend>4 · สถานที่ที่จะส่งไป</legend><div class="mb-seg" role="group" aria-label="ประเภท" style="margin-bottom:10px">${[["both", "หมู่บ้าน + อาคาร"], ["village", "หมู่บ้าน"], ["building", "อาคาร"]].map((o) => `<button type="button" data-gkind="${o[0]}" aria-pressed="${fs.kind === o[0]}">${o[1]}</button>`).join("")}</div>` +
+          (fs.kind !== "building" && statuses.length ? `<div style="margin-bottom:10px"><label for="mbGStatus" style="font-size:13px;margin-right:8px">สถานะหมู่บ้าน</label><select id="mbGStatus"><option value="all">ทั้งหมด</option>${statuses.map((s) => `<option value="${escapeHtml(s)}"${fs.status === s ? " selected" : ""}>${escapeHtml(s)}</option>`).join("")}</select></div>` : "") +
+          `<div class="mb-sub2" style="margin:0 0 4px">แท็ก (ต้องตรงทุกข้อที่เลือก)</div>${genChips(TAGS.map((t) => [t.key, t.label]), fs.tags, "data-gtag")}` +
+          `<div class="mb-sub2" style="margin:10px 0 4px">อำเภอ (ไม่เลือก = ทุกอำเภอ)</div>${genChips(amps.map((a) => [a, a]), fs.amps, "data-gamp")}` +
+          (fs.amps.size && tams.length ? `<div class="mb-sub2" style="margin:10px 0 4px">ตำบล (ไม่เลือก = ทุกตำบลของอำเภอที่เลือก)</div>${genChips(tams.map((a) => [a, a]), fs.tams, "data-gtam")}` : "") + "</fieldset>" +
+          `<fieldset class="mb-fs" style="border-bottom:none"><legend>5 · หมู่บ้านใหญ่</legend><label class="mb-ln"><input type="checkbox" id="mbGBig"${GEN.big ? " checked" : ""}>ถ้าหมู่บ้านอันดับแรกใหญ่พอ ให้ทุกคนไปหมู่บ้านเดียวกันทั้งวัน</label><p class="mb-sub2">ใหญ่พอ = ครัวเรือน ≥ max(300, 100 × จำนวน DRS ในวันนั้น)</p></fieldset>`;
+        genPreview();
+      }
+      function genPreview() {
+        const t = genTargets(), { match, free } = genFree(t.pairs), need = t.pairs.length * 4, ok = need <= free, el = document.getElementById("mbPv"), b = document.getElementById("mbGoGen");
+        el.className = "mb-pv" + (ok ? "" : " bad");
+        el.innerHTML = `ตรงเงื่อนไข <b>${match.toLocaleString()}</b> แห่ง (ว่าง <b>${free.toLocaleString()}</b>) · ต้องใช้ประมาณ <b>${need.toLocaleString()}</b> แห่ง (${t.pairs.length} วัน-คน × 4)` + (ok ? "" : "<br>สถานที่ไม่พอ — บางคนจะได้น้อยกว่า 4 แห่งหรือไม่ได้เลย");
+        b.disabled = !t.pairs.length; b.textContent = t.pairs.length ? "สร้างแผน " + t.pairs.length + " วัน-คน" : "ไม่มีคนที่ต้องสร้าง";
+      }
+      function openGen(preset) {
+        if (preset && preset.day != null) { GEN.from = GEN.to = preset.day; GEN.who = "working"; }
+        else if (preset && preset.picked) GEN.who = "picked";
+        else if (preset && preset.person) GEN.who = "person";
+        else if (GEN.who === "picked" && !MB.picked.size) GEN.who = "working";
+        if (GEN.who === "person" && !MB.person) GEN.who = "working";
+        MB.opener = document.activeElement; renderGen();
+        document.getElementById("mbScrim").classList.add("show"); const d = document.getElementById("mbDrawer"); d.classList.add("show"); d.setAttribute("aria-hidden", "false"); document.getElementById("mbDClose").focus();
+      }
+      function closeGen() { document.getElementById("mbScrim").classList.remove("show"); const d = document.getElementById("mbDrawer"); d.classList.remove("show"); d.setAttribute("aria-hidden", "true"); if (MB.opener && MB.opener.focus) try { MB.opener.focus(); } catch (e) { /* element gone */ } }
+      function runGen() {
+        const t = genTargets(), byDay = {}; let made = 0, short = 0, bigs = 0;
+        t.pairs.forEach(([k, e]) => { (byDay[k] = byDay[k] || []).push(e); });
+        mbCache = { set: {}, st: {} };
+        try {
+          Object.keys(byDay).sort().forEach((k) => {
+            const emails = byDay[k], mk = mbMK(k), d = mbDay(k), res = buildDrsDayPlans(mk, d, emails, null, { fs: GEN.fs, big: GEN.big });
+            if (!res) { short += emails.length; if (GEN.mode === "redo") emails.forEach((e) => { if (drsGet(e, mk, d).length) { drsSet(e, mk, d, []); queueAssign(e, mk, d, 0); } }); return; }
+            if (res.big) bigs++;
+            emails.forEach((e) => { const picks = res.plans[e] || []; drsSet(e, mk, d, picks); queueAssign(e, mk, d, 0); if (picks.length) made++; else short++; });
+          });
+        } finally { mbCache = null; }
+        genSave(); closeGen(); renderBoard();
+        mbToast(`สร้างแผน ${made} วัน-คน` + (bigs ? ` · วันหมู่บ้านใหญ่ ${bigs} วัน` : "") + (short ? ` · ไม่มีสถานที่พอ ${short} วัน-คน` : "") + " — กดวันหรือชื่อเพื่อตรวจและแก้ไข");
+      }
+
+      /* ── events ── */
+      function mbSelectDay(k) { MB.person = null; MB.selected = k; const d = mbFrom(k); MB.view = new Date(d.getFullYear(), d.getMonth(), 1); renderBoard(); }
+      const mbSec = document.getElementById("sec-drs");
+      mbSec.addEventListener("input", (e) => { if (e.target.id === "mbQ") { MB.q = e.target.value; mbCache = { set: {}, st: {} }; try { renderBoardPeople(); } finally { mbCache = null; } } });
+      mbSec.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t.classList.contains("mb-cb")) {
+          mbCache = { set: {}, st: {} };
+          try {
+            if (t.dataset.team) mbShown().filter((x) => mbTeamOf(x) === t.dataset.team).forEach((x) => { t.checked ? MB.picked.add(x) : MB.picked.delete(x); });
+            else if (t.checked) MB.picked.add(t.dataset.e); else MB.picked.delete(t.dataset.e);
+          } finally { mbCache = null; }
+          renderBoard(); return;
+        }
+        if (t.name === "mbgw") { GEN.who = t.value; return renderGen(); }
+        if (t.name === "mbgm") { GEN.mode = t.value; return genPreview(); }
+        if (t.id === "mbGFrom") { GEN.from = +t.value; if (GEN.to < GEN.from) GEN.to = GEN.from; return renderGen(); }
+        if (t.id === "mbGTo") { GEN.to = +t.value; if (GEN.from > GEN.to) GEN.from = GEN.to; return renderGen(); }
+        if (t.id === "mbGStatus") { GEN.fs.status = t.value; return genPreview(); }
+        if (t.id === "mbGBig") GEN.big = t.checked;
+      });
+      mbSec.addEventListener("click", async (e) => {
         const t = e.target, $c = (sel) => t.closest(sel);
-        const dot = $c(".mb-dot");
-        if (dot) {
-          const wd = +dot.dataset.w, em = dot.dataset.e, cur = new Set(STATE.roster[wd] || []);
-          if (cur.has(em)) cur.delete(em); else cur.add(em);
-          STATE.roster[wd] = [...cur]; mbSaveRoster(wd); renderBoard(); return;
+        const fold = $c("[data-fold]"); if (fold) { MB.closed[fold.dataset.fold] = !MB.closed[fold.dataset.fold]; renderBoard(); return; }
+        const tile = $c(".mb-tile[data-f]"); if (tile) { MB.filter = tile.dataset.f; document.querySelectorAll("#mbPf button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.f === MB.filter)); renderBoard(); document.getElementById("mbPat").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+        const pf = $c("#mbPf button"); if (pf) { MB.filter = pf.dataset.f; document.querySelectorAll("#mbPf button").forEach((b) => b.setAttribute("aria-pressed", b === pf)); renderBoard(); return; }
+        if ($c("#mbSelAll")) { const l = mbShown(), all = l.every((x) => MB.picked.has(x)); l.forEach((x) => { all ? MB.picked.delete(x) : MB.picked.add(x); }); renderBoard(); return; }
+        const pn = $c("[data-person]"); if (pn) { MB.person = pn.dataset.person; renderBoard(); document.getElementById("mbSide").scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
+        if ($c("#mbBack")) { MB.person = null; renderBoard(); return; }
+        if ($c("#mbGenPerson")) { openGen({ person: true }); return; }
+        // bulk bar
+        const pc = $c("[data-preset]"); if (pc) { MB.shiftSel = new Set(MB_PRESETS[+pc.dataset.preset][1]); renderBoardBulk(); return; }
+        const wd = $c("[data-wd]"); if (wd) { const w = +wd.dataset.wd; MB.shiftSel.has(w) ? MB.shiftSel.delete(w) : MB.shiftSel.add(w); renderBoardBulk(); return; }
+        const act = $c("#mbBulk [data-a]");
+        if (act) {
+          const a = act.dataset.a, emails = [...MB.picked];
+          if (a === "clear") { MB.picked.clear(); MB.pop = null; renderBoard(); return; }
+          if (a === "shift" || a === "off") { MB.pop = MB.pop === a ? null : a; renderBoardBulk(); return; }
+          if (a === "gen") { openGen({ picked: true }); return; }
+          if (a === "applyShift") {
+            const days = [...MB.shiftSel].sort(), set = new Set(emails);
+            for (let w = 1; w <= 7; w++) { const rest = (STATE.roster[w] || []).filter((x) => !set.has(x)); STATE.roster[w] = days.includes(w) ? rest.concat(emails) : rest; }
+            MB.pop = null; MB.picked.clear(); renderBoard(); mbToast("ตั้งวันทำงานให้ " + emails.length + " คนแล้ว"); mbSavePattern(emails, days); return;
+          }
+          if (a === "applyOff") {
+            const el = document.getElementById("mbOffDate"); if (!el || !el.value) { mbToast("เลือกวันที่ก่อน"); return; }
+            MB.offDate = el.value; const k = el.value; let n = 0;
+            emails.forEach((x) => { if (mbCrewSet(k).has(x)) n++; mbSetWorks(k, x, false); });
+            mbQueueOverride(k, emails, 0); MB.pop = null; MB.picked.clear(); renderBoard(); mbToast(`${emails.length} คนหยุดวันที่ ${mbThDate(mbFrom(k))}` + (n < emails.length ? ` (${emails.length - n} คนไม่ได้ทำงานวันนั้นอยู่แล้ว)` : "")); return;
+          }
         }
+        // calendar + side panel
+        const sc = $c(".mb-sc[data-k]"); if (sc) { mbSelectDay(sc.dataset.k); return; }
         const cell = $c(".mb-cell[data-k]");
-        if (cell) { MB.selected = cell.dataset.k; renderBoardMonth(); renderBoardSide(); const c2 = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c2) c2.focus(); return; }
-        const chip = $c("[data-chip]"); if (chip && !chip.disabled) { mbToggleCrew(MB.selected, chip.dataset.chip); renderBoard(); return; }
-        const row = $c("#mbList tr[data-k]"); if (row) { MB.selected = row.dataset.k; renderBoard(); return; }
-        const pk = $c("[data-p]"); if (pk) { MB.drs = pk.dataset.p; renderBoard(); return; }
+        if (cell) { MB.person = null; MB.selected = cell.dataset.k; renderBoard(); const c2 = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c2) c2.focus(); if (window.innerWidth <= 1100) document.getElementById("mbSide").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+        const chip = $c("[data-chip]");
+        if (chip && !chip.disabled) {
+          const em = chip.dataset.chip, k = MB.selected, open = new Set([...document.querySelectorAll("#mbSide details.mb-tm[open]")].map((x) => x.dataset.team)); MB.openTeams = open;
+          mbSetWorks(k, em, !mbCrewSet(k).has(em)); mbQueueOverride(k, [em]); renderBoard(); return;
+        }
+        const row = $c("#mbSide tr[data-k]"); if (row) { mbSelectDay(row.dataset.k); return; }
         const rmb = $c("[data-rm]");
-        if (rmb) {
-          const [em, id] = rmb.dataset.rm.split("|"), mk = mbMK(MB.selected), dn = mbDay(MB.selected);
-          drsSet(em, mk, dn, drsGet(em, mk, dn).filter((p) => p.kind + ":" + p.refId !== id)); queueAssign(em, mk, dn); renderBoard(); return;
-        }
-        const sc = $c("[data-script]"); if (sc) { const [kd, id] = sc.dataset.script.split(":"); const r = byId(kd, id); if (r) openModal(r, "script"); return; }
+        if (rmb) { const [em, id] = rmb.dataset.rm.split("|"), mk = mbMK(MB.selected), dn = mbDay(MB.selected); drsSet(em, mk, dn, drsGet(em, mk, dn).filter((p) => p.kind + ":" + p.refId !== id)); queueAssign(em, mk, dn); renderBoard(); return; }
+        const scr = $c("[data-script]"); if (scr) { const [kd, id] = scr.dataset.script.split(":"); const r = byId(kd, id); if (r) openModal(r, "script"); return; }
         const ed = $c("[data-edit]"); if (ed) { openDayEditor(mbMK(MB.selected), mbDay(MB.selected), ed.dataset.edit); return; }
-        if ($c("#mbGenDay")) { if (mbGenerate(MB.selected)) { renderBoard(); mbToast("สร้างแผนวันที่ " + mbDay(MB.selected) + " แล้ว"); } else mbToast("ไม่มีสถานที่ที่ตรงเงื่อนไข — ลองปรับตัวกรองที่แท็บปฏิทิน"); return; }
+        if ($c("#mbGenDay")) { openGen({ day: Math.round((mbFrom(MB.selected) - mbToday()) / 86400000) }); return; }
         if ($c("#mbClrDay")) { const mk = mbMK(MB.selected), dn = mbDay(MB.selected); mbCrew(MB.selected).forEach((em) => { if (drsGet(em, mk, dn).length) { drsSet(em, mk, dn, []); queueAssign(em, mk, dn, 0); } }); renderBoard(); mbToast("ล้างแผนแล้ว สถานที่ถูกปล่อยคืน"); return; }
-        if ($c("#mbRstDay")) { delete STATE.rosterOverrides[mbCompact(MB.selected)]; mbSaveOverride(MB.selected); renderBoard(); return; }
-        if ($c("#mbGenAll")) {
-          const pend = mbPending(); let made = 0, short = 0;
-          pend.forEach((k) => { if (mbGenerate(k)) made++; else short++; });
-          renderBoard(); mbToast(`สร้างแผนแล้ว ${made} วัน` + (short ? ` · ${short} วันสร้างไม่ได้ (สถานที่ไม่พอ)` : "") + " — เปิดแต่ละวันเพื่อตรวจและแก้ไข"); return;
-        }
+        if ($c("#mbRstDay")) { delete STATE.rosterOverrides[mbCompact(MB.selected)]; mbResetDay(MB.selected); renderBoard(); return; }
         if ($c("#mbPrev")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() - 1, 1); renderBoard(); return; }
         if ($c("#mbNext")) { MB.view = new Date(MB.view.getFullYear(), MB.view.getMonth() + 1, 1); renderBoard(); return; }
-        if ($c("#mbToday")) { const td = mbToday(); MB.view = new Date(td.getFullYear(), td.getMonth(), 1); MB.selected = mbTodayKey(); renderBoard(); return; }
-        if ($c("#mbVDay")) { MB.mode = "day"; renderBoard(); return; }
-        if ($c("#mbVDrs")) { MB.mode = "drs"; renderBoard(); return; }
-        if ($c("#mbFilterGo")) { document.querySelector("a[data-sec=calendar]").click(); return; }
+        if ($c("#mbToday")) { const td = mbToday(); MB.view = new Date(td.getFullYear(), td.getMonth(), 1); MB.selected = mbTodayKey(); MB.person = null; renderBoard(); return; }
+        if ($c("#mbGenOpen")) { openGen(); return; }
         if ($c("#mbRefresh")) {
           const b = $c("#mbRefresh"); b.disabled = true;
           try { await refreshFromServer(); mbToast("รีเฟรชแล้ว"); } catch (err) { mbToast("รีเฟรชไม่สำเร็จ: " + err.message); } finally { b.disabled = false; }
+          return;
         }
+        // drawer
+        if ($c("#mbDClose") || t.id === "mbScrim") { closeGen(); return; }
+        if ($c("#mbGoGen")) { runGen(); return; }
+        const rg = $c("[data-range]"); if (rg) { const m = { tomorrow: [1, 1], week: [0, 6], all: [0, 13] }[rg.dataset.range]; GEN.from = m[0]; GEN.to = m[1]; renderGen(); return; }
+        const gt = $c("[data-gteam]"); if (gt) { const v = gt.dataset.gteam; GEN.teams.has(v) ? GEN.teams.delete(v) : GEN.teams.add(v); renderGen(); return; }
+        const gk = $c("[data-gkind]"); if (gk) { GEN.fs.kind = gk.dataset.gkind; GEN.fs.amps.clear(); GEN.fs.tams.clear(); renderGen(); return; }
+        const gg = $c("[data-gtag]"); if (gg) { const v = gg.dataset.gtag; GEN.fs.tags.has(v) ? GEN.fs.tags.delete(v) : GEN.fs.tags.add(v); renderGen(); return; }
+        const ga = $c("[data-gamp]"); if (ga) { const v = ga.dataset.gamp; GEN.fs.amps.has(v) ? GEN.fs.amps.delete(v) : GEN.fs.amps.add(v); GEN.fs.tams.clear(); renderGen(); return; }
+        const gm = $c("[data-gtam]"); if (gm) { const v = gm.dataset.gtam; GEN.fs.tams.has(v) ? GEN.fs.tams.delete(v) : GEN.fs.tams.add(v); renderGen(); return; }
       });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.getElementById("mbDrawer").classList.contains("show")) closeGen(); });
       // arrow keys move around the month
       document.getElementById("mbGrid").addEventListener("keydown", (e) => {
         const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]; if (!step) return;
         e.preventDefault(); const d = mbFrom(MB.selected); d.setDate(d.getDate() + step);
         if (d.getMonth() !== MB.view.getMonth() || d.getFullYear() !== MB.view.getFullYear()) MB.view = new Date(d.getFullYear(), d.getMonth(), 1);
-        MB.selected = mbKey(d); renderBoard(); const c = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c) c.focus();
+        MB.person = null; MB.selected = mbKey(d); renderBoard(); const c = document.querySelector('.mb-cell[data-k="' + MB.selected + '"]'); if (c) c.focus();
       });
 
       // Saving what a manager assigns: one request for everything changed, debounced.
@@ -3346,8 +3644,15 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         const assignments = Object.keys(byEmail).map((email) => ({ email, days: byEmail[email] }));
         savesInFlight++;
         try {
-          const res = await api("assignDrsDays", { assignments }, 240000);
-          items.forEach(({ k, v }) => { if (pendingAssign[k] === v) delete pendingAssign[k]; });
+          // A whole team's month is a lot for one Apps Script call, so send a few people at a time.
+          const res = { results: [], claimedByOthers: null }, CHUNK = 5;
+          for (let i = 0; i < assignments.length; i += CHUNK) {
+            const part = assignments.slice(i, i + CHUNK), emails = new Set(part.map((a) => a.email));
+            if (assignments.length > CHUNK) setCalStatus("กำลังบันทึก " + Math.min(i + CHUNK, assignments.length) + "/" + assignments.length + " คน…", false);
+            const r = await api("assignDrsDays", { assignments: part }, 240000);
+            items.forEach(({ k, v }) => { if (emails.has(v.email) && pendingAssign[k] === v) delete pendingAssign[k]; });
+            res.results = res.results.concat(r.results || []); if (r.claimedByOthers) res.claimedByOthers = r.claimedByOthers;
+          }
           if (res.claimedByOthers) setClaimed(res.claimedByOthers);
           const bad = (res.results || []).filter((r) => !r.ok);
           if (bad.length) setCalStatus("จัดแผนให้บางคนไม่ได้ — " + bad.map((r) => drsLabel(r.email) + " (" + r.error + ")").join(", "), true);
@@ -3411,6 +3716,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           STATE.drsPlanMap = buildDrsMap(STATE.drsPlan);
           STATE.drsUsers = (data.drsUsers || []).map((e) => String(e).toLowerCase());
           STATE.drsNames = data.drsNames || {};
+          STATE.drsTeams = data.drsTeams || {};
           const rr = tabs.DrsRoster ? rowObjects_(tabs.DrsRoster) : [];
           STATE.roster = buildRoster(rr); STATE.rosterOverrides = mbBuildOverrides(rr);
         } else {
@@ -4133,6 +4439,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         STATE.rosterOverrides = mbBuildOverrides(payload.drsRoster || []);
         STATE.drsUsers = (payload.drsUsers || []).map((e) => String(e).toLowerCase());
         STATE.drsNames = payload.drsNames || {};
+        STATE.drsTeams = payload.drsTeams || {};
         document.body.classList.toggle("role-mgr", isMgr());
         try { STATE.calView = localStorage.getItem("tolCalView") === "days" ? "days" : "month"; } catch (e) { STATE.calView = "month"; }
         applyCalView();
@@ -4363,7 +4670,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             STATE.role = data.role || "DRS";
             setClaimed(data.claimedByOthers);
             document.getElementById("loginGate").style.display = "none";
-            if (!appInitialized) { const payload = reconstructPayload_(data.tabs); payload.drsUsers = data.drsUsers || []; payload.drsNames = data.drsNames || {}; initApp(payload); appInitialized = true; }
+            if (!appInitialized) { const payload = reconstructPayload_(data.tabs); payload.drsUsers = data.drsUsers || []; payload.drsNames = data.drsNames || {}; payload.drsTeams = data.drsTeams || {}; initApp(payload); appInitialized = true; }
             return;
           } catch (e) {
             clearTimeout(slowTimer);
@@ -4387,8 +4694,11 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           STATE.role = ["PBH", "CM", "ADMIN"].includes(mockRole) ? mockRole : "DRS";
           const wd = calWindow();
           const mockPlan = (email, ids) => ids.map((id, i) => ({ email, monthKey: wd[0].monthKey, day: wd[0].day, slot: ["1", "2", "3"][i] || "backup", kind: id[0] === "v" ? "village" : "building", refId: id, name: "" }));
-          const mockRoster = [1, 2, 3, 4, 5].flatMap((d) => [{ weekday: String(d), email: "drs1@example.com" }]).concat([{ weekday: "4", email: "drs2@example.com" }, { weekday: "5", email: "drs2@example.com" }]);
-          initApp({ ...MOCK_PAYLOAD, drsUsers: ["drs1@example.com", "drs2@example.com", "drs3@example.com"], drsNames: { "drs1@example.com": "สมชาย ใจดี", "drs2@example.com": "วิภา รักงาน" }, drsRoster: mockRoster,
+          const mockNames = ["สมชาย ใจดี", "วิภา รักงาน", "ธนากร มั่นคง", "นภา สุขสม", "กิตติ เจริญ", "ปรีชา ทองคำ", "สุดา ศรีสุข", "อนุชา พันธุ์ดี", "พิมพ์ รุ่งเรือง", "ชาญ วงศ์ไทย", "รัตนา แสงทอง", "เกรียง ใจงาม"];
+          const mockUsers = mockNames.map((_, i) => "drs" + (i + 1) + "@example.com"), mockTeams = {}, mockNm = {};
+          mockUsers.forEach((e, i) => { mockTeams[e] = "ทีม " + "ABC"[Math.floor(i / 4)]; mockNm[e] = mockNames[i]; });
+          const mockRoster = mockUsers.flatMap((e, i) => (i % 5 === 4 ? [2, 3, 4, 5, 6] : i % 7 === 6 ? [] : [1, 2, 3, 4, 5]).map((d) => ({ weekday: String(d), email: e })));
+          initApp({ ...MOCK_PAYLOAD, drsUsers: mockUsers, drsNames: mockNm, drsTeams: mockTeams, drsRoster: mockRoster,
             drsPlan: [...mockPlan("drs1@example.com", ["v1", "v3", "b1"]), ...mockPlan("drs2@example.com", ["v5"])],
             calendarPlan: STATE.role === "DRS" ? mockPlan("me@example.com", ["v1", "v3", "b1"]) : [] }); // a DRS only sees what was assigned to them
           appInitialized = true;

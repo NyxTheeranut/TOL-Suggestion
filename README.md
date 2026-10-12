@@ -144,6 +144,7 @@ useful for reviewing the UI without any of that setup.
   `myData` only returns those two days. PBH / CM save a whole month via
   `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
   additionally get every DRS's two-day rows, read-only).
+- Users tab: optional `team` (or `ทีม`) column groups DRS on the "จัดแผน DRS" board (no area meaning; blank = "ไม่มีทีม"). The board's bulk actions use `saveDrsPattern` (many DRS, one weekly pattern) and `mergeDrsOverride` (one date, a few DRS).
 - `DrsRoster` — which DRS work when, set by PBH / CM / ADMIN from the "จัดแผน DRS" month board: weekly pattern rows (`weekday` 1 = Mon … 7 = Sun) and one-date changes (`weekday` 0, `date` YYYYMMDD, `mode` add/remove).
 - `CalendarSlots` — up to 3 saved month plans per PBH / CM.
 - `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt`.
