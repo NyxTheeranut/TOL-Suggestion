@@ -4143,7 +4143,30 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         if (want && !base) o.add.push(email);
         if (!want && base) o.remove.push(email);
         if (!o.add.length && !o.remove.length) delete STATE.rosterOverrides[comp];
-        if (!want) { const mk = mbMK(k), d = mbDay(k); if (drsGet(email, mk, d).length) { drsSet(email, mk, d, []); queueAssign(email, mk, d, 0); } } // no longer works that day: free their places
+        const mk = mbMK(k), d = mbDay(k), sk = email + "|" + mk + "|" + d;
+        if (!want) {
+          // no longer works that day: free their places on the server, but remember them so putting the person back restores the plan
+          const cur = drsGet(email, mk, d);
+          if (cur.length) { leaveStash[sk] = JSON.parse(JSON.stringify(cur)); leaveStashSave(); drsSet(email, mk, d, []); queueAssign(email, mk, d, 0); }
+        } else if (!drsGet(email, mk, d).length) {
+          // back at work: bring the plan back (what they had before, else what a teammate working that day has)
+          let back = leaveStash[sk];
+          if (!back || !back.length) {
+            const team = mbTeamOf(email), crew = mbCrewSet(k), mate = team !== MB_NOTEAM ? (STATE.drsUsers || []).find((e) => e !== email && mbTeamOf(e) === team && crew.has(e) && drsGet(e, mk, d).length) : null;
+            back = mate ? drsGet(mate, mk, d) : null;
+          }
+          if (back && back.length) { drsSet(email, mk, d, JSON.parse(JSON.stringify(back))); queueAssign(email, mk, d, 0); }
+          delete leaveStash[sk]; leaveStashSave();
+        }
+      }
+      // plans of people marked as on leave, kept so re-adding them doesn't lose the calendar (survives a reload; past days are dropped)
+      const LEAVE_KEY = "tolLeaveStash";
+      const leaveStash = (() => { try { return JSON.parse(localStorage.getItem(LEAVE_KEY) || "{}") || {}; } catch (e) { return {}; } })();
+      function leaveStashSave() {
+        const today = mbTodayKey(), keep = {};
+        Object.keys(leaveStash).forEach((sk) => { const p = sk.split("|"), dk = p[1].slice(0, 4) + "-" + p[1].slice(4, 6) + "-" + String(p[2]).padStart(2, "0"); if (dk >= today) keep[sk] = leaveStash[sk]; });
+        Object.keys(leaveStash).forEach((sk) => { if (!(sk in keep)) delete leaveStash[sk]; });
+        try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveStash)); } catch (e) { /* storage blocked */ }
       }
 
       /* ── generate drawer ── */
