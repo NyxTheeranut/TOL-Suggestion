@@ -1,9 +1,12 @@
 # TOL Suggestion
 
-Village &amp; building sales planner for BMA-West — search/demographic lookup,
-a tag-based recommendation list, and a visit calendar — PBH / CM / ADMIN build the plans (a whole month for themselves, and today + tomorrow for each DRS from a weekday roster); a DRS only sees what was assigned to them — in which every planned place is reserved for 7 days — read
-live from a Google Sheet, same architecture as `TOL Tracker` / `L2 Discount
-Map` / `Route Planner` elsewhere in this Dashboard.
+Village &amp; building sales planner for BMA-West — a map with search, a
+tag-based recommendation list, and the **DRS dispatch board**: PBH / CM / ADMIN
+plan every team's next 14 days (who works, which villages, and for a big
+village which streets each person walks) and each DRS opens **แผนของฉัน** to see
+only their own plan for today and tomorrow. Every planned place is reserved for
+7 days. Everything is read live from a Google Sheet, same architecture as
+`TOL Tracker` / `L2 Discount Map` / `Route Planner` elsewhere in this Dashboard.
 
 Anyone signed in with an allow-listed Google account sees the same full
 dataset — the page itself ships with no data at all; it's fetched after
@@ -18,9 +21,10 @@ Browser (this page, hosted on GitHub Pages)
 Apps Script Web App  ──executes as the Sheet owner──▶  Google Sheet
    │   verifies the ID token against Google directly        "Users" tab (who's allowed in)
    │   checks the signed-in email is in the "Users" tab      "Villages" / "Buildings" tabs
-   │   returns Villages/Buildings/CalendarTheme/CalendarPlan  "CalendarTheme" / "CalendarPlan" /
-   ▼   (today + tomorrow only) + who else holds which place   "CalendarClaims" tabs
-this page renders Search / Recommend / Calendar from that payload
+   │   returns Villages/Buildings + the plans, roster,      "CalendarPlan" / "DrsRoster" /
+   ▼   notes and street splits that viewer may see          "PlanNotes" / "PlanSplits" / "Soi" /
+this page renders Map / Analysis / the dispatch   "CalendarClaims" tabs
+board / แผนของฉัน from that payload
 ```
 
 `sync/aggregate_suggestion.py` curates the two raw BMA-West inventory exports
@@ -29,7 +33,7 @@ Inventory_2026.xlsx` — **not committed to this repo**, see `.gitignore`) into
 compact per-property records with tags (`high_available`, `large`,
 `high_competitor`, `low_fault`) and a composite `autoScore`.
 `sync/update_suggestion_sheet.py` pushes those into the Sheet's `Villages` /
-`Buildings` tabs; it never touches `CalendarTheme` / `CalendarPlan` — those
+`Buildings` tabs; it never touches `CalendarPlan` / `DrsRoster` / `PlanNotes` / `PlanSplits` — those
 belong to the live page itself (any signed-in viewer plans today's and
 tomorrow's picks (DRS) or a month's (PBH / CM); each place planned is reserved
 for that viewer for 7 days).
@@ -89,11 +93,21 @@ data/              raw source workbooks -- gitignored, never committed
    requiring sign-in, so the UI can be reviewed locally first.
 2. In `sync/update_suggestion_sheet.py`, set `SYNC_URL` to the same Web app URL.
 
-### 4. Add your team to the Users tab
+### 4. Add your people to the Users tab
 
 Open the page and sign in once — this auto-creates a "Users" tab with a
-sample row (until then, everyone gets "not set up yet"). Edit that row (or
-add rows) for your team: `email | note`. Delete the sample row.
+sample row (until then, everyone gets "not set up yet"). Fill one row per person:
+
+| column | meaning |
+|---|---|
+| `email` | the Google account they sign in with |
+| `role` | `PBH`, `CM`, `ADMIN` or `DRS` (blank = DRS) |
+| `name` | shown on the board and in แผนของฉัน |
+| `team` | DRS only — the team they work in (a DRS without a team is a team of one) |
+| `owner` | DRS only — the **email of the CM** who runs them. A CM sees and edits only the DRS whose `owner` is them; PBH and ADMIN see everyone. A DRS with a blank `owner` is visible to PBH / ADMIN only. If the column does not exist at all, every manager sees every DRS (the old behaviour). |
+| `leader` | DRS only — `TRUE` for the team leader (shown as a badge, and gets the first part of a split village) |
+
+Real names and emails live **only** in this tab, never in the page or the repo.
 
 ### 5. Push the data
 
@@ -115,7 +129,22 @@ python3 sync/update_suggestion_sheet.py
 `Launchers/`) to populate the `Villages` / `Buildings` tabs. Re-run any time
 a fresh export lands in `data/`.
 
-### 6. Deploy to GitHub Pages
+### 6. Street data for splitting big villages (optional)
+
+For a big village the board can split its sois (streets) between the people
+working that day and show each person their own path on a map. The street
+data is **not** in this repo (the repo behind GitHub Pages is public): put the
+file the soi pipeline produced next to the page as `assets/soi-data.js` (it is
+git-ignored) and upload it to the Sheet once:
+
+```
+python3 sync/upload_soi.py assets/soi-data.js
+```
+
+It fills the `Soi` tab; the page reads it only for signed-in, allow-listed users
+(`getSoi`). Without it everything else works; the "แบ่งซอย" tab is simply absent.
+
+### 7. Deploy to GitHub Pages
 
 Push this repo to GitHub, then **Settings → Pages → Source: Deploy from a
 branch → `main` / `(root)`**.
@@ -134,19 +163,20 @@ useful for reviewing the UI without any of that setup.
 - `Villages` / `Buildings` — one row per property: location, household/unit
   counts, ports, latest active, competitor total, market share, fault/churn,
   the business's own existing sales grading, computed tags, and `autoScore`.
-- `Users` — `email | role | note` allow-list. `role` is `PBH`, `CM`, `ADMIN` or `DRS`
-  (blank/unknown = DRS): PBH / CM / ADMIN get the monthly calendar (switchable to a two-day view — it is one plan), the DRS roster, and the tools to assign every
-  DRS's two days; a DRS gets a read-only view of what was assigned to them.
-- `CalendarTheme` — one row per (month, viewer): that viewer's selected
-  theme tags (`updatedBy` is the key, not just `monthKey`).
-- `CalendarPlan` — one row per (month, day, slot, viewer) pick. Everyone saves their two days via
-  `saveCalendarDays` — only **today and tomorrow** (Asia/Bangkok) can be written and
-  `myData` only returns those two days. PBH / CM save a whole month via
-  `saveCalendarMonth`. `myData` returns only the signed-in viewer's own rows (managers
-  additionally get every DRS's two-day rows, read-only).
-- Users tab: optional `team` (or `ทีม`) column groups DRS on the "จัดแผน DRS" board (no area meaning; blank = "ไม่มีทีม"). The board's bulk actions use `saveDrsPattern` (many DRS, one weekly pattern) and `mergeDrsOverride` (one date, a few DRS).
-- `DrsRoster` — which DRS work when, set by PBH / CM / ADMIN from the "จัดแผน DRS" dispatch board (team x day matrix with status / area / load views, a map of the selected day, a per-team detail panel with a day timeline, and a search palette opened with `/`): weekly pattern rows (`weekday` 1 = Mon … 7 = Sun) and one-date changes (`weekday` 0, `date` YYYYMMDD, `mode` add/remove).
-- `CalendarSlots` — up to 3 saved month plans per PBH / CM.
+- `Users` — `email | role | name | team | owner | leader` allow-list (see step 4). PBH / CM / ADMIN get the
+  dispatch board; a DRS gets only **แผนของฉัน** and the map. The server filters everything by `owner`: a CM can read and write
+  only their own DRS's plans, roster, notes and splits (`wrong_role` / `not_a_drs` / `wrong_team` otherwise).
+- `CalendarTheme` — legacy (the monthly calendar was removed); no longer written.
+- `CalendarPlan` — one row per (month, day, slot, DRS) pick, written by managers with `assignDrsDays` (up to 14 days ahead).
+  `myData` gives a DRS only their own rows for **today and tomorrow** (Asia/Bangkok). Slots `1`–`3` are the main places, `backup` the spare.
+- `DrsRoster` — which DRS work when: weekly pattern rows (`weekday` 1 = Mon … 7 = Sun) and one-date changes
+  (`weekday` 0, `date` YYYYMMDD, `mode` add/remove). "Who works that day" on the board is read from here (there is no leave concept).
+- `PlanNotes` — `monthKey | day | team | note | updatedBy | updatedAt`: the message from the lead to a team for one day. Shown to that team's DRS.
+- `PlanSplits` — `monthKey | day | team | villageId | json | …`: the saved street split of one village for one team-day
+  (`{crew:[emails], own:[person index per street], basis}`). A DRS gets the rows of their own team for today and tomorrow.
+- `Soi` — `villageId | chunkIndex | chunkCount | chunk`: street geometry of the big villages (JSON cut into ≤ 45,000-character
+  pieces), uploaded by `sync/upload_soi.py`, served only after sign-in.
+- `CalendarSlots` — legacy (saved month plans); no longer used.
 - `CalendarClaims` — `kind | refId | email | claimedAt | expiresAt`.
   Planning a place reserves it for at least 7 days (from `claimedAt`) and until its planned day is over, whichever is later; nobody else
   can plan it until it expires or its owner removes it — then its row is deleted

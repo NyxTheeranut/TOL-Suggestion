@@ -27,6 +27,13 @@
  *                  Only today + tomorrow (Asia/Bangkok) can be saved or are
  *                  sent to the page -- see saveCalendarDays_ below.
  *   CalendarSlots  up to 3 saved month plans per manager -- see below.
+ *   DrsRoster      which DRS work when (weekly pattern + one-date changes).
+ *   PlanNotes      one note from a lead to a team for a day -- monthKey | day | team | note | updatedBy | updatedAt.
+ *   PlanSplits     the saved street split of one big village for one team-day -- monthKey | day | team | villageId | json | ...
+ *   Soi            street data of the big villages, chunked (<= 45,000 characters per cell); written by sync/upload_soi.py
+ *                  (putSoi, SYNC_SECRET) and read only after sign-in (getSoi).
+ *   Users tab:     email | role | name | team | owner | leader. `owner` (for a DRS: the CM's email) scopes a CM to their own DRS
+ *                  on the server (scopedDrsEmails_); PBH / ADMIN see every DRS. Without an `owner` column a CM sees every DRS.
  *   CalendarClaims 1 row per place a viewer has planned -- kind | refId |
  *                  email | claimedAt | expiresAt | releasedAt (always empty now:
  *                  a released or expired place is deleted from the sheet).
@@ -275,6 +282,20 @@ function doPost(e) {
       return jsonResponse_({ ok: true, tabs: result.tabs, rows: result.rows });
     }
 
+    if (body.action === "getSoi") {
+      // Street geometry for big villages: any signed-in, allow-listed user (a DRS needs it to see their own sois).
+      var emailS = verifyIdToken_(body.idToken);
+      if (!emailS || !isAllowedUser_(emailS))
+        return jsonResponse_({ ok: false, error: "not_signed_in" });
+      return jsonResponse_(getSoi_(body.ids || []));
+    }
+
+    if (body.action === "putSoi") {
+      // Upload script only (same secret as syncData): the geometry is never in the public repo.
+      requireSyncSecret_(body.secret);
+      return jsonResponse_(putSoi_(body.villages || {}, !!body.reset));
+    }
+
     if (body.action === "saveCalendarTheme") {
       var email = verifyIdToken_(body.idToken);
       if (!email || !isAllowedUser_(email))
@@ -295,6 +316,8 @@ function doPost(e) {
       body.action === "saveDrsOverride" ||
       body.action === "saveDrsPattern" ||
       body.action === "mergeDrsOverride" ||
+      body.action === "savePlanNote" ||
+      body.action === "savePlanSplit" ||
       body.action === "saveCalendarMonth" ||
       body.action === "clearCalendarMonth" ||
       body.action === "saveCalendarSlot" ||
@@ -320,6 +343,10 @@ function doPost(e) {
         return jsonResponse_(saveDrsPattern_(body.emails || [], body.weekdays || [], emailC));
       if (body.action === "mergeDrsOverride")
         return jsonResponse_(mergeDrsOverride_(body.date, body.add || [], body.remove || [], emailC, body.clear || []));
+      if (body.action === "savePlanNote")
+        return jsonResponse_(savePlanNote_(body.monthKey, body.day, body.team, body.note, emailC));
+      if (body.action === "savePlanSplit")
+        return jsonResponse_(savePlanSplit_(body.monthKey, body.day, body.team, body.villageId, body.split, emailC));
       if (body.action === "saveCalendarMonth")
         return jsonResponse_(
           saveCalendarMonth_(
@@ -396,13 +423,15 @@ function readUsers_() {
   var sheet = ss.getSheetByName("Users");
   if (!sheet) {
     sheet = ss.insertSheet("Users");
-    sheet.appendRow(["email", "role", "name", "team", "note"]);
+    sheet.appendRow(["email", "role", "name", "team", "owner", "leader", "note"]);
     sheet.appendRow([
       "example@gmail.com",
       "DRS",
       "ชื่อตัวอย่าง",
       "ทีม A",
-      "sample row -- role is PBH, CM, ADMIN or DRS; replace with your team, then delete this",
+      "cm-email@gmail.com",
+      "",
+      "sample row -- role is PBH, CM, ADMIN or DRS; owner = the CM's email (DRS only); leader = TRUE for a team leader; replace with your people, then delete this",
     ]);
     sheet.setFrozenRows(1);
     return [];
@@ -415,7 +444,10 @@ function readUsers_() {
   var emailCol = header.indexOf("email"),
     roleCol = header.indexOf("role"),
     nameCol = Math.max(header.indexOf("name"), header.indexOf("ชื่อ")), // optional display name
-    teamCol = Math.max(header.indexOf("team"), header.indexOf("ทีม")); // optional team (grouping only)
+    teamCol = Math.max(header.indexOf("team"), header.indexOf("ทีม")), // optional team (grouping only)
+    ownerCol = header.indexOf("owner"), // optional: for a DRS, the CM's email who runs them
+    leaderCol = header.indexOf("leader"); // optional: TRUE/yes/1 = team leader (display only)
+  USERS_HAS_OWNER_ = ownerCol !== -1;
   if (emailCol === -1) return [];
   var out = [];
   for (var i = 1; i < data.length; i++) {
@@ -428,8 +460,31 @@ function readUsers_() {
       role: MANAGER_ROLES.indexOf(role) !== -1 ? role : "DRS",
       name: nameCol === -1 ? "" : String(data[i][nameCol]).trim(),
       team: teamCol === -1 ? "" : String(data[i][teamCol]).trim(),
+      owner: ownerCol === -1 ? "" : String(data[i][ownerCol]).trim().toLowerCase(),
+      leader:
+        leaderCol === -1
+          ? false
+          : /^(true|yes|y|1|leader|หัวหน้า)$/i.test(String(data[i][leaderCol]).trim()),
     });
   }
+  return out;
+}
+
+var USERS_HAS_OWNER_ = false;
+
+// DRS emails this actor may plan for. ADMIN / PBH: every DRS. CM: the DRS whose Users `owner`
+// is that CM. A Users tab with no `owner` column at all keeps the old behaviour (a CM sees every DRS),
+// so an old Sheet keeps working until the column is added.
+function scopedDrsEmails_(actor, users) {
+  users = users || readUsers_();
+  var a = String(actor).toLowerCase(), me = null;
+  users.forEach(function (u) { if (u.email === a) me = u; });
+  var out = {};
+  users.forEach(function (u) {
+    if (u.role !== "DRS") return;
+    if (me && me.role === "CM" && USERS_HAS_OWNER_ && u.owner !== a) return;
+    out[u.email] = true;
+  });
   return out;
 }
 
@@ -488,17 +543,10 @@ function myData_(idToken) {
     // read-only view of every DRS's two-day plan (names the DRS accounts).
     tabs.CalendarPlan = own;
     tabs.CalendarSlots = ownSlotsTab_(email);
-    var drs = readUsers_()
-      .filter(function (u) {
-        return u.role === "DRS";
-      })
-      .map(function (u) {
-        return u.email;
-      });
-    var drsSet = {};
-    drs.forEach(function (e) {
-      drsSet[e] = true;
-    });
+    var allUsers = readUsers_();
+    var scope = scopedDrsEmails_(email, allUsers);
+    var drs = Object.keys(scope);
+    var drsSet = scope;
     var emailIdx = allPlan.header.indexOf("email");
     var win = assignPlanRows_(allPlan); // today .. today + 13 for the month board
     tabs.DrsPlan = {
@@ -513,16 +561,51 @@ function myData_(idToken) {
     extra.drsUsers = drs;
     extra.drsNames = {};
     extra.drsTeams = {};
-    readUsers_().forEach(function (u) {
-      if (u.role !== "DRS") return;
+    extra.drsOwners = {};
+    extra.drsLeaders = {};
+    extra.managers = [];
+    var teamsInScope = {};
+    allUsers.forEach(function (u) {
+      if (u.role !== "DRS") {
+        // ADMIN / PBH see every manager; a CM sees themself and the PBH / ADMIN above them.
+        if (u.role === "CM" && role === "CM" && u.email !== email) return;
+        extra.managers.push({ email: u.email, role: u.role, name: u.name, team: u.team });
+        return;
+      }
+      if (!scope[u.email]) return;
       if (u.name) extra.drsNames[u.email] = u.name;
-      if (u.team) extra.drsTeams[u.email] = u.team;
+      if (u.team) {
+        extra.drsTeams[u.email] = u.team;
+        teamsInScope[u.team] = true;
+      }
+      if (u.owner) extra.drsOwners[u.email] = u.owner;
+      if (u.leader) extra.drsLeaders[u.email] = true;
     });
     var rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DrsRoster");
     var rv = rosterSheet ? rosterSheet.getDataRange().getValues() : [];
-    tabs.DrsRoster = rv.length ? { header: rv[0], rows: rv.slice(1) } : { header: DRS_ROSTER_HEADER, rows: [] };
+    var rosterTab = rv.length ? { header: rv[0], rows: rv.slice(1) } : { header: DRS_ROSTER_HEADER, rows: [] };
+    rosterTab.rows = rosterTab.rows.filter(function (r) {
+      return drsSet[String(r[1]).toLowerCase()];
+    });
+    tabs.DrsRoster = rosterTab;
+    tabs.PlanNotes = windowFilterTeams_(readSimpleTab_("PlanNotes", PLAN_NOTES_HEADER), teamsInScope);
+    tabs.PlanSplits = windowFilterTeams_(readSimpleTab_("PlanSplits", PLAN_SPLITS_HEADER), teamsInScope);
   } else {
     tabs.CalendarPlan = windowPlanRows_(own); // DRS: only today + tomorrow ever leave the server
+    // A DRS also gets the note and the soi split saved for their own team on those days.
+    var myTeam = "", myName = "", myLeader = false;
+    readUsers_().forEach(function (u) {
+      if (u.email === email) {
+        myTeam = u.team;
+        myName = u.name;
+        myLeader = u.leader;
+      }
+    });
+    var mine = {};
+    if (myTeam) mine[myTeam] = true;
+    tabs.PlanNotes = windowFilterTeams_(readSimpleTab_("PlanNotes", PLAN_NOTES_HEADER), mine, true);
+    tabs.PlanSplits = windowFilterTeams_(readSimpleTab_("PlanSplits", PLAN_SPLITS_HEADER), mine, true);
+    extra.me = { team: myTeam, name: myName, leader: myLeader };
   }
   tabs.CalendarTheme = filterOwnRows_(tabs.CalendarTheme, "updatedBy", email);
   // Sends the raw tabs, NOT reconstructPayload_(tabs) -- rebuilding the full
@@ -544,6 +627,10 @@ function myData_(idToken) {
   if (extra.drsUsers) res.drsUsers = extra.drsUsers;
   if (extra.drsNames) res.drsNames = extra.drsNames;
   if (extra.drsTeams) res.drsTeams = extra.drsTeams;
+  if (extra.drsOwners) res.drsOwners = extra.drsOwners;
+  if (extra.drsLeaders) res.drsLeaders = extra.drsLeaders;
+  if (extra.managers) res.managers = extra.managers;
+  if (extra.me) res.me = extra.me;
   return res;
 }
 
@@ -1123,13 +1210,8 @@ function saveCalendarDays_(days, email, role) {
 // to the manager. Returns one result per DRS.
 function assignDrsDays_(assignments, actor) {
   var allowed = assignAllowed_();
-  var drsEmails = readUsers_()
-    .filter(function (u) {
-      return u.role === "DRS";
-    })
-    .map(function (u) {
-      return u.email;
-    });
+  var scope = scopedDrsEmails_(actor);
+  var drsEmails = Object.keys(scope);
   var results = [],
     last = null;
   (assignments || []).forEach(function (a) {
@@ -1176,10 +1258,8 @@ function writeRoster_(rows) {
   if (rows.length) sheet.getRange(2, 1, rows.length, width).setValues(rows);
   sheet.setFrozenRows(1);
 }
-function drsEmailSet_() {
-  var drs = {};
-  readUsers_().forEach(function (u) { if (u.role === "DRS") drs[u.email] = true; });
-  return drs;
+function drsEmailSet_(actor) {
+  return scopedDrsEmails_(actor);
 }
 // A pattern row has no date; an override row does. Past one-date changes are dropped on every write.
 function isOverrideRow_(r) { return String(r[4]) !== ""; }
@@ -1192,7 +1272,7 @@ function dropPastOverrides_(rows) {
 function saveDrsRoster_(weekday, emails, actor) {
   var wd = Number(weekday);
   if (!(wd >= 1 && wd <= 7) || wd !== Math.floor(wd)) return { ok: false, error: "bad_weekday" };
-  var drs = drsEmailSet_(), chosen = [];
+  var drs = drsEmailSet_(actor), chosen = [];
   (emails || []).forEach(function (e) {
     var em = String(e).toLowerCase();
     if (drs[em] && chosen.indexOf(em) === -1) chosen.push(em);
@@ -1219,7 +1299,7 @@ function saveDrsOverride_(date, add, remove, actor) {
   var today = Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyyMMdd");
   var last = Utilities.formatDate(new Date(Date.now() + 120 * 86400000), CALENDAR_TZ, "yyyyMMdd");
   if (d < today || d > last) return { ok: false, error: "date_out_of_range" };
-  var drs = drsEmailSet_();
+  var drs = drsEmailSet_(actor);
   function clean(list) {
     var out = [];
     (list || []).forEach(function (e) {
@@ -1251,7 +1331,7 @@ function saveDrsPattern_(emails, weekdays, actor) {
     var n = Number(w);
     if (n >= 1 && n <= 7 && n === Math.floor(n) && days.indexOf(n) === -1) days.push(n);
   });
-  var drs = drsEmailSet_(), chosen = [];
+  var drs = drsEmailSet_(actor), chosen = [];
   (emails || []).forEach(function (e) {
     var em = String(e).toLowerCase();
     if (drs[em] && chosen.indexOf(em) === -1) chosen.push(em);
@@ -1282,7 +1362,7 @@ function mergeDrsOverride_(date, add, remove, actor, clear) {
   var today = Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyyMMdd");
   var last = Utilities.formatDate(new Date(Date.now() + 120 * 86400000), CALENDAR_TZ, "yyyyMMdd");
   if (d < today || d > last) return { ok: false, error: "date_out_of_range" };
-  var drs = drsEmailSet_();
+  var drs = drsEmailSet_(actor);
   function clean(list) {
     var out = [];
     (list || []).forEach(function (e) {
@@ -1309,6 +1389,162 @@ function mergeDrsOverride_(date, add, remove, actor, clear) {
     lock.releaseLock();
   }
   return { ok: true, date: d, add: a, remove: rm };
+}
+
+// ---------- PlanNotes / PlanSplits / Soi ----------
+// Kept in their own sheets so the CalendarPlan header and rows never change shape.
+//   PlanNotes   one note to a team for a day.
+//   PlanSplits  one saved soi split per (day, team, village): JSON {crew, own, basis}.
+//   Soi         street geometry per big village, split into <=45,000-character chunks
+//               (a cell holds 50,000); uploaded by sync/upload_soi.py, read only after sign-in.
+var PLAN_NOTES_HEADER = ["monthKey", "day", "team", "note", "updatedBy", "updatedAt"];
+var PLAN_SPLITS_HEADER = ["monthKey", "day", "team", "villageId", "json", "updatedBy", "updatedAt"];
+var SOI_HEADER = ["villageId", "chunkIndex", "chunkCount", "chunk"];
+var SOI_CHUNK = 45000;
+
+function simpleSheet_(name, header) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, header.length).setValues([header]);
+    sheet.getRange(1, 1, sheet.getMaxRows(), header.length).setNumberFormat("@");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+function readSimpleTab_(name, header) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet) return { header: header, rows: [] };
+  var v = sheet.getDataRange().getValues();
+  return {
+    header: header,
+    rows: normalizeRows_(v.slice(1), header.length).map(function (r) {
+      return r.map(function (x) { return x == null ? "" : String(x); });
+    }),
+  };
+}
+function writeSimpleRows_(name, header, rows) {
+  var sheet = simpleSheet_(name, header);
+  sheet.clearContents();
+  sheet.getRange(1, 1, sheet.getMaxRows(), header.length).setNumberFormat("@");
+  sheet.getRange(1, 1, 1, header.length).setValues([header]);
+  if (rows.length) sheet.getRange(2, 1, rows.length, header.length).setValues(rows);
+  sheet.setFrozenRows(1);
+}
+// Keeps rows of the given teams, for today .. today + 13 (a DRS: today + tomorrow only).
+function windowFilterTeams_(tab, teams, narrow) {
+  var allowed = narrow ? windowAllowed_() : assignAllowed_();
+  return {
+    header: tab.header,
+    rows: tab.rows.filter(function (r) {
+      return teams[String(r[2])] && allowed[String(r[0]) + ":" + Number(r[1])];
+    }),
+  };
+}
+function dropPastPlanRows_(rows) {
+  var today = Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyyMMdd");
+  return rows.filter(function (r) {
+    var d = String(r[0]) + (Number(r[1]) < 10 ? "0" : "") + Number(r[1]);
+    return d >= today;
+  });
+}
+// Teams this actor may write for: the teams of the DRS in their scope.
+function scopedTeams_(actor) {
+  var users = readUsers_(), scope = scopedDrsEmails_(actor, users), teams = {};
+  users.forEach(function (u) {
+    if (u.role === "DRS" && scope[u.email] && u.team) teams[u.team] = true;
+  });
+  return teams;
+}
+function planDayCheck_(monthKey, day) {
+  var mk = String(monthKey || ""), dn = Number(day);
+  if (!/^\d{6}$/.test(mk) || !(dn >= 1 && dn <= 31)) return false;
+  return !!assignAllowed_()[mk + ":" + dn];
+}
+
+function savePlanNote_(monthKey, day, team, note, actor) {
+  if (!planDayCheck_(monthKey, day)) return { ok: false, error: "date_out_of_range" };
+  team = String(team || "");
+  if (!scopedTeams_(actor)[team]) return { ok: false, error: "wrong_team" };
+  note = String(note || "").slice(0, 500);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = dropPastPlanRows_(readSimpleTab_("PlanNotes", PLAN_NOTES_HEADER).rows).filter(function (r) {
+      return !(r[0] === String(monthKey) && Number(r[1]) === Number(day) && r[2] === team);
+    });
+    if (note) rows.push([String(monthKey), String(Number(day)), team, note, actor, new Date().toISOString()]);
+    writeSimpleRows_("PlanNotes", PLAN_NOTES_HEADER, rows);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+// split = null clears the saved split for that village and day.
+function savePlanSplit_(monthKey, day, team, villageId, split, actor) {
+  if (!planDayCheck_(monthKey, day)) return { ok: false, error: "date_out_of_range" };
+  team = String(team || "");
+  villageId = String(villageId || "");
+  if (!villageId) return { ok: false, error: "bad_village" };
+  if (!scopedTeams_(actor)[team]) return { ok: false, error: "wrong_team" };
+  var json = split ? JSON.stringify(split) : "";
+  if (json.length > 45000) return { ok: false, error: "too_large" };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = dropPastPlanRows_(readSimpleTab_("PlanSplits", PLAN_SPLITS_HEADER).rows).filter(function (r) {
+      return !(r[0] === String(monthKey) && Number(r[1]) === Number(day) && r[2] === team && r[3] === villageId);
+    });
+    if (json) rows.push([String(monthKey), String(Number(day)), team, villageId, json, actor, new Date().toISOString()]);
+    writeSimpleRows_("PlanSplits", PLAN_SPLITS_HEADER, rows);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+// villages: {villageId: <geometry JSON string>}; reset = true wipes the tab first.
+function putSoi_(villages, reset) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var keep = reset ? [] : readSimpleTab_("Soi", SOI_HEADER).rows;
+    var ids = Object.keys(villages);
+    keep = keep.filter(function (r) { return ids.indexOf(r[0]) === -1; });
+    ids.forEach(function (id) {
+      var s = String(villages[id]);
+      var n = Math.max(1, Math.ceil(s.length / SOI_CHUNK));
+      for (var i = 0; i < n; i++)
+        keep.push([String(id), String(i), String(n), s.slice(i * SOI_CHUNK, (i + 1) * SOI_CHUNK)]);
+    });
+    writeSimpleRows_("Soi", SOI_HEADER, keep);
+    return { ok: true, villages: ids.length, rows: keep.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+// ids = [] lists which villages have geometry; otherwise returns the geometry strings for those ids.
+function getSoi_(ids) {
+  var rows = readSimpleTab_("Soi", SOI_HEADER).rows;
+  var have = {};
+  rows.forEach(function (r) {
+    have[r[0]] = true;
+  });
+  if (!ids || !ids.length) return { ok: true, ids: Object.keys(have) };
+  var want = {};
+  ids.slice(0, 20).forEach(function (i) { want[String(i)] = true; });
+  var parts = {};
+  rows.forEach(function (r) {
+    if (!want[r[0]]) return;
+    (parts[r[0]] = parts[r[0]] || [])[Number(r[1])] = r[3];
+  });
+  var out = {};
+  Object.keys(parts).forEach(function (id) {
+    out[id] = parts[id].join("");
+  });
+  return { ok: true, ids: Object.keys(have), villages: out };
 }
 
 // "YYYYMM" n months from now (n may be 0).
