@@ -3921,10 +3921,12 @@ function drsDayHtml(tg,d){
   if(!p.stops.length){h+='<div class="pl">ยังไม่มีแผน<br><span class="fine">รอหัวหน้าจัดให้</span></div></section>';return h}
   var main=p.stops.length>3?p.stops.slice(0,3):p.stops,sc=schedule(main);
   h+='<div class="tot"><span>'+ic("house","sm")+" เยี่ยม <b>"+main.length+"</b> หมู่บ้าน</span></div>";
+  var allUrl=routeUrl(main);
+  if(allUrl&&main.length>1)h+='<div class="btnrow" style="margin:8px 0"><a class="bbtn pri" target="_blank" rel="noopener" href="'+allUrl+'">'+ic("route")+"เปิดทุกที่ใน Google Maps</a></div>";
   if(p.note)h+='<div class="pl note"><b>ข้อความจากหัวหน้า</b>'+esc(p.note)+"</div>";
   p.stops.forEach(function(id,i){
     var v=vById(id),bk=i>=3,key=id+"|"+d,mapUrl=v.lat.toFixed(5)+","+v.lng.toFixed(5);
-    h+='<div class="pl"><div class="plh"><b>'+(i+1)+". "+esc(v.name)+(bk?' <span class="bkp">สำรอง</span>':"")+'</b>'+(bk?"":'<span class="mono fine">ถึงประมาณ '+hm(sc.arr[i])+"</span>")+'</div><div class="fine">'+distTag(v.area)+" ต."+esc(v.sub)+"</div>"+
+    h+='<div class="pl"><div class="plh"><b>'+(i+1)+". "+esc(v.name)+(bk?' <span class="bkp">สำรอง</span>':"")+'</b>'+'</div><div class="fine">'+distTag(v.area)+" ต."+esc(v.sub)+"</div>"+
       '<div class="btnrow" style="margin-top:8px"><button class="bbtn sm" type="button" data-act="minedet" data-id="'+esc(id)+'">'+ic("eye","sm")+'รายละเอียด</button><a class="bbtn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+mapUrl+'">'+ic("route","sm")+"นำทาง</a></div>";
     var raw=soiRaw(id),sp=p.splits[raw];
     if(sp&&hasSoi(id)){
@@ -3941,6 +3943,14 @@ function drsDayHtml(tg,d){
     h+="</div>";
   });
   return h+"</section>";
+}
+/* one Google Maps route through all the stops, in order */
+function routeUrl(ids){
+  var pts=ids.map(vById).filter(Boolean);if(!pts.length)return"";
+  var f=function(v){return v.lat.toFixed(5)+","+v.lng.toFixed(5)},dest=pts[pts.length-1];
+  var u="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+f(dest);
+  if(pts.length>1)u+="&waypoints="+encodeURIComponent(pts.slice(0,-1).map(f).join("|"));
+  return u;
 }
 function mineView(){
   var me=meInfo(),tg=mineTarget(),h='<div class="mine"><div class="mine-h"><h2>แผนของฉัน</h2><span class="fine">เห็นเฉพาะวันนี้และพรุ่งนี้ · แก้ไขไม่ได้</span></div>';
