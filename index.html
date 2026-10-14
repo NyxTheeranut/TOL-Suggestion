@@ -3139,6 +3139,7 @@ function stateOf(t,d){
   p.stops.forEach(function(s){var h=holderOf(s,d,t);if(h)rs.push(vById(s).name+" "+holdText(h,t));if(isBlocked(s,d))rs.push(vById(s).name+" ไปไม่ได้วันนี้")});
   var cs=crewSmall(t,d,p);if(cs)rs.push("เหลือ "+cs.c+" จาก "+t.members.length+" คน แต่มี "+p.stops.length+" จุด");
   var hh=housesOf(mainStops(p)),cap=dayCap(t,d);if(mainStops(p).length>1&&hh>cap*1.3)rs.push("บ้านรวม "+hh.toLocaleString()+" หลัง เกินที่ทีมเดินได้ในวันเดียว (ราว "+cap.toLocaleString()+" หลัง)");
+  if(mainStops(p).length===1&&c.length>1&&t.team&&SOILIST&&!hasSoi(p.stops[0]))rs.push("ทั้งทีมไปหมู่บ้านเดียว แต่ยังไม่มีข้อมูลซอยของ "+vById(p.stops[0]).name+" จึงแบ่งซอยไม่ได้");
   if(p.diverged)rs.push("สมาชิก "+p.diverged+" คนมีแผนไม่เหมือนกัน กดบันทึกแผนเพื่อให้ทั้งทีมเหมือนกัน");
   if(p.lost)rs.push("มี "+p.lost+" แห่งในแผนที่ไม่พบในข้อมูลแล้ว");
   return{st:rs.length?"review":"plan",reasons:rs,sc:sc,cs:cs};
@@ -3164,7 +3165,7 @@ function planStops(t,d,o,extra){
     if(isClaimedByOther(v.rec)){why.claim++;return false}
     return true});
   if(!pool.length)return[];
-  pool.forEach(function(v){v._k=hav(bp,v)-0.05*v.score});pool.sort(function(a,b){return a._k-b._k});
+  pool.forEach(function(v){v._k=hav(bp,v)-0.05*v.score-(v.houses>=bigT&&hasSoi(v.id)?4:0)});pool.sort(function(a,b){return a._k-b._k});
   var first=pool[0],ids=[first.id];
   if(o.big&&first.houses>=bigT)return ids;
   var rest=pool.slice(1).filter(function(v){return v.houses<bigT}),mx=Math.min(3,o.max||3);
@@ -3215,10 +3216,11 @@ function flush(t,d){
   ensureSplits(t,d);
 }
 /* a plan with a big village always gets its street split, so the DRS sees "ซอยของคุณ" without the lead opening the tab */
+function ensureAllSplits(){if(!isMgr())return;S.teams.forEach(function(t){for(var d=0;d<N;d++)ensureSplits(t,d)})}
 function ensureSplits(t,d){
   if(!t.team||typeof hasSoi!=="function")return;
-  var p=planOf(t,d);if(!p||!crew(t,d).length)return;
-  p.stops.filter(hasSoi).forEach(function(vid){
+  var p=planOf(t,d);if(!p||crew(t,d).length<2||mainStops(p).length!==1)return; /* mandatory when the whole team goes to one village */
+  p.stops.slice(0,1).filter(hasSoi).forEach(function(vid){
     if(p.splits[vid])return;
     loadSoi(vid,function(){var q=planOf(t,d);if(!q||q.stops.indexOf(vid)<0||q.splits[vid]||!SOI[vid])return;getSplit(t,d,q,vid);PL={};if(window.B5)B5.status()})});
 }
@@ -3937,6 +3939,7 @@ function drsDayHtml(tg,d){
     h+='<div class="pl"><div class="plh"><b>'+(i+1)+". "+esc(v.name)+(bk?' <span class="bkp">สำรอง</span>':"")+'</b>'+'</div><div class="fine">'+distTag(v.area)+" ต."+esc(v.sub)+"</div>"+
       '<div class="btnrow" style="margin-top:8px"><button class="bbtn sm" type="button" data-act="minedet" data-id="'+esc(id)+'">'+ic("eye","sm")+'รายละเอียด</button><a class="bbtn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+mapUrl+'">'+ic("route","sm")+"นำทาง</a></div>";
     var raw=soiRaw(id),sp=p.splits[raw];
+    if(!sp&&main.length===1&&i===0){h+='<div class="soiown"><b>ซอยของคุณ</b><div class="fine">'+(hasSoi(id)?"หัวหน้ายังไม่ได้แบ่งซอยให้ รอสักครู่แล้วกดรีเฟรช":"ยังไม่มีข้อมูลซอยของหมู่บ้านนี้ ให้ถามหัวหน้าว่าเดินส่วนไหน")+"</div></div>"}
     if(sp&&hasSoi(id)){
       var idx=sp.crew.indexOf(tg.email);
       if(idx<0)h+='<div class="soiown"><b>ซอยของคุณ</b><div class="fine">คุณเพิ่งถูกเพิ่มเข้าทีมวันนี้ หัวหน้ายังไม่ได้แบ่งซอยให้</div></div>';
@@ -4170,7 +4173,7 @@ function afterConflicts(results){
 /* ───────── what the rest of the page calls ───────── */
 function renderMine(){var el=$("#mineView");if(!el)return;el.innerHTML=mineView();drawMineMapsLater()}
 window.B5={
-  onData:function(){buildVill();buildTeams();UI.loading=false;UI.syncAt=Date.now();PL={};renderAll();loadSoiList(function(){renderAll()})},
+  onData:function(){buildVill();buildTeams();UI.loading=false;UI.syncAt=Date.now();PL={};renderAll();loadSoiList(function(){renderAll();ensureAllSplits()})},
   show:function(){renderAll()},
   showMine:function(){renderMine()},
   status:function(){setSave()},
