@@ -3204,6 +3204,15 @@ function flush(t,d){
     Object.keys(olds).forEach(function(raw){if(stops.indexOf("village:"+raw)<0)splitSend(t,P.k,"village:"+raw,null)});
   }
   delete PL[k];mbMemoClear();
+  ensureSplits(t,d);
+}
+/* a plan with a big village always gets its street split, so the DRS sees "ซอยของคุณ" without the lead opening the tab */
+function ensureSplits(t,d){
+  if(!t.team||typeof hasSoi!=="function")return;
+  var p=planOf(t,d);if(!p||!crew(t,d).length)return;
+  p.stops.filter(hasSoi).forEach(function(vid){
+    if(p.splits[vid])return;
+    loadSoi(vid,function(){var q=planOf(t,d);if(!q||q.stops.indexOf(vid)<0||q.splits[vid]||!SOI[vid])return;getSplit(t,d,q,vid);PL={};if(window.B5)B5.status()})});
 }
 function snapPlan(t,d){
   var P=dparts(d),o={picks:{},note:((STATE.planNotes||{})[nkey(t,P.k)])||"",splits:JSON.parse(JSON.stringify((STATE.planSplits||{})[nkey(t,P.k)]||{}))};
@@ -3420,7 +3429,7 @@ function drawMap(t,d,p){
   if(typeof L==="undefined"){el.innerHTML='<div class="empty"><b>โหลดแผนที่ไม่ได้</b>ตรวจอินเทอร์เน็ตแล้วลองใหม่</div>';return}
   if(MAP){MAP.remove();MAP=null}
   MAP=L.map(el).setView([13.93,100.43],11);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,attribution:"Tiles © Esri"}).addTo(MAP);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(MAP);
   var cols={"บางบัวทอง":"#3b6fc4","ปากเกร็ด":"#b4437a","ไทรน้อย":"#2f8a55"};
   if(UI.zones&&typeof DISTRICT_BOUNDARIES!=="undefined")Object.keys(DISTRICT_BOUNDARIES).forEach(function(k){var c=cols[k]||"#667";var g=L.geoJSON({type:"Feature",geometry:DISTRICT_BOUNDARIES[k],properties:{}},{interactive:false,style:{color:c,weight:2,dashArray:"8 6",fillColor:c,fillOpacity:.05,opacity:.8}}).addTo(MAP);L.marker(g.getBounds().getCenter(),{interactive:false,icon:L.divIcon({className:"",html:'<span class="zone">'+esc(k)+"</span>",iconSize:[90,16],iconAnchor:[45,8]})}).addTo(MAP)});
   if(p&&p.stops.length){var pts=[];p.stops.forEach(function(id,i){var v=vById(id);pts.push([v.lat,v.lng]);L.marker([v.lat,v.lng],{icon:L.divIcon({className:"",html:'<div class="mk">'+(i+1)+"</div>",iconSize:[26,26],iconAnchor:[13,13]})}).bindTooltip(v.name).addTo(MAP)});L.polyline(pts,{color:"#0c6b5c",weight:3,opacity:.85}).addTo(MAP);MAP.fitBounds(L.latLngBounds(pts).pad(.35),{maxZoom:15})}
@@ -3835,7 +3844,7 @@ function drawSplitMap(el,vid,sp,focus,opt){
   var sv=SOI[vid];if(!sv||typeof L==="undefined")return;
   if(MAP){MAP.remove();MAP=null}
   var map=L.map(el).setView(sv.center,16);MAP=map;
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"}).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(map);
   var E=soiEngine(vid,sp.basis),k=sp.crew.length,all=[],mine=[],cols=[];var cs=getComputedStyle(el);for(var i=0;i<k;i++)cols.push(cs.getPropertyValue("--t"+((i%8)+1)).trim()||"#667");
   var lists=[];for(var c=0;c<k;c++)lists.push([]);sp.own.forEach(function(o,x){if(lists[o])lists[o].push(x)});
   /* every person's area, softly */
