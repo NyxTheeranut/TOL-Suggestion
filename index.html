@@ -3118,6 +3118,10 @@ function takenOn(d,exceptTeam){var set=new Set();S.teams.forEach(function(x){if(
 function holderOf(vid,d,t){var res=null;S.teams.forEach(function(x){if(x.id===t.id)return;var p=planOf(x,d);if(p&&p.stops.indexOf(vid)>=0)res=x});return res}
 function isBlocked(vid,d){return S.blocked[vid+"|"+dk(d)]}
 function lastVisit(t,vid,d){var best=null;for(var i=0;i<d;i++){var p=planOf(t,i);if(p&&p.stops.indexOf(vid)>=0){var a=d-i;if(best===null||a<best)best=a}}return best}
+/* what a team can walk in one day: about 100 houses per person working */
+var PER_DRS=100;
+function dayCap(t,d){return PER_DRS*Math.max(1,crew(t,d).length||t.members.length||1)}
+function housesOf(ids){return ids.reduce(function(s,id){var v=vById(id);return s+(v?v.houses:0)},0)}
 function mainStops(p){return p.stops.length>3?p.stops.slice(0,3):p.stops}
 function schedule(ids){var t=START,prev=null,arr=[],km=0;ids.forEach(function(id){var v=vById(id);if(prev){var d=hav(prev,v);km+=d;t+=d*1.35/22*60}arr.push(t);t+=Math.max(90,Math.min(210,60+v.houses*.12));prev=v});return{arr:arr,end:t,over:Math.max(0,t-CLOSE),km:km}}
 function crewSmall(t,d,p){var c=crew(t,d).length;if(!p||t.members.length<3||c===0)return null;if(c/t.members.length>.4||p.stops.length<3)return null;return{c:c,keep:Math.max(2,Math.ceil(p.stops.length*c/t.members.length))}}
@@ -3132,6 +3136,7 @@ function stateOf(t,d){
   if(sc.over>0)rs.push("เกินเวลาเลิกงานประมาณ "+Math.round(sc.over)+" นาที");
   p.stops.forEach(function(s){var h=holderOf(s,d,t);if(h)rs.push(vById(s).name+" "+holdText(h,t));if(isBlocked(s,d))rs.push(vById(s).name+" ไปไม่ได้วันนี้")});
   var cs=crewSmall(t,d,p);if(cs)rs.push("เหลือ "+cs.c+" จาก "+t.members.length+" คน แต่มี "+p.stops.length+" จุด");
+  var hh=housesOf(mainStops(p)),cap=dayCap(t,d);if(mainStops(p).length>1&&hh>cap*1.3)rs.push("บ้านรวม "+hh.toLocaleString()+" หลัง เกินที่ทีมเดินได้ในวันเดียว (ราว "+cap.toLocaleString()+" หลัง)");
   if(p.diverged)rs.push("สมาชิก "+p.diverged+" คนมีแผนไม่เหมือนกัน กดบันทึกแผนเพื่อให้ทั้งทีมเหมือนกัน");
   if(p.lost)rs.push("มี "+p.lost+" แห่งในแผนที่ไม่พบในข้อมูลแล้ว");
   return{st:rs.length?"review":"plan",reasons:rs,sc:sc,cs:cs};
@@ -3146,7 +3151,7 @@ function takenIds(t,d,skip,extra){
 }
 function planStops(t,d,o,extra){
   var taken=takenIds(t,d,o.skip,extra),why={none:!VILL.length,taken:0,blocked:0,claim:0,filt:0};planStops.why=why;
-  var cn=crew(t,d).length||t.members.length||1,bigT=Math.max(300,100*cn),bp=teamCenter(t);
+  var bigT=dayCap(t,d),bp=teamCenter(t);
   var pool=VILL.filter(function(v){
     if(o.kind==="village"&&v.rk!=="village"){why.filt++;return false}if(o.kind==="building"&&v.rk!=="building"){why.filt++;return false}
     var sf=o.status||"usable";if(sf==="usable"&&v.status==="ปิด"){why.filt++;return false}if(sf==="open"&&v.status!=="เปิด"){why.filt++;return false}if(sf==="activity"&&v.status!=="กิจกรรมได้"){why.filt++;return false}if(sf==="closed"&&v.status!=="ปิด"){why.filt++;return false}
@@ -3161,7 +3166,8 @@ function planStops(t,d,o,extra){
   var first=pool[0],ids=[first.id];
   if(o.big&&first.houses>=bigT)return ids;
   var rest=pool.slice(1).filter(function(v){return v.houses<bigT}),mx=Math.min(3,o.max||3);
-  while(ids.length<mx&&rest.length){var last=vById(ids[ids.length-1]);rest.sort(function(a,b){return hav(last,a)-hav(last,b)});var nx=rest.shift(),trial=ids.concat([nx.id]);if(schedule(trial).end>1020)break;ids=trial}
+  /* keep adding nearby places until the day's houses reach what the team can walk */
+  while(ids.length<mx&&rest.length&&housesOf(ids)<bigT){var last=vById(ids[ids.length-1]);rest.sort(function(a,b){return hav(last,a)-hav(last,b)});var nx=rest.shift(),trial=ids.concat([nx.id]);if(schedule(trial).end>1020)break;ids=trial}
   if(o.backup&&rest.length){var l2=vById(ids[ids.length-1]);rest.sort(function(a,b){return hav(l2,a)-hav(l2,b)});ids.push(rest[0].id)}
   return ids;
 }
@@ -3390,13 +3396,13 @@ function tabPlan(t,d,s,p){
     if(s.cs)fx+='<button class="bbtn sm" type="button" data-act="shrink" data-keep="'+s.cs.keep+'">ลดเหลือ '+s.cs.keep+" จุด</button>";
     h+=(fx?'<div class="btnrow">'+fx+"</div>":"")+"</div></div>";
   }
-  var sc=s.sc||schedule(mainStops(p)),big=p.stops.length===1&&vById(p.stops[0]).houses>=Math.max(300,100*crew(t,d).length);
+  var sc=s.sc||schedule(mainStops(p)),big=p.stops.length===1&&vById(p.stops[0]).houses>=dayCap(t,d);
   h+='<div class="sum"><span>เสร็จประมาณ <b>'+hm(sc.end)+"</b></span><span>เดินทาง <b>"+sc.km.toFixed(1)+"</b> กม.</span>"+(sc.over>0?'<span class="over">เกินเวลา ~'+Math.round(sc.over)+" นาที</span>":'<span class="okk">ทันเวลา</span>')+(p.who?"<span>แก้ล่าสุด "+esc(p.at)+"</span>":"")+"</div>";
   if(big)h+='<div class="fine" style="margin-bottom:8px">หมู่บ้านใหญ่ ทั้งทีมไปที่เดียวตลอดวัน</div>';
   h+='<ol class="stops'+(lock?" lk":"")+'">'+p.stops.map(function(id,i){
     var v=vById(id),hd=holderOf(id,d,t),bl=isBlocked(id,d),lv=lastVisit(t,id,d);
     var why=hd?'<div class="why">'+ic("alert","sm")+esc(holdText(hd,t))+" ควรเปลี่ยน</div>":(bl?'<div class="why">'+ic("ban","sm")+"ไปไม่ได้วันนี้ ("+esc(bl)+") ควรเปลี่ยน</div>":"");
-    return '<li class="stop'+(hd||bl?" bad":"")+'"><div class="top2"><span class="no">'+(i+1)+'</span><div><h3>'+esc(v.name)+'</h3><div class="meta">'+distTag(v.area)+" ต."+esc(v.sub)+" · "+v.houses.toLocaleString()+" หลัง"+(v.houses>=900?" · หมู่บ้านใหญ่":"")+(lv!==null&&lv<=7?" · <em>ไปล่าสุด "+lv+" วันก่อน</em>":"")+'</div></div><div class="time">'+(i<3?hm(sc.arr[i]):"สำรอง")+"</div></div>"+why+
+    return '<li class="stop'+(hd||bl?" bad":"")+'"><div class="top2"><span class="no">'+(i+1)+'</span><div><h3>'+esc(v.name)+'</h3><div class="meta">'+distTag(v.area)+" ต."+esc(v.sub)+" · "+v.houses.toLocaleString()+" หลัง"+(v.houses>=dayCap(t,d)?" · หมู่บ้านใหญ่":"")+(lv!==null&&lv<=7?" · <em>ไปล่าสุด "+lv+" วันก่อน</em>":"")+'</div></div><div class="time">'+(i<3?hm(sc.arr[i]):"สำรอง")+"</div></div>"+why+
       '<div class="acts"><button class="bbtn sm" type="button" data-act="alt" data-i="'+i+'" aria-expanded="'+(UI.altFor===i)+'">'+ic("swap","sm")+'เปลี่ยน</button><button class="bbtn sm" type="button" data-act="block" data-i="'+i+'" aria-expanded="'+(UI.blockFor===i)+'">'+ic("ban","sm")+'ไปไม่ได้</button><a class="bbtn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+v.lat.toFixed(5)+","+v.lng.toFixed(5)+'">'+ic("route","sm")+'Maps</a><button class="ib" type="button" data-act="mv" data-i="'+i+'" data-dir="-1" aria-label="เลื่อนขึ้น"'+(i===0?" disabled":"")+">"+ic("up","sm")+'</button><button class="ib" type="button" data-act="mv" data-i="'+i+'" data-dir="1" aria-label="เลื่อนลง"'+(i===p.stops.length-1?" disabled":"")+">"+ic("down","sm")+'</button><button class="ib" type="button" data-act="rm" data-i="'+i+'" aria-label="เอาสถานที่นี้ออก">'+ic("x","sm")+"</button></div>"+
       (UI.altFor===i?altList(t,d,i):"")+(UI.blockFor===i?blockList(i):"")+"</li>"}).join("")+"</ol>";
   h+='<div class="addrow'+(lock?" lockbar":"")+'"><button class="bbtn sm" type="button" data-act="addopen">'+ic("plus","sm")+'เพิ่มสถานที่</button><button class="bbtn sm" type="button" data-act="regen">'+ic("gen","sm")+'สร้างแผนใหม่</button><button class="bbtn sm danger" type="button" data-act="delplan">ลบแผนวันนี้</button></div>';
@@ -3488,7 +3494,7 @@ function genView(){
   h+='<div><label class="l">แท็ก <span class="fine" style="font-weight:400">(เลือกหลายอัน = ต้องมีครบทุกอัน)</span></label><div class="pills" role="group">'+TAGS5.map(function(x){return '<button type="button" data-act="gtag" data-g="'+x[0]+'" aria-pressed="'+GENO.tags.has(x[0])+'">'+esc(x[1])+"</button>"}).join("")+"</div></div>";
   h+='<div><label class="l">สถานะหมู่บ้าน</label><div class="pills" role="group">'+[["usable","เข้าได้ (เปิด + ทำกิจกรรมได้)"],["open","เปิด"],["activity","ปิดแต่ทำกิจกรรมได้"],["closed","ปิด"],["all","ทั้งหมด"]].map(function(x){return '<button type="button" data-act="gstatus" data-s="'+x[0]+'" aria-pressed="'+(GENO.status===x[0])+'">'+x[1]+"</button>"}).join("")+"</div></div>";
   h+='<div><label class="l">จุดหลักต่อวัน ไม่เกิน</label><div class="pills" role="group">'+[1,2,3].map(function(n){return '<button type="button" data-act="gmax" data-n="'+n+'" aria-pressed="'+(GENO.max===n)+'">'+n+"</button>"}).join("")+"</div></div>";
-  h+='<label class="sw"><input type="checkbox" data-gopt="big"'+(GENO.big?" checked":"")+"> หมู่บ้านใหญ่ (900 หลังขึ้นไป) ไปทั้งทีมที่เดียวทั้งวัน</label>";
+  h+='<label class="sw"><input type="checkbox" data-gopt="big"'+(GENO.big?" checked":"")+"> หมู่บ้านใหญ่ (เกิน 100 หลังต่อคนที่ทำงาน) ไปทั้งทีมที่เดียวทั้งวัน แล้วแบ่งซอย</label>";
   if(GENO.mode==="redo")h+='<label class="sw"><input type="checkbox" data-gopt="today"'+(GENO.today?" checked":"")+"> รวมแผนของวันนี้ (DRS กำลังใช้อยู่)</label>";
   h+='<label class="sw"><input type="checkbox" data-gopt="backup"'+(GENO.backup?" checked":"")+"> เพิ่มสถานที่สำรอง 1 แห่งต่อวัน</label>";
   h+='<div class="fine" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">ตรงตัวกรอง <b class="mono" style="color:var(--ink)">'+match+"</b> จาก "+VILL.length+" แห่ง"+(genFiltered()||GENO.teams.size?' <button class="link" type="button" data-act="gclear">ล้างตัวกรอง</button>':"")+"</div>";
