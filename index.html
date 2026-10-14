@@ -907,6 +907,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 .b5 .bcard{animation:none !important}
 .b5 .mine{padding:14px clamp(14px,2.2vw,32px) 56px}
 .b5 #mineView{display:block}
+.b5 .top .sync{display:inline-flex !important}
+@media (max-width:700px){.b5 .top .sync>span{display:none}.b5 .top .sync button{min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r1);background:var(--panel);text-decoration:none;font-weight:600}.b5 .top .sync.stale button{border-color:var(--amb);color:var(--amb)}}
 .b5.ov{background:transparent;min-height:0;display:contents}
 .b5 #soiMap,.b5 .soimap{height:360px;border-radius:var(--r2);border:1px solid var(--line);overflow:hidden}
 @media (max-width:700px){.b5 #soiMap,.b5 .soimap{height:300px}}
