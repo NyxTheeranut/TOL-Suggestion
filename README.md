@@ -105,7 +105,7 @@ sample row (until then, everyone gets "not set up yet"). Fill one row per person
 | `name` | shown on the board and in แผนของฉัน |
 | `team` | DRS only — the team they work in (a DRS without a team is a team of one) |
 | `owner` | DRS only — the **email of the CM** who runs them. A CM sees and edits only the DRS whose `owner` is them; PBH and ADMIN see everyone. A DRS with a blank `owner` is visible to PBH / ADMIN only. If the column does not exist at all, every manager sees every DRS (the old behaviour). |
-| `leader` | DRS only — `TRUE` for the team leader (shown as a badge, and gets the first part of a split village) |
+| `leader` | DRS only — `TRUE` for the team leader. You normally do not type this: click "ตั้งเป็น Leader" on the board (the page writes this column) |
 
 Real names and emails live **only** in this tab, never in the page or the repo.
 

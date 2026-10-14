@@ -4003,13 +4003,13 @@ function teamView(){
   var h='<div class="side-h"><button class="crumb" type="button" data-act="back">'+ic("back","sm")+'กลับไปดูแผน</button><div class="row"><div style="flex:1;min-width:0"><h2>'+esc(t.name)+'</h2><div class="d">'+(t.owner?"ผู้ดูแล "+esc(mgrName(t.owner)):"ยังไม่มีผู้ดูแล")+' · '+t.members.length+' คน</div></div><button class="ib closeside" data-act="closeside" type="button" aria-label="ปิด">'+ic("x")+"</button></div></div>";
   h+='<div class="pbody" id="pbody">';
   h+='<div class="sec"><h3>คนในทีม ('+t.members.length+')</h3>';
-  h+=t.members.map(function(m){return '<div class="pl-row"><span>'+esc(m.name)+(m.leader?' <em class="lead">Leader</em>':"")+'<small class="fine" style="display:block">'+esc(m.email)+"</small></span></div>"}).join("");
-  h+='<p class="fine" style="margin-top:6px">เพิ่มคน ย้ายทีม เปลี่ยนผู้ดูแล หรือเปลี่ยน Leader ได้ที่แท็บ Users ของ Google Sheet (คอลัมน์ team, owner, leader) แล้วกดรีเฟรช</p></div>';
-  h+='<div class="sec"><h3>วันทำงานประจำสัปดาห์</h3><p class="fine">กดเพื่อเพิ่มหรือเอาวันของแต่ละคนออก แผนของวันที่เอาออกจะถูกเก็บไว้ ถ้าเพิ่มกลับมาจะได้แผนเดิม</p>';
-  h+=t.members.map(function(m){var on=pubDays(m.email);return '<div class="pwd"><span class="pn" title="'+esc(m.name)+'">'+esc(m.name)+'</span><div class="wd" role="group" aria-label="วันทำงานของ '+esc(m.name)+'">'+[1,2,3,4,5,6,7].map(function(i){return '<button type="button" data-act="pwd" data-m="'+esc(m.email)+'" data-wd="'+i+'" aria-pressed="'+(on.indexOf(i)>=0)+'" aria-label="'+DOWL[i%7]+'">'+DOW[i%7]+"</button>"}).join("")+"</div></div>"}).join("")+"</div>";
+  h+=t.members.map(function(m){return '<div class="pl-row"><span style="flex:1;min-width:0">'+esc(m.name)+(m.leader?' <em class="lead">Leader</em>':"")+'<small class="fine" style="display:block">'+esc(m.email)+'</small></span>'+(t.team?'<button class="bbtn sm" type="button" data-act="leader" data-m="'+esc(m.email)+'">'+(m.leader?"เอา Leader ออก":"ตั้งเป็น Leader")+"</button>":"")+"</div>"}).join("");
+  h+='<p class="fine" style="margin-top:6px">เพิ่มคนหรือย้ายทีมที่แท็บ Users ของ Google Sheet (คอลัมน์ team, owner) แล้วกดรีเฟรช</p></div>';
+  var tdays=teamDays(t);
+  h+='<div class="sec"><h3>วันทำงานของทีม</h3><p class="fine">กดวันเพื่อให้ทั้งทีมทำงานหรือหยุดวันนั้นทุกสัปดาห์ ถ้ามีคนไม่มาบางวัน ให้เลือกด้านล่าง</p><div class="wd" role="group" aria-label="วันทำงานของทีม">'+[1,2,3,4,5,6,7].map(function(i){return '<button type="button" data-act="tday" data-wd="'+i+'" aria-pressed="'+(tdays.indexOf(i)>=0)+'" aria-label="'+DOWL[i%7]+'">'+DOW[i%7]+"</button>"}).join("")+"</div></div>";
   UI.crewDate=UI.crewDate&&UI.crewDate>=dk(0)&&UI.crewDate<=dk(N-1)?UI.crewDate:dk(UI.sel?Math.min(UI.sel.d,N-1):0);
-  h+='<div class="sec"><h3>ใครทำงานวันไหน</h3><p class="fine">เลือกวัน แล้วติ๊กคนที่ทำงานวันนั้น แผนของทีมยังอยู่</p><div class="form"><label class="sr" for="cwDate">วันที่</label><input type="date" id="cwDate" min="'+dk(0)+'" max="'+dk(N-1)+'" value="'+UI.crewDate+'"></div>';
-  h+='<div class="members" role="group" aria-label="คนที่ทำงานวันที่ '+UI.crewDate+'" style="margin-top:8px">'+t.members.map(function(m){var on=mbCrewSet(UI.crewDate).has(m.email);return '<label class="mem"><input type="checkbox" data-cw="'+esc(m.email)+'"'+(on?" checked":"")+"> "+esc(m.name)+(m.leader?' <em class="lead">Leader</em>':"")+"<small>"+(on?"ทำงาน":"ไม่ทำงาน")+"</small></label>"}).join("")+"</div>";
+  h+='<div class="sec"><h3>ใครไม่ทำงาน</h3><p class="fine">เลือกวัน แล้วติ๊กคนที่ไม่ทำงานวันนั้น แผนของทีมยังอยู่ ติ๊กออกเพื่อให้กลับมาทำงาน</p><div class="form"><label class="sr" for="cwDate">วันที่</label><input type="date" id="cwDate" min="'+dk(0)+'" max="'+dk(N-1)+'" value="'+UI.crewDate+'"></div>';
+  h+='<div class="members" role="group" aria-label="คนที่ไม่ทำงานวันที่ '+UI.crewDate+'" style="margin-top:8px">'+t.members.map(function(m){var off=!mbCrewSet(UI.crewDate).has(m.email);return '<label class="mem"><input type="checkbox" data-cw="'+esc(m.email)+'"'+(off?" checked":"")+"> "+esc(m.name)+(m.leader?' <em class="lead">Leader</em>':"")+"<small>"+(off?"ไม่ทำงาน":"ทำงาน")+"</small></label>"}).join("")+"</div>";
   h+='<div class="btnrow" style="margin-top:8px"><button class="bbtn sm" type="button" data-act="teamday" data-on="1">ให้ทั้งทีมทำงานวันนี้</button><button class="bbtn sm" type="button" data-act="teamday" data-on="0">ให้ทั้งทีมหยุดวันนี้</button></div></div>';
   var np=0;for(var q=0;q<N;q++)if(planOf(t,q))np++;
   h+='<div class="sec"><h3>แผนของทีมนี้</h3><p class="fine">ตอนนี้มีแผน '+np+' วัน</p><div class="btnrow"><button class="bbtn sm" type="button" data-act="copyweek"'+(np?"":" disabled")+'>'+ic("copy","sm")+'คัดลอกแผน 7 วัน (ส่ง LINE)</button><button class="bbtn sm danger" type="button" data-act="clearteam" data-t="'+t.id+'"'+(np?"":" disabled")+'>ล้างแผนของทีมนี้…</button></div></div>';
@@ -4021,13 +4021,23 @@ function setWorks(k,email,want){mbSetWorks(k,email,want);mbQueueOverride(k,[emai
 function worksSnap(k,emails){var o={};emails.forEach(function(e){o[e]=mbCrewSet(k).has(e)});return o}
 function worksRestore(k,snap){Object.keys(snap).forEach(function(e){if(mbCrewSet(k).has(e)!==snap[e])setWorks(k,e,snap[e])})}
 function allEmails(){return(STATE.drsUsers||[]).slice()}
-function setPerson(email,days){
+/* weekdays the whole team works (every member) */
+function teamDays(t){return[1,2,3,4,5,6,7].filter(function(w){return t.members.length&&t.members.every(function(m){return((STATE.roster||{})[w]||[]).indexOf(m.email)>=0})})}
+function setTeamDay(t,w,on){
+  var groups={},moved=0;
+  t.members.forEach(function(m){
+    var cur=pubDays(m.email),i=cur.indexOf(w);if(on&&i<0)cur.push(w);if(!on&&i>=0)cur.splice(i,1);cur.sort();
+    moved+=setPerson(m.email,cur,true);(groups[cur.join(",")]=groups[cur.join(",")]||{days:cur,emails:[]}).emails.push(m.email)});
+  Object.keys(groups).forEach(function(k){mbSavePattern(groups[k].emails,groups[k].days)});
+  return moved;
+}
+function setPerson(email,days,noSave){
   var before={};for(var i=0;i<N;i++){var k=dk(i);before[k]=mbCrewSet(k).has(email)}
   for(var w=1;w<=7;w++){var rest=((STATE.roster||{})[w]||[]).filter(function(x){return x!==email});STATE.roster[w]=days.indexOf(w)>=0?rest.concat([email]):rest}
   mbMemoClear();
   var moved=0;
   for(var j=0;j<N;j++){var k2=dk(j),now=mbCrewSet(k2).has(email);if(now!==before[k2]){moved++;mbSyncPlan(k2,email,now)}}
-  mbSavePattern([email],days);return moved;
+  if(!noSave)mbSavePattern([email],days);return moved;
 }
 
 var A={
@@ -4063,6 +4073,18 @@ var A={
   editcrew:function(){UI.editCrew=!UI.editCrew;renderSide()},
   addday:function(){var t=teamById(UI.sel.t),k=dk(UI.sel.d),em=t.members.map(function(m){return m.email}),snap=worksSnap(k,em);em.forEach(function(e){setWorks(k,e,true)});pushUndo("ให้ทีมทำงาน",function(){worksRestore(k,snap)});persist();renderAll();toast("ให้ "+t.name+" ทำงาน "+short(UI.sel.d),true)},
   teamday:function(b){var t=teamById(UI.teamId),k=UI.crewDate,on=b.dataset.on==="1",em=t.members.map(function(m){return m.email}),snap=worksSnap(k,em);em.forEach(function(e){setWorks(k,e,on)});pushUndo(on?"ให้ทีมทำงาน":"ให้ทีมหยุด",function(){worksRestore(k,snap)});persist();renderAll();toast(on?"ให้ทั้งทีมทำงานวันนั้นแล้ว":"ให้ทั้งทีมหยุดวันนั้นแล้ว แผนเก็บไว้ให้",true)},
+  tday:function(b){
+    var t=teamById(UI.teamId),w=+b.dataset.wd,on=teamDays(t).indexOf(w)<0,prev={};
+    t.members.forEach(function(m){prev[m.email]=pubDays(m.email)});
+    var moved=setTeamDay(t,w,on);
+    pushUndo("เปลี่ยนวันทำงานของทีม",function(){var g={};t.members.forEach(function(m){setPerson(m.email,prev[m.email],true);(g[prev[m.email].join(",")]=g[prev[m.email].join(",")]||{days:prev[m.email],emails:[]}).emails.push(m.email)});Object.keys(g).forEach(function(k){mbSavePattern(g[k].emails,g[k].days)})});
+    persist();renderAll();toast((on?"ให้ทีมทำงานวัน":"ให้ทีมหยุดวัน")+DOWL[w%7]+"แล้ว"+(moved?" · เก็บแผนไว้ "+moved+" วัน":""),true)},
+  leader:function(b){
+    var t=teamById(UI.teamId),em=b.dataset.m,was=t.members.filter(function(m){return m.leader}).map(function(m){return m.email}),on=was.indexOf(em)<0;
+    /* local update: only this team's leader changes */
+    t.members.forEach(function(m){delete STATE.drsLeaders[m.email]});if(on)STATE.drsLeaders[em]=true;
+    buildTeams();PL={};renderAll();
+    api("setLeader",{team:t.team,email:em,on:on}).then(function(){toast(on?"ตั้ง Leader แล้ว":"เอา Leader ออกแล้ว")}).catch(function(e){t.members.forEach(function(m){delete STATE.drsLeaders[m.email]});was.forEach(function(x){STATE.drsLeaders[x]=true});buildTeams();PL={};renderAll();toast("บันทึก Leader ไม่สำเร็จ: "+e.message+" (ต้อง redeploy Apps Script ล่าสุด)")})},
   pwd:function(b){
     var email=b.dataset.m,w=+b.dataset.wd,cur=pubDays(email),i=cur.indexOf(w),prev=cur.slice();
     if(i>=0)cur.splice(i,1);else cur.push(w);cur.sort();
@@ -4140,7 +4162,7 @@ document.addEventListener("change",function(e){
     setWorks(k,em,el.checked);var left=crew(t,UI.sel.d).length;
     pushUndo("เปลี่ยนคนที่ทำงาน",function(){setWorks(k,em,was)});persist();renderAll();toast("วันนี้ทำงาน "+left+"/"+t.members.length+" คน"+(left?" · แผนของทีมยังอยู่":" · ไม่มีใครทำงาน เก็บแผนไว้ให้"));return}
   if(el.id==="cwDate"){UI.crewDate=el.value;renderSide();return}
-  if(el.dataset&&el.dataset.cw&&UI.teamId){var cd=UI.crewDate,em5=el.dataset.cw,was5=!el.checked;setWorks(cd,em5,el.checked);pushUndo("เปลี่ยนคนที่ทำงาน",function(){setWorks(cd,em5,was5)});persist();renderAll();return}
+  if(el.dataset&&el.dataset.cw&&UI.teamId){var cd=UI.crewDate,em5=el.dataset.cw,was5=el.checked;setWorks(cd,em5,!el.checked);pushUndo("เปลี่ยนคนที่ทำงาน",function(){setWorks(cd,em5,was5)});persist();renderAll();return}
   if(el.id==="mineWho"){UI.mineWho=el.value;renderMine();return}
   if(el.dataset&&el.dataset.copt){CLR[el.dataset.copt]=el.checked;CLR.armed=false;renderSide();return}
   if(el.id==="pNote"&&UI.sel){var t4=teamById(UI.sel.t),d4=UI.sel.d,p4=planOf(t4,d4),v4=el.value.trim().slice(0,200);if(p4&&(p4.note||"")!==v4)commit(t4,d4,"แก้ข้อความถึง DRS",function(){p4.note=v4});return}

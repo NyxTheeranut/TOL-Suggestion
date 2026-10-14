@@ -316,6 +316,7 @@ function doPost(e) {
       body.action === "saveDrsOverride" ||
       body.action === "saveDrsPattern" ||
       body.action === "mergeDrsOverride" ||
+      body.action === "setLeader" ||
       body.action === "savePlanNote" ||
       body.action === "savePlanSplit" ||
       body.action === "saveCalendarMonth" ||
@@ -343,6 +344,8 @@ function doPost(e) {
         return jsonResponse_(saveDrsPattern_(body.emails || [], body.weekdays || [], emailC));
       if (body.action === "mergeDrsOverride")
         return jsonResponse_(mergeDrsOverride_(body.date, body.add || [], body.remove || [], emailC, body.clear || []));
+      if (body.action === "setLeader")
+        return jsonResponse_(setLeader_(body.team, body.email, !!body.on, emailC));
       if (body.action === "savePlanNote")
         return jsonResponse_(savePlanNote_(body.monthKey, body.day, body.team, body.note, emailC));
       if (body.action === "savePlanSplit")
@@ -1545,6 +1548,37 @@ function getSoi_(ids) {
     out[id] = parts[id].join("");
   });
   return { ok: true, ids: Object.keys(have), villages: out };
+}
+
+// Makes one DRS the leader of their team (or removes it) by writing the Users tab's `leader` column,
+// adding the column if it is missing. One leader per team: everyone else in that team is cleared.
+function setLeader_(team, email, on, actor) {
+  team = String(team || "");
+  email = String(email || "").toLowerCase();
+  var users = readUsers_(), scope = scopedDrsEmails_(actor, users), target = null;
+  users.forEach(function (u) { if (u.email === email) target = u; });
+  if (!team || !target || target.role !== "DRS" || !scope[email] || target.team !== team)
+    return { ok: false, error: "wrong_team" };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Users");
+    var data = sheet.getDataRange().getValues();
+    var header = data[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var emailCol = header.indexOf("email"), teamCol = Math.max(header.indexOf("team"), header.indexOf("ทีม")), leaderCol = header.indexOf("leader");
+    if (leaderCol === -1) {
+      leaderCol = header.length;
+      sheet.getRange(1, leaderCol + 1).setValue("leader");
+    }
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][teamCol]).trim() !== team) continue;
+      var em = String(data[i][emailCol]).trim().toLowerCase();
+      sheet.getRange(i + 1, leaderCol + 1).setValue(em === email && on ? "TRUE" : "");
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
 }
 
 // "YYYYMM" n months from now (n may be 0).
