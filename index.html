@@ -3348,7 +3348,7 @@ function ensureSel(){
   for(var d=0;d<N&&!pick;d++)visTeams().forEach(function(t){if(!pick&&stateOf(t,d).st==="missing")pick={t:t.id,d:d}});
   UI.sel=pick||{t:visTeams()[0].id,d:0};UI.mode="day";UI.tab="plan";
 }
-function renderSide(){
+function renderSide0(){
   var el=$("#side");
   if(UI.mode==="gen"){el.innerHTML=genView();wireSide();return}
   if(UI.mode==="clear"){el.innerHTML=clearView();wireSide();return}
@@ -3363,6 +3363,14 @@ function renderSide(){
   el.innerHTML=h;wireSide();
   if(UI.tab==="map")requestAnimationFrame(function(){drawMap(t,d,p)});
   if(UI.tab==="soi"&&p&&SOI)requestAnimationFrame(function(){drawSoiMap(t,d,p)});
+}
+/* re-rendering the side panel must not throw the scroll position back to the top */
+function renderSide(){
+  var sd=$("#side"),pb=$("#pbody"),key=UI.mode+"|"+UI.teamId+"|"+(UI.sel?UI.sel.t+UI.sel.d:"")+"|"+UI.tab,keep=renderSide.key===key;
+  var s1=sd?sd.scrollTop:0,s2=pb?pb.scrollTop:0;
+  renderSide0();
+  renderSide.key=key;
+  if(keep){var sd2=$("#side"),pb2=$("#pbody");if(sd2)sd2.scrollTop=s1;if(pb2)pb2.scrollTop=s2}
 }
 function wireSide(){var el=$("#side");if(matchMedia("(max-width:1100px)").matches){el.classList.toggle("open",!!UI.open);$("#scrim").classList.toggle("show",!!UI.open)}}
 function conflictHtml(t,d){return""}
