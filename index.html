@@ -915,6 +915,47 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 
   </style>
 
+
+  <style id="polish">
+    /* ── polish pass: browser surfaces, touch, small screens, rhythm ── */
+    ::selection { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+    input, select, textarea, button { caret-color: var(--accent); }
+    input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--accent); }
+    .result-list, .section-scroll, .modal-card, .search-sidebar, .rec-table-wrap, .b5root { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    h1, h2, h3, .modal-head h3 { text-wrap: balance; }
+    p, .hint, .login-card p { text-wrap: pretty; }
+    button, a, select, input, .result-row, .tag-chip { touch-action: manipulation; }
+    /* body-size text never below 12px */
+    .result-row .loc, .demo-item .lbl, .badge, .brand .sub, .l2-item-sub, .port-opt, .district-clear, .district-group-header, .tag-chips.compact .tag-chip { font-size: 12px; }
+    /* dark theme: the light accent needs dark text (white on it was 3.1:1) and shadows stay neutral */
+    :root[data-theme="dark"] .btn.primary, :root[data-theme="dark"] .mobile-view-switch button.active, :root[data-theme="dark"] .port-opt.active { color: #04201b; }
+    :root[data-theme="dark"] { --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.6); --shadow-lift: 0 1px 0 rgba(0,0,0,.3), 0 16px 34px -14px rgba(0,0,0,.7); }
+    :root[data-theme="dark"] .kind-toggle button.active { box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+    :root[data-theme="dark"] .btn.primary:hover { background: var(--accent-mark); }
+    :root[data-theme="dark"] .topbar, :root[data-theme="dark"] .search-sidebar { box-shadow: 0 8px 24px -22px rgba(0, 0, 0, .7); }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .btn.primary, :root:not([data-theme="light"]) .mobile-view-switch button.active, :root:not([data-theme="light"]) .port-opt.active { color: #04201b; }
+      :root:not([data-theme="light"]) .btn.primary:hover { background: var(--accent-mark); }
+      :root:not([data-theme="light"]) .topbar, :root:not([data-theme="light"]) .search-sidebar { box-shadow: 0 8px 24px -22px rgba(0, 0, 0, .7); }
+    }
+    .login-card p { color: #5a6573; }
+    .ana-med-tick { paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
+    .ic-tag { vertical-align: -2px; margin-right: 2px; flex: none; }
+    .btn .ic-tag { stroke-width: 2.2; }
+    @media (pointer: coarse) {
+      .theme-btn { width: 44px; height: 44px; }
+      .tag-chip, .btn, .section-nav a, .amphur-pill { min-height: 44px; }
+      .section-nav a { display: inline-flex; align-items: center; }
+    }
+    @media (max-width: 700px) {
+      /* brand + theme switch share one row, the tabs get the second: the sticky header drops from ~160px to ~110px */
+      body .topbar { grid-template-columns: 1fr auto; row-gap: 2px; padding: 8px 14px 4px; }
+      body .brand { grid-column: 1; grid-row: 1; }
+      body .topbar-right { grid-column: 2; grid-row: 1; justify-self: end; }
+      body .topbar-right .meta { display: none; }
+      body .section-nav { grid-column: 1 / -1; grid-row: 2; margin: 0 -6px; }
+    }
+  </style>
   </head>
 
   <body>
@@ -973,7 +1014,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
               </div>
               <div class="sidebar-row">
                 <select id="searchStatus"><option value="all">สถานะทั้งหมด</option></select>
-                <button class="btn mgr-only" id="searchTagFilterBtn" style="flex: none; white-space: nowrap;">🏷 ตัวกรองแท็ก</button>
+                <button class="btn mgr-only" id="searchTagFilterBtn" style="flex: none; white-space: nowrap;"><svg class="ic-tag" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg> ตัวกรองแท็ก</button>
               </div>
             </div>
             <div class="district-panel">
@@ -1273,13 +1314,13 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       });
 
       /* ===== modal ===== */
-      function fmt(v) { return v == null ? "—" : (typeof v === "number" ? Math.round(v * 100) / 100 : v); }
+      function fmt(v) { return v == null ? "—" : (typeof v === "number" ? (Math.round(v * 100) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 }) : v); }
       function pct(v) { return v == null ? "—" : (Math.round(v * 1000) / 10) + "%"; }
       function mbps(v) { return v == null ? "—" : fmt(v) + " Mbps"; }
       // Counts of people/subs/units never show fractional decimals -- unlike
       // fmt(), which keeps 2dp for things like scores where the precision
       // is meaningful.
-      function whole(v) { return v == null ? "—" : String(Math.round(v)); }
+      function whole(v) { return v == null ? "—" : Math.round(v).toLocaleString("en-US"); }
       // Flags a rate cell red once it crosses 1% -- used for churn/fault
       // rates specifically, not every percentage (MKS share isn't a
       // "problem" the way an elevated churn or fault rate is).
@@ -2118,7 +2159,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       function renderSearchTagFilterBtn() {
         const btn = document.getElementById("searchTagFilterBtn");
         const n = searchState.tags.size;
-        btn.textContent = n ? `🏷 ตัวกรองแท็ก · ${n}` : "🏷 ตัวกรองแท็ก";
+        btn.innerHTML = `<svg class="ic-tag" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg> ตัวกรองแท็ก${n ? " · " + n : ""}`;
         btn.classList.toggle("primary", n > 0);
       }
 
@@ -2427,7 +2468,6 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         parts.push(`<text class="ana-med-tick" x="${midX.toFixed(1)}" y="${H - PAD_B + 16}" text-anchor="middle">กลาง ${escapeHtml(String(xCol.fmt(xMed)))}</text>`);
         parts.push(`<text class="ana-tick" x="${PAD_L - 6}" y="${H - PAD_B}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMin)))}</text>`);
         parts.push(`<text class="ana-tick" x="${PAD_L - 6}" y="${PAD_T + 8}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMax)))}</text>`);
-        parts.push(`<text class="ana-med-tick" x="${PAD_L - 6}" y="${midY.toFixed(1)}" text-anchor="end">กลาง ${escapeHtml(String(yCol.fmt(yMed)))}</text>`);
         // axis titles
         const yMidPx = (PAD_T + H - PAD_B) / 2;
         parts.push(`<text class="ana-axis-label" x="${(PAD_L + W - PAD_R) / 2}" y="${H - 6}" text-anchor="middle">${escapeHtml(xCol.label)} →</text>`);
@@ -2438,6 +2478,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           const inSel = !anaState.quadrant || inQuadrant(p.r, anaState.quadrant, xCol, yCol, xMed, yMed);
           parts.push(`<circle class="ana-point${inSel ? "" : " dim"}" data-kind="${kindOf(p.r)}" data-id="${p.r.id}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="5" fill="${heatColor(score)}"><title>${escapeHtml(p.r.name || "")}</title></circle>`);
         });
+        // the y-axis median is just the value (the x axis already says "กลาง"): short enough to clear the rotated axis title
+        parts.push(`<text class="ana-med-tick" x="${PAD_L - 6}" y="${(midY + 3).toFixed(1)}" text-anchor="end">${escapeHtml(String(yCol.fmt(yMed)))}</text>`);
         svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
         svg.innerHTML = parts.join("");
       }
