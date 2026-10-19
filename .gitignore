@@ -5,3 +5,4 @@ __pycache__/
 # street data is served from the Google Sheet after sign-in, never from this public repo
 /assets/soi-data.js
 /assets/board-villages.js
+/preview-redesign.html
