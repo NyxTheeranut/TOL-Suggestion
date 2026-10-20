@@ -594,7 +594,7 @@ def add_tags_and_scores(records, size_key):
 
 
 def _find_l2_xlsx():
-    for folder in ("L2", "Config", "."):
+    for folder in (Path("Shared Data") / "L2", "L2", "Config", "."):
         matches = sorted((DASHBOARD_DIR / folder).glob("*Project Atlas L2*.xlsx"), reverse=True)
         if matches:
             return matches[0]

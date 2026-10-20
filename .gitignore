@@ -6,3 +6,9 @@ __pycache__/
 /assets/soi-data.js
 /assets/board-villages.js
 /preview-redesign.html
+
+# local-only docs, previews and media
+.DS_Store
+/docs/
+/dev/
+*.mp4
