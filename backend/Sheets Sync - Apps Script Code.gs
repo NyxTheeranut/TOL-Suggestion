@@ -379,7 +379,53 @@ function doPost(e) {
 
     return jsonResponse_({ ok: false, error: "unknown action" });
   } catch (err) {
-    return jsonResponse_({ ok: false, error: String(err) });
+    return errorResponse_(err);
+  }
+}
+
+// Only messages we wrote for the caller go back as-is (the page reads some of them, e.g. slot_locked);
+// anything else (Apps Script / Sheets internals, quota names, "script property is not set") is logged
+// for the owner and answered with a generic code.
+var CALLER_ERROR_RE = /^(forbidden|not_signed_in|no_access|wrong_role|bad_|slot_|plan_too_large|too_large|monthKey required|invalid_)/;
+function errorResponse_(err) {
+  var msg = String((err && err.message) || err);
+  if (CALLER_ERROR_RE.test(msg)) return jsonResponse_({ ok: false, error: msg });
+  console.error(msg);
+  return jsonResponse_({ ok: false, error: "server_error" });
+}
+
+// Validation helpers shared by the calendar writers. They run BEFORE any tab is cleared, so a bad
+// request is refused with the tab untouched instead of failing half-way through a clear-then-write.
+var MAX_CELL_CHARS = 45000; // Sheets stops at 50,000 per cell
+function assertCellsFit_(rows) {
+  for (var i = 0; i < rows.length; i++)
+    for (var j = 0; j < rows[i].length; j++)
+      if (typeof rows[i][j] === "string" && rows[i][j].length > MAX_CELL_CHARS) throw new Error("too_large");
+}
+function cleanTags_(tags) {
+  if (tags == null) return [];
+  if (!Array.isArray(tags) || tags.length > 20) throw new Error("bad_tags");
+  return tags.map(function (t) {
+    t = String(t);
+    if (t.length > 40) throw new Error("bad_tags");
+    return t;
+  });
+}
+function cleanPick_(p) {
+  p = p || {};
+  var slot = String(p.slot), kind = String(p.kind), refId = String(p.refId == null ? "" : p.refId);
+  if (["1", "2", "3", "backup"].indexOf(slot) === -1) throw new Error("bad_pick");
+  if (kind !== "village" && kind !== "building") throw new Error("bad_pick");
+  if (!refId || refId.length > 80) throw new Error("bad_pick");
+  return { slot: slot, kind: kind, refId: refId, name: String(p.name == null ? "" : p.name).slice(0, 200) };
+}
+function withScriptLock_(fn) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -776,6 +822,7 @@ function cutoffMonthKey_() {
 // write, and the page then fails to match it to its village.
 function textifyPlanRows_(rows) {
   return rows.map(function (r) {
+    r[2] = r[2] == null ? "" : String(r[2]);
     r[3] = String(r[3]);
     r[4] = String(r[4]);
     r[6] = r[6] == null ? "" : String(r[6]);
@@ -783,8 +830,9 @@ function textifyPlanRows_(rows) {
   });
 }
 function formatPlanTextColumns_(sheet) {
-  // kind, refId, email, name -- set before writing so strings stay strings.
-  [4, 5, 6, 7].forEach(function (col) {
+  // slot, kind, refId, email, name -- set before writing so strings stay strings (and nothing a
+  // caller sends can be read as a formula).
+  [3, 4, 5, 6, 7].forEach(function (col) {
     sheet.getRange(1, col, sheet.getMaxRows(), 1).setNumberFormat("@");
   });
 }
@@ -841,40 +889,41 @@ function pruneOldCalendarData_() {
 
 function saveCalendarTheme_(monthKey, tags, email) {
   if (!monthKey) throw new Error("monthKey required");
-  pruneOldCalendarData_();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("CalendarTheme");
-  if (!sheet) {
-    sheet = ss.insertSheet("CalendarTheme");
-    sheet.appendRow(CALENDAR_THEME_HEADER);
-    sheet.setFrozenRows(1);
-  }
-  var data = sheet.getDataRange().getValues();
-  var existing = normalizeRows_(data.slice(1), CALENDAR_THEME_HEADER.length);
-  var rowIdx = -1;
-  for (var i = 0; i < existing.length; i++) {
-    // Matched on monthKey + updatedBy (not monthKey alone) -- each viewer
-    // gets their own theme row per month.
-    if (
-      String(existing[i][0]) === String(monthKey) &&
-      existing[i][2] === email
-    ) {
-      rowIdx = i;
-      break;
+  monthKey = String(monthKey);
+  if (!/^\d{6}$/.test(monthKey)) throw new Error("bad_monthKey");
+  var tagsCsv = cleanTags_(tags).join(",");
+  withScriptLock_(function () {
+    pruneOldCalendarData_();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("CalendarTheme");
+    if (!sheet) {
+      sheet = ss.insertSheet("CalendarTheme");
+      sheet.appendRow(CALENDAR_THEME_HEADER);
+      sheet.setFrozenRows(1);
     }
-  }
-  var newRow = [monthKey, tags.join(","), email, new Date().toISOString()];
-  if (rowIdx === -1) existing.push(newRow);
-  else existing[rowIdx] = newRow;
-  sheet.clearContents();
-  sheet
-    .getRange(1, 1, 1, CALENDAR_THEME_HEADER.length)
-    .setValues([CALENDAR_THEME_HEADER]);
-  if (existing.length)
-    sheet
-      .getRange(2, 1, existing.length, CALENDAR_THEME_HEADER.length)
-      .setValues(existing);
-  sheet.setFrozenRows(1);
+    var data = sheet.getDataRange().getValues();
+    var existing = normalizeRows_(data.slice(1), CALENDAR_THEME_HEADER.length);
+    var rowIdx = -1;
+    for (var i = 0; i < existing.length; i++) {
+      // Matched on monthKey + updatedBy (not monthKey alone) -- each viewer
+      // gets their own theme row per month.
+      if (String(existing[i][0]) === monthKey && existing[i][2] === email) {
+        rowIdx = i;
+        break;
+      }
+    }
+    var newRow = [monthKey, tagsCsv, email, new Date().toISOString()];
+    if (rowIdx === -1) existing.push(newRow);
+    else existing[rowIdx] = newRow;
+    assertCellsFit_(existing); // refuse BEFORE the tab is cleared
+    sheet.clearContents();
+    // plain text first: a value starting with = + - @ must never become a formula
+    sheet.getRange(1, 1, sheet.getMaxRows(), CALENDAR_THEME_HEADER.length).setNumberFormat("@");
+    sheet.getRange(1, 1, 1, CALENDAR_THEME_HEADER.length).setValues([CALENDAR_THEME_HEADER]);
+    if (existing.length)
+      sheet.getRange(2, 1, existing.length, CALENDAR_THEME_HEADER.length).setValues(existing);
+    sheet.setFrozenRows(1);
+  });
 }
 
 // ---------- CalendarSlots: three saved plans per viewer ----------
@@ -930,17 +979,16 @@ function writeSlotRows_(rows) {
   var sheet =
     ss.getSheetByName("CalendarSlots") || ss.insertSheet("CalendarSlots");
   var width = CALENDAR_SLOT_HEADER.length;
+  var text = rows.map(function (r) {
+    return r.map(function (c) {
+      return c == null ? "" : String(c);
+    });
+  });
+  assertCellsFit_(text); // refuse BEFORE the tab is cleared
   sheet.clearContents();
   sheet.getRange(1, 1, sheet.getMaxRows(), width).setNumberFormat("@");
   sheet.getRange(1, 1, 1, width).setValues([CALENDAR_SLOT_HEADER]);
-  if (rows.length) {
-    var text = rows.map(function (r) {
-      return r.map(function (c) {
-        return c == null ? "" : String(c);
-      });
-    });
-    sheet.getRange(2, 1, text.length, width).setValues(text);
-  }
+  if (text.length) sheet.getRange(2, 1, text.length, width).setValues(text);
   sheet.setFrozenRows(1);
 }
 
@@ -979,57 +1027,58 @@ function ownSlotsTab_(email) {
 function saveCalendarSlot_(slot, monthKey, tags, plan, email) {
   slot = checkSlotNumber_(slot);
   if (!monthKey) throw new Error("monthKey required");
+  if (!/^\d{6}$/.test(String(monthKey))) throw new Error("bad_monthKey");
+  var tagsCsv = cleanTags_(tags).join(",");
   var planJson = JSON.stringify(plan || {});
   if (planJson.length > CALENDAR_SLOT_MAX_JSON)
     throw new Error("plan_too_large");
-  pruneExpiredSlots_();
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i !== -1 && isLockedFlag_(rows[i][5])) throw new Error("slot_locked");
-  var now = new Date().toISOString();
-  var row = [
-    email,
-    String(slot),
-    String(monthKey),
-    now,
-    now,
-    "0",
-    (tags || []).join(","),
-    planJson,
-  ];
-  if (i === -1) rows.push(row);
-  else rows[i] = row;
-  writeSlotRows_(rows);
+  withScriptLock_(function () {
+    pruneExpiredSlots_();
+    var rows = readSlotRows_();
+    var i = findSlotIdx_(rows, slot, email);
+    if (i !== -1 && isLockedFlag_(rows[i][5])) throw new Error("slot_locked");
+    var now = new Date().toISOString();
+    var row = [email, String(slot), String(monthKey), now, now, "0", tagsCsv, planJson];
+    if (i === -1) rows.push(row);
+    else rows[i] = row;
+    writeSlotRows_(rows);
+  });
 }
 
 // Opening a slot counts as "used": restarts its 30-day clock.
 function touchCalendarSlot_(slot, email) {
   slot = checkSlotNumber_(slot);
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i === -1) throw new Error("slot_empty");
-  rows[i][4] = new Date().toISOString();
-  writeSlotRows_(rows);
+  withScriptLock_(function () {
+    var rows = readSlotRows_();
+    var i = findSlotIdx_(rows, slot, email);
+    if (i === -1) throw new Error("slot_empty");
+    rows[i][4] = new Date().toISOString();
+    writeSlotRows_(rows);
+  });
 }
 
 function setCalendarSlotLock_(slot, locked, email) {
   slot = checkSlotNumber_(slot);
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i === -1) throw new Error("slot_empty");
-  rows[i][5] = locked ? "1" : "0";
-  rows[i][4] = new Date().toISOString();
-  writeSlotRows_(rows);
+  withScriptLock_(function () {
+    var rows = readSlotRows_();
+    var i = findSlotIdx_(rows, slot, email);
+    if (i === -1) throw new Error("slot_empty");
+    rows[i][5] = locked ? "1" : "0";
+    rows[i][4] = new Date().toISOString();
+    writeSlotRows_(rows);
+  });
 }
 
 function clearCalendarSlot_(slot, email) {
   slot = checkSlotNumber_(slot);
-  var rows = readSlotRows_();
-  var i = findSlotIdx_(rows, slot, email);
-  if (i === -1) return;
-  if (isLockedFlag_(rows[i][5])) throw new Error("slot_locked");
-  rows.splice(i, 1);
-  writeSlotRows_(rows);
+  withScriptLock_(function () {
+    var rows = readSlotRows_();
+    var i = findSlotIdx_(rows, slot, email);
+    if (i === -1) return;
+    if (isLockedFlag_(rows[i][5])) throw new Error("slot_locked");
+    rows.splice(i, 1);
+    writeSlotRows_(rows);
+  });
 }
 
 // ---------- Calendar window + place claims ----------
@@ -1255,6 +1304,7 @@ function readRoster_() {
 }
 function writeRoster_(rows) {
   var sheet = rosterSheet_(), width = DRS_ROSTER_HEADER.length;
+  assertCellsFit_(rows);
   sheet.clearContents();
   sheet.getRange(1, 1, sheet.getMaxRows(), width).setNumberFormat("@");
   sheet.getRange(1, 1, 1, width).setValues([DRS_ROSTER_HEADER]);
@@ -1283,8 +1333,9 @@ function saveDrsRoster_(weekday, emails, actor) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
+    // only THIS manager's DRS are replaced; another manager's DRS keep their Monday (etc.)
     var rows = dropPastOverrides_(readRoster_()).filter(function (r) {
-      return isOverrideRow_(r) || Number(r[0]) !== wd;
+      return isOverrideRow_(r) || Number(r[0]) !== wd || !drs[String(r[1]).toLowerCase()];
     });
     var now = new Date().toISOString();
     chosen.forEach(function (em) { rows.push([String(wd), em, actor, now, "", ""]); });
@@ -1315,7 +1366,10 @@ function saveDrsOverride_(date, add, remove, actor) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var rows = dropPastOverrides_(readRoster_()).filter(function (r) { return !(isOverrideRow_(r) && String(r[4]) === d); });
+    // only changes for DRS in the caller's own scope are replaced; other managers' changes for that date stay
+    var rows = dropPastOverrides_(readRoster_()).filter(function (r) {
+      return !(isOverrideRow_(r) && String(r[4]) === d && drs[String(r[1]).toLowerCase()]);
+    });
     var now = new Date().toISOString();
     a.forEach(function (em) { rows.push(["0", em, actor, now, d, "add"]); });
     rm.forEach(function (em) { rows.push(["0", em, actor, now, d, "remove"]); });
@@ -1428,6 +1482,7 @@ function readSimpleTab_(name, header) {
   };
 }
 function writeSimpleRows_(name, header, rows) {
+  assertCellsFit_(rows); // refuse BEFORE the tab is cleared
   var sheet = simpleSheet_(name, header);
   sheet.clearContents();
   sheet.getRange(1, 1, sheet.getMaxRows(), header.length).setNumberFormat("@");
@@ -1490,7 +1545,7 @@ function savePlanSplit_(monthKey, day, team, villageId, split, actor) {
   if (!planDayCheck_(monthKey, day)) return { ok: false, error: "date_out_of_range" };
   team = String(team || "");
   villageId = String(villageId || "");
-  if (!villageId) return { ok: false, error: "bad_village" };
+  if (!villageId || villageId.length > 80) return { ok: false, error: "bad_village" };
   if (!scopedTeams_(actor)[team]) return { ok: false, error: "wrong_team" };
   var json = split ? JSON.stringify(split) : "";
   if (json.length > 45000) return { ok: false, error: "too_large" };
@@ -1639,27 +1694,30 @@ function clearCalendarMonth_(monthKey, email) {
   if (!monthKey) throw new Error("monthKey required");
   var res = saveCalendarMonth_(monthKey, {}, [], email);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var themeSheet = ss.getSheetByName("CalendarTheme");
-  if (themeSheet) {
-    var tdata = themeSheet.getDataRange().getValues();
-    if (tdata.length >= 2) {
-      var tkept = normalizeRows_(
-        tdata.slice(1),
-        CALENDAR_THEME_HEADER.length,
-      ).filter(function (row) {
-        return !(String(row[0]) === String(monthKey) && row[2] === email);
-      });
-      themeSheet.clearContents();
-      themeSheet
-        .getRange(1, 1, 1, CALENDAR_THEME_HEADER.length)
-        .setValues([CALENDAR_THEME_HEADER]);
-      if (tkept.length)
+  withScriptLock_(function () {
+    var themeSheet = ss.getSheetByName("CalendarTheme");
+    if (themeSheet) {
+      var tdata = themeSheet.getDataRange().getValues();
+      if (tdata.length >= 2) {
+        var tkept = normalizeRows_(
+          tdata.slice(1),
+          CALENDAR_THEME_HEADER.length,
+        ).filter(function (row) {
+          return !(String(row[0]) === String(monthKey) && row[2] === email);
+        });
+        themeSheet.clearContents();
+        themeSheet.getRange(1, 1, themeSheet.getMaxRows(), CALENDAR_THEME_HEADER.length).setNumberFormat("@");
         themeSheet
-          .getRange(2, 1, tkept.length, CALENDAR_THEME_HEADER.length)
-          .setValues(tkept);
-      themeSheet.setFrozenRows(1);
+          .getRange(1, 1, 1, CALENDAR_THEME_HEADER.length)
+          .setValues([CALENDAR_THEME_HEADER]);
+        if (tkept.length)
+          themeSheet
+            .getRange(2, 1, tkept.length, CALENDAR_THEME_HEADER.length)
+            .setValues(tkept);
+        themeSheet.setFrozenRows(1);
+      }
     }
-  }
+  });
   return res;
 }
 
@@ -1723,7 +1781,8 @@ function savePlanDays_(days, email, opts) {
         if (mine) previous[String(row[3]) + ":" + String(row[4])] = true;
         return !mine;
       });
-      (d.picks || []).slice(0, 4).forEach(function (p) {
+      // every pick is validated (slot / kind / refId / name) BEFORE anything is changed or cleared
+      (d.picks || []).slice(0, 4).map(cleanPick_).forEach(function (p) {
         var key = String(p.kind) + ":" + String(p.refId);
         var held = byKey[key];
         // A manager may send several DRS to the SAME place on the SAME day (a big
@@ -1765,7 +1824,7 @@ function savePlanDays_(days, email, opts) {
           byKey[key] = row;
           newToday++;
         }
-        kept.push([mk, dn, p.slot, p.kind, p.refId, email, p.name || ""]);
+        kept.push([mk, dn, p.slot, p.kind, p.refId, email, p.name]);
       });
     });
 
@@ -1794,9 +1853,10 @@ function savePlanDays_(days, email, opts) {
       }
     });
 
+    textifyPlanRows_(kept);
+    assertCellsFit_(kept); // refuse BEFORE the shared plan tab is cleared
     planSheet.clearContents();
     formatPlanTextColumns_(planSheet);
-    textifyPlanRows_(kept);
     planSheet.getRange(1, 1, 1, width).setValues([CALENDAR_PLAN_HEADER]);
     if (kept.length)
       planSheet.getRange(2, 1, kept.length, width).setValues(kept);
