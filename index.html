@@ -890,6 +890,14 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 .b5 .top{position:static;min-height:48px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
 .b5 .side{top:12px;max-height:calc(100vh - 150px)}
 .b5 .side-h,.b5 .tabs{flex:none}
+.b5 #udlg{width:min(480px,calc(100vw - 24px))}
+.b5 .ulist{max-height:220px;overflow:auto;margin:10px 0;border-top:1px solid var(--line2)}
+.b5 .urow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2)}
+.b5 .urow .un{min-width:0}.b5 .urow .un b{display:block}.b5 .urow .un span{display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.b5 .uform{display:grid;gap:10px;margin-top:12px}.b5 .uform label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.b5 .uform select{min-height:36px;padding:2px 10px;border:1px solid var(--line);border-radius:var(--r1);background:var(--panel);color:var(--ink);font-size:13.5px;max-width:100%}
+.b5 .umsg{min-height:20px;font-size:13px;color:var(--ink2)}.b5 .umsg.err{color:var(--rose)}
+.b5 .uform input,.b5 .uform select{min-height:44px}
 @media (max-width:1100px){.b5 .tabs button{min-height:44px;touch-action:manipulation}.b5 .pbody{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 .b5 .soifoc .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
 .b5 .soifoc button{display:inline-flex;align-items:center}
@@ -1219,6 +1227,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             <span class="sp"></span>
             <span class="sync" id="sync"></span>
             <div class="save" id="save" role="status" aria-live="polite"></div>
+            <button class="bbtn quiet sm" type="button" data-act="users"><svg class="ic"><use href="#i-users"/></svg>ผู้ใช้</button>
             <button class="bbtn quiet sm" type="button" data-act="hist"><svg class="ic"><use href="#i-clock"/></svg>ประวัติ</button>
             <button class="bbtn quiet sm" id="helpBtn" type="button" aria-expanded="false" aria-controls="help"><svg class="ic"><use href="#i-help"/></svg>ใช้ยังไง</button>
           </header>
@@ -1299,6 +1308,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 </svg>
       <div class="pop" id="pop" hidden></div>
       <dialog id="cfm" aria-labelledby="cfmH"></dialog>
+      <dialog id="udlg" aria-labelledby="udlgH"></dialog>
       <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
     </div>
 
@@ -3748,6 +3758,40 @@ function renderSearch(q){
 /* ───────── actions ───────── */
 function selectCell(tid,d){UI.sel={t:tid,d:d};UI.cur={t:tid,d:d};UI.mode="day";UI.editCrew=false;UI.altFor=-1;UI.blockFor=-1;UI.addOpen=false;UI.xfer=false;UI.open=true;UI.conflict=null;renderGrid();renderSide()}
 function confirmDlg(title,body,okTxt,fn){var d=$("#cfm");d.innerHTML='<div class="dlg-b"><h2 id="cfmH">'+esc(title)+"</h2><p>"+esc(body)+'</p></div><div class="dlg-f"><button class="bbtn" type="button" data-act="cfmno">ยกเลิก</button><button class="bbtn danger armed" type="button" data-act="cfmyes">'+esc(okTxt)+"</button></div>";d._fn=fn;d.showModal()}
+/* ───────── users: add or remove a DRS from the page (the server checks the role and the team again) ───────── */
+var USERERR={bad_email:"อีเมลไม่ถูกต้อง",exists:"อีเมลนี้มีในระบบแล้ว",bad_owner:"เลือก CM ไม่ถูกต้อง",too_many:"มีผู้ใช้ครบจำนวนสูงสุดแล้ว",wrong_role:"คุณไม่มีสิทธิ์ทำรายการนี้",wrong_team:"คนนี้ไม่ได้อยู่ในทีมของคุณ",not_a_drs:"ลบได้เฉพาะ DRS",cannot_remove_self:"ลบตัวเองไม่ได้",no_owner_column:"ชีต Users ยังไม่มีคอลัมน์ owner ให้เพิ่มก่อน"};
+function userMsg(e){return USERERR[String(e&&e.message||"")]||"ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง"}
+function cmName(em){var m=(STATE.managers||[]).filter(function(x){return x.email===em})[0];return m&&m.name?m.name:em}
+function setUmsg(t,err){var m=$("#umsg");if(!m)return;m.textContent=t||"";m.className="umsg"+(err?" err":"");m.setAttribute("role",err?"alert":"status")}
+function renderUsers(msg){
+  var d=$("#udlg"),isCM=STATE.role==="CM",cms=(STATE.managers||[]).filter(function(m){return m.role==="CM"}),teams={};
+  var L=(STATE.drsUsers||[]).slice().sort(function(a,b){var ta=STATE.drsTeams[a]||"~",tb=STATE.drsTeams[b]||"~";return ta===tb?String(STATE.drsNames[a]||a).localeCompare(String(STATE.drsNames[b]||b),"th"):ta.localeCompare(tb,"th")});
+  L.forEach(function(e){if(STATE.drsTeams[e])teams[STATE.drsTeams[e]]=1});
+  d.innerHTML='<div class="dlg-b"><h2 id="udlgH">ผู้ใช้ (DRS) '+L.length+' คน</h2><p>เพิ่มหรือลบ DRS ได้จากที่นี่ ไม่ต้องเข้า Google Sheet คนที่เพิ่มต้องเข้าระบบด้วยอีเมล Google ของตัวเอง</p>'+
+   '<div class="ulist">'+(L.length?L.map(function(e){return '<div class="urow"><div class="un"><b>'+esc(STATE.drsNames[e]||e)+'</b><span>'+esc(e)+(STATE.drsTeams[e]?" · "+esc(STATE.drsTeams[e]):"")+(!isCM&&STATE.drsOwners[e]?" · CM: "+esc(cmName(STATE.drsOwners[e])):"")+'</span></div><button type="button" class="bbtn sm quiet danger" data-act="udel" data-e="'+esc(e)+'">ลบ</button></div>'}).join(""):'<p class="fine">ยังไม่มี DRS ในทีมของคุณ</p>')+'</div>'+
+   '<form id="uform" class="uform" novalidate><label>อีเมล Google<input id="uf-email" type="email" autocomplete="off" inputmode="email"></label><label>ชื่อ<input id="uf-name" type="text" maxlength="80" autocomplete="off"></label><label>ทีม<input id="uf-team" type="text" maxlength="40" list="uf-teams" autocomplete="off"></label><datalist id="uf-teams">'+Object.keys(teams).map(function(t){return '<option value="'+esc(t)+'">'}).join("")+'</datalist>'+
+   (isCM?"":'<label>CM ที่ดูแล<select id="uf-owner"><option value="">ไม่ระบุ (เห็นเฉพาะ PBH / ADMIN)</option>'+cms.map(function(m){return '<option value="'+esc(m.email)+'">'+esc(m.name||m.email)+'</option>'}).join("")+'</select></label>')+
+   '<div class="umsg" id="umsg" role="status"></div><button class="bbtn pri" type="submit" id="uadd"><svg class="ic sm"><use href="#i-plus"/></svg>เพิ่ม DRS</button></form></div><div class="dlg-f"><button class="bbtn" type="button" data-act="uclose">ปิด</button></div>';
+  if(msg)setUmsg(msg);
+}
+function openUsers(){
+  var d=$("#udlg");
+  if(!d._w){d._w=1;d.addEventListener("submit",function(e){e.preventDefault();addUserNow()})}
+  renderUsers();d.showModal();var f=$("#uf-email");if(f)f.focus();
+}
+function addUserNow(){
+  var em=$("#uf-email").value.trim(),btn=$("#uadd");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){setUmsg("อีเมลไม่ถูกต้อง",true);$("#uf-email").focus();return}
+  var f={email:em,name:$("#uf-name").value.trim(),team:$("#uf-team").value.trim(),owner:($("#uf-owner")||{}).value||""};
+  btn.disabled=true;setUmsg("กำลังเพิ่ม…");
+  api("addUser",f,60000).then(function(){return refreshFromServer(true)}).then(function(){renderUsers("เพิ่มแล้ว: "+(f.name||f.email));toast("เพิ่ม DRS แล้ว")}).catch(function(e){btn.disabled=false;setUmsg(userMsg(e),true)});
+}
+function delUser(b){
+  var e=b.dataset.e,n=STATE.drsNames[e]||e;
+  confirmDlg("ลบ "+n+" ?","คนนี้จะเข้าระบบไม่ได้อีก แผนเดิมยังอยู่ในชีต",'ลบ',function(){
+    api("removeUser",{email:e},60000).then(function(){return refreshFromServer(true)}).then(function(){renderUsers("ลบแล้ว: "+n);toast("ลบผู้ใช้แล้ว")}).catch(function(x){setUmsg(userMsg(x),true)});
+  });
+}
 /* ───────── soi split: street data comes from the Google Sheet after sign-in (never from the page itself) ───────── */
 var SOI={},SOIL={},SOIERR={},SOIENG={},SOILIST=null,SOILISTL=false;
 function soiRaw(vid){return String(vid).replace(/^village:/,"")}
@@ -4296,6 +4340,7 @@ var A={
     CLR.armed=false;pushUndo("ล้าง "+done+" แผน",function(){restores.forEach(function(f){f()})});UI.mode="day";persist();renderAll();toast("ล้างแล้ว "+done+" แผน",true)},
   copyweek:function(){var t=teamById(UI.teamId),L=[];for(var d=0;d<7;d++){var p=planOf(t,d);if(p&&p.stops.length)L.push(planText(t,d,p,false))}if(!L.length){toast("ยังไม่มีแผนใน 7 วันนี้");return}copyText(L.join("\n\n"),"คัดลอกแผน "+L.length+" วันแล้ว วางใน LINE ได้เลย")},
   hist:function(b){var L=UI.log||[];showPop(b,"<h4>การเปลี่ยนแปลงล่าสุด</h4>"+(L.length?L.slice(0,10).map(function(x){return '<button type="button" disabled style="opacity:1;cursor:default"><span><b class="mono" style="font-size:12px;color:var(--muted)">'+esc(x.t)+"</b> "+esc(x.d)+"</span></button>"}).join("")+(UI.undo.length?'<button type="button" data-act="undo">'+ic("undo")+"<span>ย้อนกลับรายการล่าสุด<small>"+esc(UI.undo[UI.undo.length-1].desc)+"</small></span></button>":""):'<div class="fine" style="padding:8px">ยังไม่มีการเปลี่ยนแปลงในรอบนี้</div>'))},
+  users:function(){openUsers()},udel:function(b){delUser(b)},uclose:function(){$("#udlg").close()},
   cfmno:function(){$("#cfm").close()},cfmyes:function(){var d=$("#cfm"),f=d._fn;d.close();if(f)f()},
   minedet:function(b){var v=vById(b.dataset.id);if(v&&typeof openModal==="function")openModal(v.rec,null,{lite:true})},
   minemap:function(b){UI.mineMap=UI.mineMap===b.dataset.k?null:b.dataset.k;renderMine()},

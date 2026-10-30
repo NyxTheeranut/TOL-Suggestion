@@ -330,6 +330,8 @@ function doPost(e) {
       body.action === "saveDrsPattern" ||
       body.action === "mergeDrsOverride" ||
       body.action === "setLeader" ||
+      body.action === "addUser" ||
+      body.action === "removeUser" ||
       body.action === "savePlanNote" ||
       body.action === "savePlanSplit" ||
       body.action === "saveCalendarMonth" ||
@@ -359,6 +361,10 @@ function doPost(e) {
         return jsonResponse_(mergeDrsOverride_(body.date, body.add || [], body.remove || [], emailC, body.clear || []));
       if (body.action === "setLeader")
         return jsonResponse_(setLeader_(body.team, body.email, !!body.on, emailC));
+      if (body.action === "addUser")
+        return jsonResponse_(addUser_(body.email, body.name, body.team, body.owner, emailC));
+      if (body.action === "removeUser")
+        return jsonResponse_(removeUser_(body.email, emailC));
       if (body.action === "savePlanNote")
         return jsonResponse_(savePlanNote_(body.monthKey, body.day, body.team, body.note, emailC));
       if (body.action === "savePlanSplit")
@@ -1645,6 +1651,96 @@ function getSoi_(ids) {
     out[id] = parts[id].join("");
   });
   return { ok: true, ids: Object.keys(have), villages: out };
+}
+
+// ---------- users: add / remove a DRS from the page (instead of typing into the Users tab) ----------
+
+var USERS_MAX_ = 500; // sanity cap on the Users tab
+function cleanText_(v, max) {
+  return String(v == null ? "" : v).replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
+}
+
+// Adds ONE DRS. A CM can only add to their own team (owner is forced to the CM's own email); PBH / ADMIN
+// may name any CM as the owner (or none). Only DRS can be added here -- CM / PBH / ADMIN stay Sheet-only, so
+// nobody can hand out more power than they have. The role is checked here, not just in the page.
+function addUser_(email, name, team, owner, actor) {
+  email = String(email || "").trim().toLowerCase();
+  if (email.length > 254 || !/^[a-z0-9._%+\-]+@[a-z0-9\-]+(\.[a-z0-9\-]+)*\.[a-z]{2,}$/.test(email))
+    return { ok: false, error: "bad_email" };
+  name = cleanText_(name, 80);
+  team = cleanText_(team, 40);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var users = readUsers_(),
+      me = null;
+    users.forEach(function (u) { if (u.email === String(actor).toLowerCase()) me = u; });
+    if (!me || !isManager_(me.role)) return { ok: false, error: "wrong_role" };
+    if (users.some(function (u) { return u.email === email; })) return { ok: false, error: "exists" };
+    if (users.length >= USERS_MAX_) return { ok: false, error: "too_many" };
+    var ownerEmail = "";
+    if (me.role === "CM") ownerEmail = me.email;
+    else {
+      ownerEmail = String(owner || "").trim().toLowerCase();
+      if (ownerEmail && !users.some(function (u) { return u.email === ownerEmail && u.role === "CM"; }))
+        return { ok: false, error: "bad_owner" };
+    }
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Users");
+    var header = sheet.getDataRange().getValues()[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var col = function (a, b) { var i = header.indexOf(a); return i !== -1 || !b ? i : header.indexOf(b); };
+    var emailCol = col("email"), roleCol = col("role"), nameCol = col("name", "ชื่อ"), teamCol = col("team", "ทีม"),
+      ownerCol = col("owner"), noteCol = col("note");
+    // Without an owner column a CM would see every DRS (old behaviour); adding a column here would silently hide the existing ones.
+    if (ownerCol === -1) return { ok: false, error: "no_owner_column" };
+    var row = header.map(function () { return ""; });
+    row[emailCol] = email;
+    if (roleCol !== -1) row[roleCol] = "DRS";
+    if (nameCol !== -1) row[nameCol] = name;
+    if (teamCol !== -1) row[teamCol] = team;
+    row[ownerCol] = ownerEmail;
+    if (noteCol !== -1)
+      row[noteCol] = "added on the page by " + me.email + " " + Utilities.formatDate(new Date(), CALENDAR_TZ, "yyyy-MM-dd HH:mm");
+    var r = sheet.getLastRow() + 1;
+    // plain-text cells, so a name like "=1+1" can never run as a formula
+    sheet.getRange(r, 1, 1, row.length).setNumberFormat("@").setValues([row]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+// Removes ONE DRS from the Users tab (they can no longer sign in). Only a DRS inside the caller's own scope,
+// never yourself. Their old plans stay in the Sheet.
+function removeUser_(email, actor) {
+  email = String(email || "").trim().toLowerCase();
+  actor = String(actor).toLowerCase();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var users = readUsers_(),
+      me = null,
+      target = null;
+    users.forEach(function (u) {
+      if (u.email === actor) me = u;
+      if (u.email === email) target = u;
+    });
+    if (!me || !isManager_(me.role)) return { ok: false, error: "wrong_role" };
+    if (email === actor) return { ok: false, error: "cannot_remove_self" };
+    if (!target || target.role !== "DRS") return { ok: false, error: "not_a_drs" };
+    if (!scopedDrsEmails_(actor, users)[email]) return { ok: false, error: "wrong_team" };
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Users");
+    var data = sheet.getDataRange().getValues();
+    var emailCol = data[0].map(function (h) { return String(h).trim().toLowerCase(); }).indexOf("email");
+    for (var i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][emailCol]).trim().toLowerCase() === email) {
+        sheet.deleteRow(i + 1);
+        return { ok: true };
+      }
+    }
+    return { ok: false, error: "not_a_drs" };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Makes one DRS the leader of their team (or removes it) by writing the Users tab's `leader` column,

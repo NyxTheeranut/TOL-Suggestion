@@ -107,6 +107,8 @@ sample row (until then, everyone gets "not set up yet"). Fill one row per person
 | `owner` | DRS only — the **email of the CM** who runs them. A CM sees and edits only the DRS whose `owner` is them; PBH and ADMIN see everyone. A DRS with a blank `owner` is visible to PBH / ADMIN only. If the column does not exist at all, every manager sees every DRS (the old behaviour). |
 | `leader` | DRS only — `TRUE` for the team leader. You normally do not type this: click "ตั้งเป็น Leader" on the board (the page writes this column) |
 
+**Adding people from the page:** on the dispatch board a CM / PBH / ADMIN can click **ผู้ใช้** to add or remove a DRS without opening the Sheet. A CM's new DRS is always filed under that CM (`owner` is filled in automatically); PBH / ADMIN may pick the CM (or none). Only DRS can be added this way; CM, PBH and ADMIN accounts are still added in the Users tab. The page needs the `owner` column to exist first, and it requires the Apps Script to be redeployed.
+
 Real names and emails live **only** in this tab, never in the page or the repo.
 
 ### 5. Push the data
