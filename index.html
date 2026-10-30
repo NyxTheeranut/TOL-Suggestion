@@ -889,6 +889,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 .b5root{flex:1;min-height:0;overflow:auto}
 .b5 .top{position:static;min-height:48px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
 .b5 .side{top:12px;max-height:calc(100vh - 150px)}
+.b5 .side-h,.b5 .tabs{flex:none}
+@media (max-width:1100px){.b5 .tabs button{min-height:44px;touch-action:manipulation}.b5 .pbody{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 .b5 .soifoc .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
 .b5 .soifoc button{display:inline-flex;align-items:center}
 .b5 .soiq{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin:0 0 10px}
