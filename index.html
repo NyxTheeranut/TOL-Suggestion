@@ -890,14 +890,39 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 .b5 .top{position:static;min-height:48px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
 .b5 .side{top:12px;max-height:calc(100vh - 150px)}
 .b5 .side-h,.b5 .tabs{flex:none}
-.b5 #udlg{width:min(480px,calc(100vw - 24px))}
-.b5 .ulist{max-height:220px;overflow:auto;margin:10px 0;border-top:1px solid var(--line2)}
-.b5 .urow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2)}
-.b5 .urow .un{min-width:0}.b5 .urow .un b{display:block}.b5 .urow .un span{display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
-.b5 .uform{display:grid;gap:10px;margin-top:12px}.b5 .uform label{display:grid;gap:4px;font-size:13px;font-weight:600}
-.b5 .uform select{min-height:36px;padding:2px 10px;border:1px solid var(--line);border-radius:var(--r1);background:var(--panel);color:var(--ink);font-size:13.5px;max-width:100%}
-.b5 .umsg{min-height:20px;font-size:13px;color:var(--ink2)}.b5 .umsg.err{color:var(--rose)}
-.b5 .uform input,.b5 .uform select{min-height:44px}
+.b5 #udlg{width:min(520px,calc(100vw - 24px));max-height:min(92dvh,760px);overflow:hidden}
+.b5 #udlg[open]{display:flex;flex-direction:column}
+.b5 .udlg-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px;border-bottom:1px solid var(--line2)}
+.b5 .udlg-h h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;outline:0}.b5 .udlg-h p{margin-top:2px;font-size:13px;color:var(--muted)}
+.b5 .udlg-h .ib{flex:none;display:inline-grid;place-items:center;width:44px;height:44px;margin:-6px -8px 0 0;border:0;border-radius:var(--r2);background:transparent;color:var(--ink2)}
+.b5 .udlg-h .ib:hover{background:var(--tint2)}
+.b5 .udlg-b{overflow:auto;padding:4px 18px 18px;overscroll-behavior:contain}
+.b5 .usec{display:flex;align-items:baseline;gap:8px;margin:16px 0 8px;font-size:14px;font-weight:700}
+.b5 .ucount{font-size:12.5px;font-weight:600;color:var(--muted)}
+.b5 .ulist{max-height:248px;overflow:auto;border:1px solid var(--line);border-radius:var(--r2)}
+.b5 .urow{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line2)}
+.b5 .urow:last-child{border-bottom:0}
+.b5 .uav{flex:none;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--acc-soft);color:var(--acc);font-size:14px;font-weight:700}
+.b5 .un{flex:1;min-width:0}.b5 .un b{display:block;font-size:14px;line-height:1.35}
+.b5 .un>span{display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.b5 .utags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.b5 .utags i{font-style:normal;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--tint);border:1px solid var(--line2);color:var(--ink2)}
+.b5 .urow .bbtn{flex:none}
+.b5 .uempty{display:grid;justify-items:center;gap:4px;padding:22px 16px;text-align:center;color:var(--muted)}
+.b5 .uempty .ic{width:28px;height:28px;color:var(--acc);margin-bottom:4px}.b5 .uempty b{color:var(--ink);font-size:14px}.b5 .uempty span{font-size:13px}
+.b5 .uform{display:grid;gap:12px}
+.b5 .fld{display:grid;gap:4px;min-width:0}
+.b5 .fld label{font-size:13px;font-weight:600}.b5 .fld label small{font-weight:400;color:var(--muted)}
+.b5 .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.b5 .uform input,.b5 .uform select{width:100%;min-height:44px;padding:2px 12px}
+.b5 .uform select{border:1px solid var(--line);border-radius:var(--r1);background:var(--panel);color:var(--ink);font-size:13.5px}
+.b5 .uform input[aria-invalid=true]{border-color:var(--rose);box-shadow:0 0 0 1px var(--rose)}
+.b5 .fh{font-size:12.5px;color:var(--muted)}.b5 .fe{font-size:12.5px;font-weight:600;color:var(--rose)}.b5 .fe:empty{display:none}
+.b5 .umsg{display:flex;align-items:center;gap:6px;min-height:20px;font-size:13px;color:var(--ink2)}.b5 .umsg:empty{display:none}
+.b5 .umsg.ok{color:var(--acc);font-weight:600}.b5 .umsg.err{color:var(--rose);font-weight:600}
+.b5 .bbtn.full{width:100%;min-height:44px}
+.b5 .bbtn.busy{opacity:.7}
+@media (max-width:520px){.b5 .frow{grid-template-columns:1fr}.b5 .udlg-h{padding:16px 14px 10px}.b5 .udlg-b{padding:2px 14px 16px}.b5 .urow .bbtn{min-height:44px}}
 @media (max-width:1100px){.b5 .tabs button{min-height:44px;touch-action:manipulation}.b5 .pbody{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 .b5 .soifoc .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
 .b5 .soifoc button{display:inline-flex;align-items:center}
@@ -1227,7 +1252,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             <span class="sp"></span>
             <span class="sync" id="sync"></span>
             <div class="save" id="save" role="status" aria-live="polite"></div>
-            <button class="bbtn quiet sm" type="button" data-act="users"><svg class="ic"><use href="#i-users"/></svg>ผู้ใช้</button>
+            <button class="bbtn sm" type="button" data-act="users" aria-haspopup="dialog"><svg class="ic"><use href="#i-users"/></svg>ผู้ใช้</button>
             <button class="bbtn quiet sm" type="button" data-act="hist"><svg class="ic"><use href="#i-clock"/></svg>ประวัติ</button>
             <button class="bbtn quiet sm" id="helpBtn" type="button" aria-expanded="false" aria-controls="help"><svg class="ic"><use href="#i-help"/></svg>ใช้ยังไง</button>
           </header>
@@ -3762,34 +3787,47 @@ function confirmDlg(title,body,okTxt,fn){var d=$("#cfm");d.innerHTML='<div class
 var USERERR={bad_email:"อีเมลไม่ถูกต้อง",exists:"อีเมลนี้มีในระบบแล้ว",bad_owner:"เลือก CM ไม่ถูกต้อง",too_many:"มีผู้ใช้ครบจำนวนสูงสุดแล้ว",wrong_role:"คุณไม่มีสิทธิ์ทำรายการนี้",wrong_team:"คนนี้ไม่ได้อยู่ในทีมของคุณ",not_a_drs:"ลบได้เฉพาะ DRS",cannot_remove_self:"ลบตัวเองไม่ได้",no_owner_column:"ชีต Users ยังไม่มีคอลัมน์ owner ให้เพิ่มก่อน"};
 function userMsg(e){return USERERR[String(e&&e.message||"")]||"ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง"}
 function cmName(em){var m=(STATE.managers||[]).filter(function(x){return x.email===em})[0];return m&&m.name?m.name:em}
-function setUmsg(t,err){var m=$("#umsg");if(!m)return;m.textContent=t||"";m.className="umsg"+(err?" err":"");m.setAttribute("role",err?"alert":"status")}
+function setUmsg(t,kind){var m=$("#umsg");if(!m)return;m.className="umsg"+(kind?" "+kind:"");m.innerHTML=(kind==="ok"?'<svg class="ic sm" aria-hidden="true"><use href="#i-check"/></svg>':kind==="err"?'<svg class="ic sm" aria-hidden="true"><use href="#i-alert"/></svg>':"")+(t?"<span>"+esc(t)+"</span>":"")}
+function setUerr(t){var i=$("#uf-email"),e=$("#uf-email-e");if(!i||!e)return;e.textContent=t||"";if(t)i.setAttribute("aria-invalid","true");else i.removeAttribute("aria-invalid")}
 function renderUsers(msg){
   var d=$("#udlg"),isCM=STATE.role==="CM",cms=(STATE.managers||[]).filter(function(m){return m.role==="CM"}),teams={};
   var L=(STATE.drsUsers||[]).slice().sort(function(a,b){var ta=STATE.drsTeams[a]||"~",tb=STATE.drsTeams[b]||"~";return ta===tb?String(STATE.drsNames[a]||a).localeCompare(String(STATE.drsNames[b]||b),"th"):ta.localeCompare(tb,"th")});
   L.forEach(function(e){if(STATE.drsTeams[e])teams[STATE.drsTeams[e]]=1});
-  d.innerHTML='<div class="dlg-b"><h2 id="udlgH">ผู้ใช้ (DRS) '+L.length+' คน</h2><p>เพิ่มหรือลบ DRS ได้จากที่นี่ ไม่ต้องเข้า Google Sheet คนที่เพิ่มต้องเข้าระบบด้วยอีเมล Google ของตัวเอง</p>'+
-   '<div class="ulist">'+(L.length?L.map(function(e){return '<div class="urow"><div class="un"><b>'+esc(STATE.drsNames[e]||e)+'</b><span>'+esc(e)+(STATE.drsTeams[e]?" · "+esc(STATE.drsTeams[e]):"")+(!isCM&&STATE.drsOwners[e]?" · CM: "+esc(cmName(STATE.drsOwners[e])):"")+'</span></div><button type="button" class="bbtn sm quiet danger" data-act="udel" data-e="'+esc(e)+'">ลบ</button></div>'}).join(""):'<p class="fine">ยังไม่มี DRS ในทีมของคุณ</p>')+'</div>'+
-   '<form id="uform" class="uform" novalidate><label>อีเมล Google<input id="uf-email" type="email" autocomplete="off" inputmode="email"></label><label>ชื่อ<input id="uf-name" type="text" maxlength="80" autocomplete="off"></label><label>ทีม<input id="uf-team" type="text" maxlength="40" list="uf-teams" autocomplete="off"></label><datalist id="uf-teams">'+Object.keys(teams).map(function(t){return '<option value="'+esc(t)+'">'}).join("")+'</datalist>'+
-   (isCM?"":'<label>CM ที่ดูแล<select id="uf-owner"><option value="">ไม่ระบุ (เห็นเฉพาะ PBH / ADMIN)</option>'+cms.map(function(m){return '<option value="'+esc(m.email)+'">'+esc(m.name||m.email)+'</option>'}).join("")+'</select></label>')+
-   '<div class="umsg" id="umsg" role="status"></div><button class="bbtn pri" type="submit" id="uadd"><svg class="ic sm"><use href="#i-plus"/></svg>เพิ่ม DRS</button></form></div><div class="dlg-f"><button class="bbtn" type="button" data-act="uclose">ปิด</button></div>';
-  if(msg)setUmsg(msg);
+  var rows=L.length?L.map(function(e){
+    var n=STATE.drsNames[e]||e,ini=Array.from(String(n).replace(/^\s+/,""))[0]||"?";
+    return '<div class="urow" role="listitem"><span class="uav" aria-hidden="true">'+esc(ini.toUpperCase())+'</span><div class="un"><b>'+esc(n)+'</b><span>'+esc(e)+'</span>'+((STATE.drsTeams[e]||(!isCM&&STATE.drsOwners[e]))?'<span class="utags">'+(STATE.drsTeams[e]?'<i>'+esc(STATE.drsTeams[e])+'</i>':"")+(!isCM&&STATE.drsOwners[e]?'<i>ดูแลโดย '+esc(cmName(STATE.drsOwners[e]))+'</i>':"")+'</span>':"")+'</div><button type="button" class="bbtn sm quiet danger" data-act="udel" data-e="'+esc(e)+'" aria-label="ลบ '+esc(n)+'">ลบ</button></div>'}).join("")
+   :'<div class="uempty"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><b>ยังไม่มี DRS ในทีมของคุณ</b><span>เพิ่มคนแรกได้ที่ฟอร์มด้านล่าง</span></div>';
+  d.innerHTML='<div class="udlg-h"><div><h2 id="udlgH" tabindex="-1">ผู้ใช้ (DRS)</h2><p>เพิ่มหรือลบ DRS ได้จากที่นี่ ไม่ต้องเข้า Google Sheet</p></div><button type="button" class="ib" data-act="uclose" aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>'+
+   '<div class="udlg-b"><section aria-labelledby="usecL"><h3 class="usec" id="usecL">ในทีมของคุณ<span class="ucount">'+L.length+' คน</span></h3><div class="ulist" role="list">'+rows+'</div></section>'+
+   '<form id="uform" class="uform" novalidate aria-labelledby="usecA"><h3 class="usec" id="usecA">เพิ่ม DRS ใหม่</h3>'+
+   '<div class="fld"><label for="uf-email">อีเมล Google</label><input id="uf-email" type="email" autocomplete="off" inputmode="email" enterkeyhint="next" required aria-describedby="uf-email-h uf-email-e"><div class="fh" id="uf-email-h">ใช้อีเมลที่เขาใช้ลงชื่อเข้าใช้ระบบ</div><div class="fe" id="uf-email-e" role="alert"></div></div>'+
+   '<div class="frow"><div class="fld"><label for="uf-name">ชื่อ <small>(ไม่บังคับ)</small></label><input id="uf-name" type="text" maxlength="80" autocomplete="off" enterkeyhint="next"></div>'+
+   '<div class="fld"><label for="uf-team">ทีม <small>(ไม่บังคับ)</small></label><input id="uf-team" type="text" maxlength="40" list="uf-teams" autocomplete="off" enterkeyhint="done"><datalist id="uf-teams">'+Object.keys(teams).map(function(t){return '<option value="'+esc(t)+'">'}).join("")+'</datalist></div></div>'+
+   (isCM?"":'<div class="fld"><label for="uf-owner">CM ที่ดูแล</label><select id="uf-owner"><option value="">ไม่ระบุ (เห็นเฉพาะ PBH / ADMIN)</option>'+cms.map(function(m){return '<option value="'+esc(m.email)+'">'+esc(m.name||m.email)+'</option>'}).join("")+'</select></div>')+
+   '<div class="umsg" id="umsg" role="status" aria-live="polite"></div><button class="bbtn pri full" type="submit" id="uadd"><svg class="ic sm" aria-hidden="true"><use href="#i-plus"/></svg>เพิ่ม DRS</button></form></div>';
+  if(msg)setUmsg(msg,"ok");
 }
 function openUsers(){
   var d=$("#udlg");
-  if(!d._w){d._w=1;d.addEventListener("submit",function(e){e.preventDefault();addUserNow()})}
-  renderUsers();d.showModal();var f=$("#uf-email");if(f)f.focus();
+  if(!d._w){d._w=1;d.addEventListener("submit",function(e){e.preventDefault();addUserNow()});d.addEventListener("input",function(e){if(e.target.id==="uf-email")setUerr("")})}
+  renderUsers();d.showModal();
+  var coarse=window.matchMedia&&matchMedia("(pointer:coarse)").matches,f=coarse?$("#udlgH"):$("#uf-email");if(f)f.focus();   // on a phone, don't pop the keyboard before they ask
 }
 function addUserNow(){
-  var em=$("#uf-email").value.trim(),btn=$("#uadd");
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){setUmsg("อีเมลไม่ถูกต้อง",true);$("#uf-email").focus();return}
+  var i=$("#uf-email"),em=i.value.trim(),btn=$("#uadd");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){setUmsg("");setUerr(em?"อีเมลไม่ถูกต้อง ตรวจตัวสะกดอีกครั้ง":"กรอกอีเมล Google ก่อน");i.focus();return}
+  setUerr("");
   var f={email:em,name:$("#uf-name").value.trim(),team:$("#uf-team").value.trim(),owner:($("#uf-owner")||{}).value||""};
-  btn.disabled=true;setUmsg("กำลังเพิ่ม…");
-  api("addUser",f,60000).then(function(){return refreshFromServer(true)}).then(function(){renderUsers("เพิ่มแล้ว: "+(f.name||f.email));toast("เพิ่ม DRS แล้ว")}).catch(function(e){btn.disabled=false;setUmsg(userMsg(e),true)});
+  btn.disabled=true;btn.classList.add("busy");setUmsg("กำลังเพิ่ม…");
+  api("addUser",f,60000).then(function(){return refreshFromServer(true)}).then(function(){renderUsers("เพิ่มแล้ว: "+(f.name||f.email));toast("เพิ่ม DRS แล้ว");var n=$("#uf-email");if(n&&!(window.matchMedia&&matchMedia("(pointer:coarse)").matches))n.focus()}).catch(function(e){
+    btn.disabled=false;btn.classList.remove("busy");setUmsg("");var m=String(e&&e.message||"");
+    if(m==="exists"||m==="bad_email"){setUerr(userMsg(e));i.focus()}else setUmsg(userMsg(e),"err");
+  });
 }
 function delUser(b){
   var e=b.dataset.e,n=STATE.drsNames[e]||e;
   confirmDlg("ลบ "+n+" ?","คนนี้จะเข้าระบบไม่ได้อีก แผนเดิมยังอยู่ในชีต",'ลบ',function(){
-    api("removeUser",{email:e},60000).then(function(){return refreshFromServer(true)}).then(function(){renderUsers("ลบแล้ว: "+n);toast("ลบผู้ใช้แล้ว")}).catch(function(x){setUmsg(userMsg(x),true)});
+    api("removeUser",{email:e},60000).then(function(){return refreshFromServer(true)}).then(function(){renderUsers("ลบแล้ว: "+n);toast("ลบผู้ใช้แล้ว")}).catch(function(x){setUmsg(userMsg(x),"err")});
   });
 }
 /* ───────── soi split: street data comes from the Google Sheet after sign-in (never from the page itself) ───────── */
