@@ -890,6 +890,15 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 .b5 .top{position:static;min-height:48px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
 .b5 .side{top:12px;max-height:calc(100vh - 150px)}
 .b5 .side-h,.b5 .tabs{flex:none}
+.b5 .ctog{display:flex;align-items:center;gap:8px;width:100%;min-height:30px;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer;border-radius:var(--r1)}
+.b5 .ctog .chev{flex:none;width:16px;height:16px;color:var(--muted);transition:transform .2s var(--ease)}
+.b5 #attnCard.closed .ctog .chev{transform:rotate(-90deg)}
+.b5 #attnCard.closed .card-h{border-bottom:0}
+.b5 .acnt{font-size:12.5px;font-weight:600;color:var(--muted)}
+.b5 .acnt.crit,.b5 .acnt.warn{padding:1px 9px;border-radius:999px}
+.b5 .acnt.crit{background:var(--rose-soft);color:var(--rose)}.b5 .acnt.warn{background:var(--amb-soft);color:var(--amb)}
+@media (pointer:coarse){.b5 .ctog{min-height:44px}}
+@media (prefers-reduced-motion:reduce){.b5 .ctog .chev{transition:none}}
 .b5 #udlg{width:min(520px,calc(100vw - 24px));max-height:min(92dvh,760px);overflow:hidden}
 .b5 #udlg[open]{display:flex;flex-direction:column}
 .b5 .udlg-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px;border-bottom:1px solid var(--line2)}
@@ -1270,7 +1279,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
               <div class="col">
                 <div class="sec-h" id="pbhHead"><h2>ส่วน PBH</h2><span>ภาพรวมของทุกทีม: วันนี้ พรุ่งนี้ และสิ่งที่ต้องดู</span></div>
                 <section class="strip" id="strip" aria-label="วันนี้และพรุ่งนี้"></section>
-                <section class="bcard" id="attnCard" aria-labelledby="aH"><div class="card-h"><h2 id="aH">สิ่งที่ต้องดู</h2><span class="sub" id="aSub"></span></div><ul class="attn" id="attn"></ul></section>
+                <section class="bcard" id="attnCard" aria-labelledby="aH"><div class="card-h"><h2 id="aH"><button type="button" class="ctog" data-act="atoggle" aria-expanded="true" aria-controls="attn"><svg class="ic chev" aria-hidden="true"><use href="#i-down"/></svg><span>สิ่งที่ต้องดู</span><span class="sub acnt" id="aSub"></span></button></h2></div><ul class="attn" id="attn"></ul></section>
                 <div class="sec-h" id="cmHead"><h2 id="cmHeadT">ส่วน CM</h2><span>แผน 14 วันของแต่ละทีม</span></div>
                 <section class="bcard" aria-labelledby="gH">
                   <div class="card-h"><h2 id="gH">แผน 14 วันข้างหน้า</h2><span class="sub" id="gSub"></span><span class="sp"></span>
@@ -3506,9 +3515,18 @@ function attnItems(){
   var items=it.slice(0,5);
   return{items:items,more:Math.max(0,it.length-5),later:later};
 }
+var ATTN_OPEN=true;try{ATTN_OPEN=localStorage.getItem("tolB5Attn")!=="0"}catch(e){}
+/* the "สิ่งที่ต้องดู" card can be folded; the header keeps a count so a folded card still says how much is waiting */
+function attnApply(a){
+  var open=ATTN_OPEN,t=$("#attn"),b=document.querySelector("#attnCard .ctog"),n=$("#aSub"),card=$("#attnCard");
+  if(t)t.hidden=!open;if(card)card.classList.toggle("closed",!open);if(b)b.setAttribute("aria-expanded",String(open));
+  if(!n)return;
+  var tot=a?a.items.length+(a.more||0)+(a.later?1:0):0,worst=a&&a.items.some(function(x){return x.lv==="rose"})?"crit":(a&&(a.items.some(function(x){return x.lv==="amb"})||a.later)?"warn":"");
+  n.className="sub acnt"+(tot&&worst?" "+worst:"");n.textContent=tot?tot+" เรื่อง":"";
+}
 function renderAttn(){
   var a=attnItems(),el=$("#attn");
-  $("#aSub").textContent=(a.items.length||a.later)?"":"";
+  attnApply(a);
   if(!visTeams().length){el.innerHTML='<li class="allgood" style="color:var(--ink2);font-weight:500">'+ic("users")+"ยังไม่มี DRS ในแท็บ Users ของ Google Sheet ใส่ role = DRS กับ team แล้วกดรีเฟรช</li>";return}
   if(!a.items.length&&!a.later){el.innerHTML='<li class="allgood">'+ic("check")+"ไม่มีอะไรต้องดู วันนี้และพรุ่งนี้พร้อม และ 14 วันข้างหน้ามีแผนครบ</li>";return}
   el.innerHTML=a.items.map(function(x,i){return '<li><button type="button" '+(x.team?'data-act="team" data-t="'+x.team+'"':'data-act="cell" data-t="'+x.go.t+'" data-d="'+x.go.d+'"')+'><span class="gl '+x.lv+'">'+ic(x.ic,"sm")+'</span><span class="t">'+esc(x.t)+"<small>"+esc(x.s)+'</small></span><span class="go">ดู</span></button></li>'}).join("")+
@@ -4378,6 +4396,7 @@ var A={
     CLR.armed=false;pushUndo("ล้าง "+done+" แผน",function(){restores.forEach(function(f){f()})});UI.mode="day";persist();renderAll();toast("ล้างแล้ว "+done+" แผน",true)},
   copyweek:function(){var t=teamById(UI.teamId),L=[];for(var d=0;d<7;d++){var p=planOf(t,d);if(p&&p.stops.length)L.push(planText(t,d,p,false))}if(!L.length){toast("ยังไม่มีแผนใน 7 วันนี้");return}copyText(L.join("\n\n"),"คัดลอกแผน "+L.length+" วันแล้ว วางใน LINE ได้เลย")},
   hist:function(b){var L=UI.log||[];showPop(b,"<h4>การเปลี่ยนแปลงล่าสุด</h4>"+(L.length?L.slice(0,10).map(function(x){return '<button type="button" disabled style="opacity:1;cursor:default"><span><b class="mono" style="font-size:12px;color:var(--muted)">'+esc(x.t)+"</b> "+esc(x.d)+"</span></button>"}).join("")+(UI.undo.length?'<button type="button" data-act="undo">'+ic("undo")+"<span>ย้อนกลับรายการล่าสุด<small>"+esc(UI.undo[UI.undo.length-1].desc)+"</small></span></button>":""):'<div class="fine" style="padding:8px">ยังไม่มีการเปลี่ยนแปลงในรอบนี้</div>'))},
+  atoggle:function(){ATTN_OPEN=!ATTN_OPEN;try{localStorage.setItem("tolB5Attn",ATTN_OPEN?"1":"0")}catch(e){}attnApply(attnItems())},
   users:function(){openUsers()},udel:function(b){delUser(b)},uclose:function(){$("#udlg").close()},
   cfmno:function(){$("#cfm").close()},cfmyes:function(){var d=$("#cfm"),f=d._fn;d.close();if(f)f()},
   minedet:function(b){var v=vById(b.dataset.id);if(v&&typeof openModal==="function")openModal(v.rec,null,{lite:true})},
