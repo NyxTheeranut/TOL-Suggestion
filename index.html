@@ -1098,7 +1098,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
           </div>
         </div>
         <div class="section-nav" id="sectionNav">
-          <a href="#search" data-sec="search" class="active">แผนที่</a>
+          <a href="#search" data-sec="search" class="active mgr-only">แผนที่</a>
           <a href="#recommend" data-sec="recommend" class="mgr-only">วิเคราะห์</a>
           <a href="#drs" data-sec="drs" class="mgr-only">จัดแผน DRS</a>
           <a href="#mine" data-sec="mine">แผนของฉัน</a>
@@ -1110,7 +1110,7 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
       </div>
 
       <!-- ===== Section 1: Search & Demographic ===== -->
-      <section class="app-section active" id="sec-search">
+      <section class="app-section active mgr-only" id="sec-search">
         <div class="mobile-view-switch" id="searchViewSwitch">
           <button data-view="list" class="active">รายการ</button>
           <button data-view="map">แผนที่</button>
@@ -1413,6 +1413,8 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
 
       /* ===== section nav ===== */
       function goSection(sec) {
+        // A DRS only has "my plan": the map, analysis and board are for managers.
+        if (!isMgr() && (sec === "search" || sec === "recommend" || sec === "drs")) sec = "mine";
         const link = document.querySelector('.section-nav a[data-sec="' + sec + '"]');
         if (!link) return;
         document.querySelectorAll(".section-nav a").forEach((x) => x.classList.toggle("active", x === link));
@@ -1738,14 +1740,19 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
         };
         return { mode: m.mode, reason: m.reason, steps: by[m.mode] };
       }
-      function salesScriptPane(r) {
+      // lite (a DRS): same script, but the one-line reason says who leads without the MKS numbers
+      function scriptReasonLite(r) {
+        const m = scriptModeOf(r), lead = m.leader ? m.leader.label : "";
+        return m.mode === "defend" ? "True นำอยู่ที่นี่" : m.mode === "convert" ? `${lead} กับ True สูสีกัน` : m.mode === "attack" ? `${lead} นำอยู่ที่นี่` : "ยังไม่มีข้อมูลส่วนแบ่งตลาดของที่นี่";
+      }
+      function salesScriptPane(r, lite) {
         const sc = salesScriptFor(r), md = SCRIPT_MODES[sc.mode];
-        return `<div class="script-mode tone-${md.tone}"><span class="sm-badge">${md.th} <small>${md.en}</small></span><span class="sm-why">${escapeHtml(sc.reason)}</span></div>` +
+        return `<div class="script-mode tone-${md.tone}"><span class="sm-badge">${md.th} <small>${md.en}</small></span><span class="sm-why">${escapeHtml(lite ? scriptReasonLite(r) : sc.reason)}</span></div>` +
           `<div class="script-note">ตัวอย่างสคริปต์ (mock), เลือกโหมดตามส่วนแบ่งตลาดจริง ส่วนข้อความจะถูกแทนที่ภายหลัง</div>` + sc.steps.map((st) =>
           `<div class="script-step"><h4>${escapeHtml(st.h)}</h4>${st.p ? `<p>${escapeHtml(st.p)}</p>` : ""}${st.items ? `<ul>${st.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""}</div>`).join("");
       }
 
-      // opts.lite: the card a DRS sees -- only households, ports and download speed (always used for a DRS)
+      // opts.lite: the card a DRS sees -- households, ports, download speed and the sales script, no market-share numbers (always used for a DRS)
       function openModal(record, initialTab, opts) {
         initialTab = initialTab || "details";
         const lite = !!(opts && opts.lite) || !isMgr();
@@ -1784,7 +1791,12 @@ select:focus, .text-input:focus, .cal-controls input[type="month"]:focus { outli
             </div>
             <button class="modal-close" id="modalCloseBtn"><i class=ic-x></i></button>
           </div>
-          <div class="modal-pane active" data-pane="details">${detailsPane}</div>
+          <div class="modal-tabs" role="tablist">
+            <button class="modal-tab${initialTab === "script" ? "" : " active"}" data-tab="details" role="tab">รายละเอียด</button>
+            <button class="modal-tab${initialTab === "script" ? " active" : ""}" data-tab="script" role="tab">สคริปต์การขาย</button>
+          </div>
+          <div class="modal-pane${initialTab === "script" ? "" : " active"}" data-pane="details">${detailsPane}</div>
+          <div class="modal-pane${initialTab === "script" ? " active" : ""}" data-pane="script">${salesScriptPane(record, true)}</div>
         ` : `
           <div class="modal-head">
             <div>

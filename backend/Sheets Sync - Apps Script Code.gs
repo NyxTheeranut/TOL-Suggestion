@@ -283,10 +283,23 @@ function doPost(e) {
     }
 
     if (body.action === "getSoi") {
-      // Street geometry for big villages: any signed-in, allow-listed user (a DRS needs it to see their own sois).
+      // Street geometry for big villages: a manager gets any; a DRS only the villages in their own plan (their own sois).
       var emailS = verifyIdToken_(body.idToken);
       if (!emailS || !isAllowedUser_(emailS))
         return jsonResponse_({ ok: false, error: "not_signed_in" });
+      if (!isManager_(userRole_(emailS))) {
+        // A DRS only gets street data for the villages in their own two-day plan.
+        var planS = readTabs_(["CalendarPlan"]).CalendarPlan;
+        var mineS = placesInPlan_(windowPlanRows_(filterOwnRows_(planS, "email", emailS))).village;
+        var asked = (body.ids || []).filter(function (i) {
+          return mineS[String(i)];
+        });
+        var resS = getSoi_(asked);
+        resS.ids = (resS.ids || []).filter(function (i) {
+          return mineS[String(i)];
+        });
+        return jsonResponse_(resS);
+      }
       return jsonResponse_(getSoi_(body.ids || []));
     }
 
@@ -641,6 +654,10 @@ function myData_(idToken) {
     tabs.PlanSplits = windowFilterTeams_(readSimpleTab_("PlanSplits", PLAN_SPLITS_HEADER), teamsInScope);
   } else {
     tabs.CalendarPlan = windowPlanRows_(own); // DRS: only today + tomorrow ever leave the server
+    // ...and a DRS only ever receives the villages / buildings in that plan, never the whole inventory.
+    var visible = placesInPlan_(tabs.CalendarPlan);
+    tabs.Villages = onlyIds_(tabs.Villages, visible.village);
+    tabs.Buildings = onlyIds_(tabs.Buildings, visible.building);
     // A DRS also gets the note and the soi split saved for their own team on those days.
     var myTeam = "", myName = "", myLeader = false;
     readUsers_().forEach(function (u) {
@@ -671,7 +688,7 @@ function myData_(idToken) {
     email: email,
     role: role,
     tabs: tabs,
-    claimedByOthers: claimedByOthers_(email),
+    claimedByOthers: isManager_(role) ? claimedByOthers_(email) : [], // other people's picks are a manager's concern only
   };
   if (extra.drsUsers) res.drsUsers = extra.drsUsers;
   if (extra.drsNames) res.drsNames = extra.drsNames;
@@ -681,6 +698,31 @@ function myData_(idToken) {
   if (extra.managers) res.managers = extra.managers;
   if (extra.me) res.me = extra.me;
   return res;
+}
+
+// The villages / buildings named by a plan tab (kind + refId columns), as { village: {id: true}, building: {id: true} }.
+function placesInPlan_(planTab) {
+  var out = { village: {}, building: {} };
+  var h = (planTab && planTab.header) || [];
+  var ki = h.indexOf("kind"), ri = h.indexOf("refId");
+  if (ki === -1 || ri === -1) return out;
+  planTab.rows.forEach(function (r) {
+    var kind = String(r[ki]);
+    if (out[kind]) out[kind][String(r[ri])] = true;
+  });
+  return out;
+}
+
+// Keeps only the rows whose `id` column is in the given set (an empty set keeps nothing).
+function onlyIds_(tab, ids) {
+  var i = (tab.header || []).indexOf("id");
+  if (i === -1) return { header: tab.header || [], rows: [] };
+  return {
+    header: tab.header,
+    rows: tab.rows.filter(function (r) {
+      return ids[String(r[i])];
+    }),
+  };
 }
 
 // Passes a tab through unfiltered if it doesn't have the given column yet

@@ -164,7 +164,7 @@ useful for reviewing the UI without any of that setup.
   counts, ports, latest active, competitor total, market share, fault/churn,
   the business's own existing sales grading, computed tags, and `autoScore`.
 - `Users` — `email | role | name | team | owner | leader` allow-list (see step 4). PBH / CM / ADMIN get the
-  dispatch board; a DRS gets only **แผนของฉัน** and the map. The server filters everything by `owner`: a CM can read and write
+  dispatch board; a DRS gets only **แผนของฉัน** (no map, no analysis, no board): the server sends a DRS just the villages / buildings in their own two-day plan, and street (soi) data only for those villages. The server filters everything by `owner`: a CM can read and write
   only their own DRS's plans, roster, notes and splits (`wrong_role` / `not_a_drs` / `wrong_team` otherwise).
 - `CalendarTheme` — legacy (the monthly calendar was removed); no longer written.
 - `CalendarPlan` — one row per (month, day, slot, DRS) pick, written by managers with `assignDrsDays` (up to 14 days ahead).
